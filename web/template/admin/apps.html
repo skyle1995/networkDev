@@ -327,6 +327,10 @@
                 id: 'multi_instance'
               },
               {
+                title: '绑定设置',
+                id: 'bind_settings'
+              },
+              {
                 title: '重置密钥',
                 id: 'reset_secret'
               }
@@ -548,6 +552,164 @@
                     }
                   });
                   layer.close(index);
+                });
+              } else if (menudata.id === 'bind_settings') {
+                // 绑定设置
+                $.ajax({
+                  url: '/admin/api/apps/get_bind_config?uuid=' + obj.data.uuid,
+                  type: 'GET',
+                  success: function(config) {
+                    layer.open({
+                      type: 1,
+                      title: '绑定设置 - ' + obj.data.name,
+                      area: ['650px', '600px'],
+                      content: '<div style="padding: 20px;">' +
+                               '<form class="layui-form layui-form-pane" lay-filter="bindConfigForm">' +
+                               
+                               // 机器码验证设置
+                               '<fieldset class="layui-elem-field layui-field-title">' +
+                               '<legend>机器码验证设置</legend>' +
+                               '</fieldset>' +
+                               '<div class="layui-form-item" pane>' +
+                               '<label class="layui-form-label">机器码验证</label>' +
+                               '<div class="layui-input-block">' +
+                               '<input type="radio" name="machine_code_verify" value="0" title="关闭" ' + (config.machine_code_verify === 0 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="machine_code_verify" value="1" title="开启" ' + (config.machine_code_verify === 1 ? 'checked' : '') + '>' +
+                               '</div>' +
+                               '</div>' +
+                               '<div class="layui-form-item" pane>' +
+                               '<label class="layui-form-label">机器码选项</label>' +
+                               '<div class="layui-input-block">' +
+                               '<input type="radio" name="machine_code_option" value="0" title="每天" ' + (config.machine_code_option === 0 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="machine_code_option" value="1" title="永久" ' + (config.machine_code_option === 1 ? 'checked' : '') + '>' +
+                               '</div>' +
+                               '</div>' +
+                               '<div class="layui-form-item">' +
+                               '<label class="layui-form-label">免费次数</label>' +
+                               '<div class="layui-input-block">' +
+                               '<input type="number" name="machine_code_free_count" class="layui-input" value="' + config.machine_code_free_count + '" placeholder="请输入" lay-verify="number" min="0">' +
+                               '</div>' +
+                               '</div>' +
+                               '<div class="layui-form-item">' +
+                               '<label class="layui-form-label">重绑次数</label>' +
+                               '<div class="layui-input-block">' +
+                               '<input type="number" name="machine_code_rebind_count" class="layui-input" value="' + config.machine_code_rebind_count + '" placeholder="请输入" lay-verify="number" min="0">' +
+                               '</div>' +
+                               '</div>' +
+                               '<div class="layui-form-item">' +
+                               '<label class="layui-form-label">重绑扣除</label>' +
+                               '<div class="layui-input-block">' +
+                               '<input type="number" name="machine_code_rebind_deduct" class="layui-input" value="' + config.machine_code_rebind_deduct + '" placeholder="请输入重绑扣除时间（分钟）" lay-verify="number" min="0">' +
+                               '</div>' +
+                               '</div>' +
+                               
+                               // IP地址验证设置
+                               '<fieldset class="layui-elem-field layui-field-title" style="margin-top: 30px;">' +
+                               '<legend>IP地址验证设置</legend>' +
+                               '</fieldset>' +
+                               '<div class="layui-form-item" pane>' +
+                               '<label class="layui-form-label">IP地址验证</label>' +
+                               '<div class="layui-input-block">' +
+                               '<input type="radio" name="ip_verify" value="0" title="关闭" ' + (config.ip_verify === 0 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="ip_verify" value="1" title="开启" ' + (config.ip_verify === 1 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="ip_verify" value="2" title="开启(市)" ' + (config.ip_verify === 2 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="ip_verify" value="3" title="开启(省)" ' + (config.ip_verify === 3 ? 'checked' : '') + '>' +
+                               '</div>' +
+                               '</div>' +
+                               '<div class="layui-form-item" pane>' +
+                               '<label class="layui-form-label">IP地址选项</label>' +
+                               '<div class="layui-input-block">' +
+                               '<input type="radio" name="ip_option" value="0" title="每天" ' + (config.ip_option === 0 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="ip_option" value="1" title="永久" ' + (config.ip_option === 1 ? 'checked' : '') + '>' +
+                               '</div>' +
+                               '</div>' +
+                               '<div class="layui-form-item">' +
+                               '<label class="layui-form-label">免费次数</label>' +
+                               '<div class="layui-input-block">' +
+                               '<input type="number" name="ip_free_count" class="layui-input" value="' + config.ip_free_count + '" placeholder="请输入" lay-verify="number" min="0">' +
+                               '</div>' +
+                               '</div>' +
+                               '<div class="layui-form-item">' +
+                               '<label class="layui-form-label">重绑次数</label>' +
+                               '<div class="layui-input-block">' +
+                               '<input type="number" name="ip_rebind_count" class="layui-input" value="' + config.ip_rebind_count + '" placeholder="请输入" lay-verify="number" min="0">' +
+                               '</div>' +
+                               '</div>' +
+                               '<div class="layui-form-item">' +
+                               '<label class="layui-form-label">重绑扣除</label>' +
+                               '<div class="layui-input-block">' +
+                               '<input type="number" name="ip_rebind_deduct" class="layui-input" value="' + config.ip_rebind_deduct + '" placeholder="请输入重绑扣除时间（分钟）" lay-verify="number" min="0">' +
+                               '</div>' +
+                               '</div>' +
+                               
+                               '</form>' +
+                               '</div>',
+                      btn: ['保存', '取消'],
+                      yes: function(index, layero) {
+                        var formData = {
+                          uuid: obj.data.uuid,
+                          machine_code_verify: parseInt($('input[name="machine_code_verify"]:checked').val()),
+                          machine_code_option: parseInt($('input[name="machine_code_option"]:checked').val()),
+                          machine_code_free_count: parseInt($('input[name="machine_code_free_count"]').val()) || 0,
+                          machine_code_rebind_count: parseInt($('input[name="machine_code_rebind_count"]').val()) || 0,
+                          machine_code_rebind_deduct: parseInt($('input[name="machine_code_rebind_deduct"]').val()) || 0,
+                          ip_verify: parseInt($('input[name="ip_verify"]:checked').val()),
+                          ip_option: parseInt($('input[name="ip_option"]:checked').val()),
+                          ip_free_count: parseInt($('input[name="ip_free_count"]').val()) || 0,
+                          ip_rebind_count: parseInt($('input[name="ip_rebind_count"]').val()) || 0,
+                          ip_rebind_deduct: parseInt($('input[name="ip_rebind_deduct"]').val()) || 0
+                        };
+                        
+                        // 验证数据
+                        if (isNaN(formData.machine_code_verify) || formData.machine_code_verify < 0 || formData.machine_code_verify > 1) {
+                          layer.msg('请选择机器码验证选项', {icon: 2});
+                          return;
+                        }
+                        if (isNaN(formData.machine_code_option) || formData.machine_code_option < 0 || formData.machine_code_option > 1) {
+                          layer.msg('请选择机器码选项', {icon: 2});
+                          return;
+                        }
+                        if (isNaN(formData.ip_verify) || formData.ip_verify < 0 || formData.ip_verify > 3) {
+                          layer.msg('请选择IP地址验证选项', {icon: 2});
+                          return;
+                        }
+                        if (isNaN(formData.ip_option) || formData.ip_option < 0 || formData.ip_option > 1) {
+                          layer.msg('请选择IP地址选项', {icon: 2});
+                          return;
+                        }
+                        
+                        // 发送更新请求
+                        $.ajax({
+                          url: '/admin/api/apps/update_bind_config',
+                          type: 'POST',
+                          contentType: 'application/json',
+                          data: JSON.stringify(formData),
+                          success: function(res) {
+                            if (res.code === 0) {
+                              layer.msg('绑定设置更新成功', {icon: 1});
+                              layer.close(index);
+                              table.reload('appsTable');
+                            } else {
+                              layer.msg(res.msg || '更新绑定设置失败', {icon: 2});
+                            }
+                          },
+                          error: function() {
+                            layer.msg('网络错误，请稍后重试', {icon: 2});
+                          }
+                        });
+                      },
+                      btn2: function(index) {
+                        layer.close(index);
+                      },
+                      success: function() {
+                        // 重新渲染表单
+                        form.render();
+                      }
+                    });
+                  },
+                  error: function() {
+                    layer.msg('获取绑定设置失败，请稍后重试', {icon: 2});
+                  }
                 });
               }
             },

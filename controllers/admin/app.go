@@ -745,3 +745,238 @@ func AppUpdateMultiConfigHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"message": "多开配置更新成功"})
 }
+
+// AppGetBindConfigHandler 获取应用绑定配置
+func AppGetBindConfigHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	appUUID := r.URL.Query().Get("uuid")
+	if appUUID == "" {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "缺少应用UUID",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 验证UUID格式
+	if _, err := uuid.Parse(appUUID); err != nil {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "无效的UUID格式",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	db, err := database.GetDB()
+	if err != nil {
+		logrus.WithError(err).Error("Failed to get database connection")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "数据库连接失败",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	var app models.App
+	if err := db.Where("uuid = ?", appUUID).First(&app).Error; err != nil {
+		logrus.WithError(err).Error("Failed to find app")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "应用不存在",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 返回绑定配置信息
+	response := map[string]interface{}{
+		"machine_code_verify":       app.MachineCodeVerify,
+		"machine_code_option":       app.MachineCodeOption,
+		"machine_code_free_count":   app.MachineCodeFreeCount,
+		"machine_code_rebind_count": app.MachineCodeRebindCount,
+		"machine_code_rebind_deduct": app.MachineCodeRebindDeduct,
+		"ip_verify":                 app.IPVerify,
+		"ip_option":                 app.IPOption,
+		"ip_free_count":             app.IPFreeCount,
+		"ip_rebind_count":           app.IPRebindCount,
+		"ip_rebind_deduct":          app.IPRebindDeduct,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// AppUpdateBindConfigHandler 更新应用绑定配置
+func AppUpdateBindConfigHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		UUID                     string `json:"uuid"`
+		MachineCodeVerify        int    `json:"machine_code_verify"`
+		MachineCodeOption        int    `json:"machine_code_option"`
+		MachineCodeFreeCount     int    `json:"machine_code_free_count"`
+		MachineCodeRebindCount   int    `json:"machine_code_rebind_count"`
+		MachineCodeRebindDeduct  int    `json:"machine_code_rebind_deduct"`
+		IPVerify                 int    `json:"ip_verify"`
+		IPOption                 int    `json:"ip_option"`
+		IPFreeCount              int    `json:"ip_free_count"`
+		IPRebindCount            int    `json:"ip_rebind_count"`
+		IPRebindDeduct           int    `json:"ip_rebind_deduct"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		logrus.WithError(err).Error("Failed to decode JSON request")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "无效的JSON格式",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 验证UUID
+	if req.UUID == "" {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "应用UUID不能为空",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	if _, err := uuid.Parse(req.UUID); err != nil {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "无效的UUID格式",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 验证参数范围
+	if req.MachineCodeVerify < 0 || req.MachineCodeVerify > 1 {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "机器码验证参数无效",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	if req.MachineCodeOption < 0 || req.MachineCodeOption > 1 {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "机器码选项参数无效",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	if req.IPVerify < 0 || req.IPVerify > 3 {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "IP地址验证参数无效",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	if req.IPOption < 0 || req.IPOption > 1 {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "IP地址选项参数无效",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	if req.MachineCodeFreeCount < 0 || req.MachineCodeRebindCount < 0 || req.MachineCodeRebindDeduct < 0 ||
+		req.IPFreeCount < 0 || req.IPRebindCount < 0 || req.IPRebindDeduct < 0 {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "数量参数不能为负数",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	db, err := database.GetDB()
+	if err != nil {
+		logrus.WithError(err).Error("Failed to get database connection")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "数据库连接失败",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 查找应用
+	var app models.App
+	if err := db.Where("uuid = ?", req.UUID).First(&app).Error; err != nil {
+		logrus.WithError(err).Error("Failed to find app")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "应用不存在",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 更新绑定配置
+	updates := map[string]interface{}{
+		"machine_code_verify":        req.MachineCodeVerify,
+		"machine_code_option":        req.MachineCodeOption,
+		"machine_code_free_count":    req.MachineCodeFreeCount,
+		"machine_code_rebind_count":  req.MachineCodeRebindCount,
+		"machine_code_rebind_deduct": req.MachineCodeRebindDeduct,
+		"ip_verify":                  req.IPVerify,
+		"ip_option":                  req.IPOption,
+		"ip_free_count":              req.IPFreeCount,
+		"ip_rebind_count":            req.IPRebindCount,
+		"ip_rebind_deduct":           req.IPRebindDeduct,
+	}
+
+	if err := db.Model(&app).Updates(updates).Error; err != nil {
+		logrus.WithError(err).Error("Failed to update app bind config")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "更新绑定配置失败",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	response := map[string]interface{}{
+		"code": 0,
+		"msg":  "绑定配置更新成功",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
