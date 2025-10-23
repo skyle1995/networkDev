@@ -1,0 +1,771 @@
+{{ define "cards.html" }}
+<section>
+  <h2>卡密管理</h2>
+  <div class="layui-btn-container" style="margin:12px 0">
+    <button class="layui-btn" id="btnAddCard"><i class="layui-icon layui-icon-add-1"></i> 新增卡密</button>
+    <button class="layui-btn layui-btn-danger" id="btnBatchDeleteCards"><i class="layui-icon layui-icon-delete"></i> 批量删除</button>
+    <button class="layui-btn layui-btn-normal" id="btnBatchEnableCards"><i class="layui-icon layui-icon-ok-circle"></i> 设为未用</button>
+    <button class="layui-btn layui-btn-warm" id="btnBatchDisableCards"><i class="layui-icon layui-icon-close-fill"></i> 设为已用</button>
+    <!-- 新增：导出卡密按钮 -->
+    <button class="layui-btn layui-btn-primary" id="btnExportCards"><i class="layui-icon layui-icon-export"></i> 导出卡密</button>
+    <!-- 新增：导出选中卡密按钮 -->
+    <button class="layui-btn layui-btn-primary" id="btnExportSelectedCards"><i class="layui-icon layui-icon-export"></i> 导出选中</button>
+  </div>
+
+  <div class="layui-card" style="margin-top:12px">
+    <div class="layui-card-header">筛选</div>
+    <div class="layui-card-body">
+      <form class="layui-form layui-form-pane" id="cardFilterForm" lay-filter="cardFilterForm">
+        <div class="layui-form-item">
+          <div class="layui-inline">
+            <label class="layui-form-label">卡密</label>
+            <div class="layui-input-inline">
+              <input type="text" name="keyword" placeholder="卡号/批次/备注/任务号" autocomplete="off" class="layui-input" />
+            </div>
+          </div>
+          <div class="layui-inline">
+            <label class="layui-form-label">类型</label>
+            <div class="layui-input-inline">
+              <select name="card_type" id="filterCardTypeSelect">
+                <option value="">全部</option>
+              </select>
+            </div>
+          </div>
+          <div class="layui-inline">
+            <label class="layui-form-label">状态</label>
+            <div class="layui-input-inline">
+              <select name="status">
+                <option value="">全部</option>
+                <option value="0">未使用</option>
+                <option value="1">已使用</option>
+              </select>
+            </div>
+          </div>
+          <div class="layui-inline">
+            <button type="button" class="layui-btn" id="btnSearchCards">查询</button>
+            <button type="button" class="layui-btn layui-btn-primary" id="btnResetCards">重置</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="layui-card" style="margin-top:12px">
+    <div class="layui-card-header">卡密列表</div>
+    <div class="layui-card-body">
+      <table id="cardsTable" lay-filter="cardsTableFilter"></table>
+      <script type="text/html" id="tpl-cards-ops">
+        <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+        <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+      </script>
+    </div>
+  </div>
+
+  <!-- 隐藏的表单弹层内容：新增卡密 -->
+  <div id="cardFormModal" style="display:none;padding:16px">
+    <form class="layui-form layui-form-pane" id="cardForm">
+      <input type="hidden" name="id" />
+      <div class="layui-form-item">
+        <label class="layui-form-label">前缀</label>
+        <div class="layui-input-block">
+          <input type="text" name="prefix" placeholder="可选，生成卡号时使用的前缀" autocomplete="off" class="layui-input" />
+        </div>
+      </div>
+      <!-- 新增：生成数量（默认1，最大500），位置在前缀之后、大小写之前 -->
+      <div class="layui-form-item">
+        <label class="layui-form-label">数量</label>
+        <div class="layui-input-block">
+          <input type="number" name="count" min="1" max="500" value="1" placeholder="一次生成的数量（默认1，最大500）" class="layui-input" />
+        </div>
+      </div>
+      <!-- 新增：生成大小写选项（默认小写），位置在长度之前 -->
+      <div class="layui-form-item">
+        <label class="layui-form-label">规则</label>
+        <div class="layui-input-block">
+          <select name="uppercase">
+            <option value="lower" selected>小写</option>
+            <option value="upper">大写</option>
+          </select>
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label">长度</label>
+        <div class="layui-input-block">
+          <input type="number" name="length" min="1" max="64" value="18" placeholder="生成卡号的总长度（包含前缀），默认18" class="layui-input" />
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label">类型</label>
+        <div class="layui-input-block">
+          <select name="card_type" id="cardTypeSelect">
+            <option value="">请选择类型</option>
+          </select>
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label">状态</label>
+        <div class="layui-input-block">
+          <select name="status">
+            <option value="0">未使用</option>
+            <option value="1">已使用</option>
+          </select>
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label">备注</label>
+        <div class="layui-input-block">
+          <textarea name="remark" placeholder="可填写备注信息" class="layui-textarea"></textarea>
+        </div>
+      </div>
+      <!-- 移除：内置“操作/提交/取消”按钮，统一由 layer.open 的 btn 控制 -->
+    </form>
+  </div>
+
+  <!-- 隐藏的表单弹层内容：编辑卡密 -->
+  <div id="cardEditFormModal" style="display:none;padding:16px">
+    <form class="layui-form layui-form-pane" id="cardEditForm">
+      <input type="hidden" name="id" />
+      <div class="layui-form-item">
+        <label class="layui-form-label">类型</label>
+        <div class="layui-input-block">
+          <select name="card_type" id="cardEditTypeSelect">
+            <option value="">请选择类型</option>
+          </select>
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label">状态</label>
+        <div class="layui-input-block">
+          <select name="status">
+            <option value="0">未使用</option>
+            <option value="1">已使用</option>
+          </select>
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label">任务号</label>
+        <div class="layui-input-block">
+          <input type="text" name="task_no" placeholder="可选，支持填写/清空任务号" autocomplete="off" class="layui-input" />
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label">备注</label>
+        <div class="layui-input-block">
+          <textarea name="remark" placeholder="可填写备注信息" class="layui-textarea"></textarea>
+        </div>
+      </div>
+      <!-- 移除：内置“操作/提交/取消”按钮，统一由 layer.open 的 btn 控制 -->
+    </form>
+  </div>
+
+  <!-- 新增：导出条件弹窗（隐藏） -->
+  <div id="cardExportModal" style="display:none;padding:16px">
+    <form class="layui-form layui-form-pane" id="cardExportForm" lay-filter="cardExportForm">
+      <div class="layui-form-item">
+        <label class="layui-form-label">状态</label>
+        <div class="layui-input-block">
+          <select name="status">
+            <option value="">全部</option>
+            <option value="0">未使用</option>
+            <option value="1">已使用</option>
+            <option value="2">禁用</option>
+          </select>
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label">类型</label>
+        <div class="layui-input-block">
+          <select name="card_type" id="exportCardTypeSelect">
+            <option value="">全部</option>
+          </select>
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label">批次</label>
+        <div class="layui-input-block">
+          <input type="text" name="batch" placeholder="按批次模糊匹配" autocomplete="off" class="layui-input" />
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label">备注</label>
+        <div class="layui-input-block">
+          <input type="text" name="remark" placeholder="按备注模糊匹配" autocomplete="off" class="layui-input" />
+        </div>
+      </div>
+    </form>
+  </div>
+</section>
+
+<script>
+layui.use(['table', 'form', 'layer'], () => {
+  const { table, form, layer, $ } = layui;
+  let currentFormLayerIndex; // 保存当前表单弹窗的索引
+  let cardTypes = []; // 存储卡密类型数据
+  // 中文注释：以下三个标志用于协调类型列表和表格渲染的先后关系，避免出现“未知类型”
+  let cardTypesLoaded = false; // 类型列表是否已加载完成
+  let tableFirstRendered = false; // 表格是否已完成首次渲染
+  let tableReloadedAfterTypes = false; // 类型加载后是否已触发表格的二次渲染
+
+  // 格式化时间的辅助函数
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return String(date.getFullYear()) + '-' +
+           String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+           String(date.getDate()).padStart(2, '0') + ' ' +
+           String(date.getHours()).padStart(2, '0') + ':' +
+           String(date.getMinutes()).padStart(2, '0') + ':' +
+           String(date.getSeconds()).padStart(2, '0');
+  };
+
+  // 获取卡密类型名称
+  // 中文注释：根据 card_type_id 在缓存的 cardTypes 中查找对应的类型名称；
+  // 为避免后端返回的 id 与前端数据在类型上不一致（字符串/数字）导致匹配失败，这里统一转换为数字再比较
+  const getCardTypeName = (cardTypeId) => {
+    const idNum = Number(cardTypeId);
+    const cardType = cardTypes.find(type => Number(type.id) === idNum);
+    return cardType ? cardType.name : '未知类型';
+  };
+
+  // 渲染表格
+  const cardsTable = table.render({
+    elem: '#cardsTable',
+    id: 'cardsTable',
+    url: '/admin/api/cards/list',
+    parseData: function(res) {
+      // 后端返回的数据结构：{items, total, page, page_size, pages}
+      return {
+        code: res.code,
+        msg: res.msg || '',
+        count: res.data ? res.data.total : 0,
+        data: res.data ? res.data.items : []
+      };
+    },
+    request: {
+      pageName: 'page', // 页码的参数名称，默认：page
+      limitName: 'page_size' // 每页数据量的参数名称，默认：limit
+    },
+    method: 'GET',
+    page: true,
+    limit: 20,
+    limits: [10, 20, 50, 100],
+    loading: true,
+    // 中文注释：表格首次渲染完成后，如果类型已经加载，则进行一次刷新以正确显示类型名称
+    done: function() {
+      if (!tableFirstRendered) {
+        tableFirstRendered = true;
+        if (cardTypesLoaded && !tableReloadedAfterTypes) {
+          tableReloadedAfterTypes = true;
+          cardsTable.reload();
+        }
+      }
+    },
+    cols: [[
+      { type: 'checkbox', width: 50 },
+      { field: 'id', title: 'ID', width: 80, sort: true },
+      { field: 'card_number', title: '卡号', minWidth: 150 },
+      { 
+        field: 'card_type_id', 
+        title: '类型', 
+        width: 100,
+        templet: (d) => d.card_type_name || getCardTypeName(d.card_type_id)
+      },
+      { 
+        field: 'status', 
+        title: '状态', 
+        width: 80,
+        templet: (d) => {
+          if (d.status === 0) return '<span style="color: #5FB878;">未使用</span>';
+          if (d.status === 1) return '<span style="color: #FF5722;">已使用</span>';
+          return '<span style="color: #999;">禁用</span>';
+        }
+      },
+      { 
+        field: 'task_no',
+        title: '任务号',
+        minWidth: 140,
+        templet: (d) => d.task_no || '-'
+      },
+      { field: 'batch', title: '批次', minWidth: 60 },
+      { field: 'remark', title: '备注', minWidth: 100 },
+      { 
+        field: 'used_at', 
+        title: '使用时间', 
+        width: 180,
+        templet: (d) => formatDateTime(d.used_at)
+      },
+      { 
+        field: 'created_at', 
+        title: '创建时间', 
+        width: 180,
+        templet: (d) => formatDateTime(d.created_at)
+      },
+      { fixed: 'right', title: '操作', toolbar: '#tpl-cards-ops', width: 120 }
+    ]]
+  });
+
+  // 加载卡密类型数据
+  const loadCardTypes = () => {
+    fetch('/admin/api/cards/types?all=1')
+      .then(response => response.json())
+      .then(data => {
+        if (data.code === 0) {
+          cardTypes = data.data || [];
+          // 填充筛选下拉框
+          const filterSelect = $('#filterCardTypeSelect');
+          filterSelect.empty().append('<option value="">全部</option>');
+          cardTypes.forEach(type => {
+            if (type.status === 1) { // 只显示启用的类型
+              filterSelect.append(`<option value="${type.id}">${type.name}</option>`);
+            }
+          });
+          // 填充新增表单下拉框
+          const cardTypeSelect = $('#cardTypeSelect');
+          cardTypeSelect.empty().append('<option value="">请选择类型</option>');
+          cardTypes.forEach(type => {
+            if (type.status === 1) { // 只显示启用的类型
+              cardTypeSelect.append(`<option value="${type.id}">${type.name}</option>`);
+            }
+          });
+          // 填充编辑表单下拉框
+          const cardEditTypeSelect = $('#cardEditTypeSelect');
+          cardEditTypeSelect.empty().append('<option value="">请选择类型</option>');
+          cardTypes.forEach(type => {
+            if (type.status === 1) { // 只显示启用的类型
+              cardEditTypeSelect.append(`<option value="${type.id}">${type.name}</option>`);
+            }
+          });
+          // 新增：填充导出弹窗下拉框（显示全部状态的类型，方便条件筛选）
+          const exportTypeSelect = $('#exportCardTypeSelect');
+          exportTypeSelect.empty().append('<option value="">全部</option>');
+          cardTypes.forEach(type => {
+            exportTypeSelect.append(`<option value="${type.id}">${type.name}</option>`);
+          });
+
+          form.render('select');
+
+          // 中文注释：标记类型加载完成；如表格已首次渲染，则进行一次性刷新以正确显示类型名称
+          cardTypesLoaded = true;
+          if (tableFirstRendered && !tableReloadedAfterTypes) {
+            tableReloadedAfterTypes = true;
+            cardsTable.reload();
+          }
+          // 卡密类型加载完成，表格会根据需要自动进行一次刷新
+        }
+      })
+      .catch(error => {
+        console.error('加载卡密类型失败:', error);
+      });
+  };
+
+  // 初始化加载卡密类型
+  loadCardTypes();
+
+  // 监听表格工具条
+  table.on('tool(cardsTableFilter)', (obj) => {
+    const { data, event } = obj;
+    if (event === 'edit') {
+      editCard(data);
+    } else if (event === 'del') {
+      deleteCard(data.id);
+    }
+  });
+
+  // 新增卡密
+  $('#btnAddCard').on('click', () => {
+    showCardForm();
+  });
+
+  // 显示新增卡密表单弹窗
+  // 中文注释：弹出新增/编辑表单的公共方法，采用 layer.open + btn/yes/btn2 的“确认框风格”
+  // data 为空表示新增；存在表示编辑。通过 yes 回调直接调用提交流程函数。
+  const showCardForm = (data = null) => {
+    const title = data ? '编辑卡密' : '新增卡密';
+    const modalId = data ? '#cardEditFormModal' : '#cardFormModal';
+    const formId = data ? '#cardEditForm' : '#cardForm';
+
+    const areaHeight = data ? '420px' : '600px';
+
+    currentFormLayerIndex = layer.open({
+      type: 1,
+      title: title,
+      content: $(modalId),
+      area: ['500px', areaHeight],
+      btn: ['提交', '取消'],
+      btnAlign: 'c',
+      yes: () => {
+        if (data) {
+          doEditCardSubmit();
+        } else {
+          doCreateCardSubmit();
+        }
+        return false;
+      },
+      btn2: (index) => {
+        layer.close(index);
+      },
+      success: () => {
+        form.render();
+        if (data) {
+          $(formId + ' input[name="id"]').val(data.id);
+          $(formId + ' select[name="card_type"]').val(data.card_type_id);
+          $(formId + ' select[name="status"]').val(data.status);
+          $(formId + ' textarea[name="remark"]').val(data.remark || '');
+          // 中文注释：编辑模式下，回填已有的任务号（若无则为空字符串）
+          $(formId + ' input[name="task_no"]').val(data.task_no || '');
+          form.render('select');
+        } else {
+          $(formId)[0].reset();
+          $(formId + ' input[name="id"]').val('');
+          // 中文注释：新增模式下显式清空任务号，避免出现上一次编辑残留
+          $(formId + ' input[name="task_no"]').val('');
+          form.render();
+        }
+      }
+    });
+  };
+
+  // 编辑卡密
+  const editCard = (data) => {
+    showCardForm(data);
+  };
+
+  // 提交新增卡密表单
+  // 提交逻辑函数化，供弹窗按钮直接调用，避免依赖模板内按钮
+  // 中文注释：提交“新增卡密”表单，完成校验、请求与反馈
+  const doCreateCardSubmit = () => {
+    const uppercaseValue = $('#cardForm select[name="uppercase"]').val();
+    const formData = {
+      prefix: $('#cardForm input[name="prefix"]').val() || '',
+      count: parseInt($('#cardForm input[name="count"]').val()) || 1,
+      uppercase: uppercaseValue === 'upper',
+      length: parseInt($('#cardForm input[name="length"]').val()) || 18,
+      card_type_id: parseInt($('#cardForm select[name="card_type"]').val()),
+      status: parseInt($('#cardForm select[name="status"]').val()),
+      remark: $('#cardForm textarea[name="remark"]').val() || ''
+    };
+
+    // 校验
+    if (!formData.card_type_id) {
+      layer.msg('请选择卡密类型', { icon: 2 });
+      return;
+    }
+    if (formData.count < 1 || formData.count > 500) {
+      layer.msg('生成数量必须在1-500之间', { icon: 2 });
+      return;
+    }
+    if (formData.length < 1 || formData.length > 64) {
+      layer.msg('卡号长度必须在1-64之间', { icon: 2 });
+      return;
+    }
+
+    const loadIndex = layer.load(2);
+    fetch('/admin/api/cards/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+      layer.close(loadIndex);
+      if (data.code === 0) {
+        layer.msg(data.msg, { icon: 1 });
+        layer.close(currentFormLayerIndex);
+        cardsTable.reload();
+      } else {
+        layer.msg(data.msg, { icon: 2 });
+      }
+    })
+    .catch(error => {
+      layer.close(loadIndex);
+      console.error('新增卡密失败:', error);
+      layer.msg('网络错误，请重试', { icon: 2 });
+    });
+  };
+
+  // 中文注释：提交“编辑卡密”表单，完成校验、请求与反馈
+  const doEditCardSubmit = () => {
+    const idValue = $('#cardEditForm input[name="id"]').val();
+    const taskNoRaw = $('#cardEditForm input[name="task_no"]').val();
+    const hasTaskNoField = true; // 中文注释：该字段始终存在，通过值是否为空决定清空或设置
+    const formData = {
+      id: idValue ? parseInt(idValue) : 0,
+      card_type_id: parseInt($('#cardEditForm select[name="card_type"]').val()),
+      status: parseInt($('#cardEditForm select[name="status"]').val()),
+      remark: $('#cardEditForm textarea[name="remark"]').val() || ''
+    };
+
+    // 当任务号输入框有值或被清空时，也要传递 task_no 字段（允许清空）
+    if (hasTaskNoField) {
+      formData.task_no = (taskNoRaw || '').trim();
+    }
+
+    // 校验
+    if (!formData.id) {
+      layer.msg('卡密ID不能为空', { icon: 2 });
+      return;
+    }
+    if (!formData.card_type_id) {
+      layer.msg('请选择卡密类型', { icon: 2 });
+      return;
+    }
+
+    const loadIndex = layer.load(2);
+    fetch('/admin/api/cards/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+      layer.close(loadIndex);
+      if (data.code === 0) {
+        layer.msg(data.msg, { icon: 1 });
+        layer.close(currentFormLayerIndex);
+        cardsTable.reload();
+      } else {
+        layer.msg(data.msg, { icon: 2 });
+      }
+    })
+    .catch(error => {
+      layer.close(loadIndex);
+      console.error('编辑卡密失败:', error);
+      layer.msg('网络错误，请重试', { icon: 2 });
+    });
+  };
+
+  // 删除卡密
+  const deleteCard = (id) => {
+    layer.confirm('确定要删除这个卡密吗？', {
+      icon: 3,
+      title: '提示'
+    }, (index) => {
+      layer.close(index);
+      const loadIndex = layer.load(2);
+      
+      fetch('/admin/api/cards/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id: parseInt(id) })
+      })
+      .then(response => response.json())
+      .then(data => {
+        layer.close(loadIndex);
+        if (data.code === 0) {
+          layer.msg(data.msg, { icon: 1 });
+          cardsTable.reload();
+        } else {
+          layer.msg(data.msg, { icon: 2 });
+        }
+      })
+      .catch(error => {
+        layer.close(loadIndex);
+        console.error('删除卡密失败:', error);
+        layer.msg('网络错误，请重试', { icon: 2 });
+      });
+    });
+  };
+
+  // 批量删除卡密
+    $('#btnBatchDeleteCards').on('click', () => {
+    const checkStatus = table.checkStatus('cardsTable');
+    const data = checkStatus.data;
+    
+    if (data.length === 0) {
+      layer.msg('请选择要删除的卡密', { icon: 2 });
+      return;
+    }
+    
+    layer.confirm(`确定要删除选中的 ${data.length} 个卡密吗？`, {
+      icon: 3,
+      title: '批量删除确认'
+    }, (index) => {
+      layer.close(index);
+      const loadIndex = layer.load(2);
+      const ids = data.map(item => item.id);
+      
+      fetch('/admin/api/cards/batch_delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ids: ids })
+      })
+      .then(response => response.json())
+      .then(data => {
+        layer.close(loadIndex);
+        if (data.code === 0) {
+          layer.msg(data.msg, { icon: 1 });
+          cardsTable.reload();
+        } else {
+          layer.msg(data.msg, { icon: 2 });
+        }
+      })
+      .catch(error => {
+        layer.close(loadIndex);
+        console.error('批量删除卡密失败:', error);
+        layer.msg('网络错误，请重试', { icon: 2 });
+      });
+    });
+  });
+
+  // 批量启用卡密
+    $('#btnBatchEnableCards').on('click', () => {
+      batchUpdateStatus(0, '设为未用');
+    });
+
+    // 批量禁用卡密
+    $('#btnBatchDisableCards').on('click', () => {
+      batchUpdateStatus(1, '设为已用');
+    });
+
+  // 批量更新状态
+  const batchUpdateStatus = (status, statusText) => {
+    const checkStatus = table.checkStatus('cardsTable');
+    const data = checkStatus.data;
+    
+    if (data.length === 0) {
+      layer.msg('请选择要操作的卡密', { icon: 2 });
+      return;
+    }
+    
+    layer.confirm(`确定要${statusText}选中的 ${data.length} 个卡密吗？`, {
+      icon: 3,
+      title: `批量${statusText}确认`
+    }, (index) => {
+      layer.close(index);
+      const loadIndex = layer.load(2);
+      const ids = data.map(item => item.id);
+      
+      fetch('/admin/api/cards/batch_update_status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ids: ids, status: status })
+      })
+      .then(response => response.json())
+      .then(data => {
+        layer.close(loadIndex);
+        if (data.code === 0) {
+          layer.msg(data.msg, { icon: 1 });
+          cardsTable.reload();
+        } else {
+          layer.msg(data.msg, { icon: 2 });
+        }
+      })
+      .catch(error => {
+        layer.close(loadIndex);
+        console.error(`批量${statusText}卡密失败:`, error);
+        layer.msg('网络错误，请重试', { icon: 2 });
+      });
+    });
+  };
+
+  // 搜索功能
+    $('#btnSearchCards').on('click', () => {
+      const formData = form.val('cardFilterForm');
+      const where = {};
+      if (formData.card_type) {
+        where.card_type_id = formData.card_type;
+      }
+      if (formData.status !== '') {
+        where.status = formData.status;
+      }
+      if (formData.keyword && formData.keyword.trim() !== '') {
+        // 中文注释：将关键字作为 keyword 传给后端，由后端在 card_number、remark、batch 三个字段中进行模糊匹配
+        where.keyword = formData.keyword.trim();
+      }
+      table.reload('cardsTable', { where, page: { curr: 1 } });
+    });
+
+    $('#btnResetCards').on('click', () => {
+      $('#cardFilterForm')[0].reset();
+      form.render();
+      table.reload('cardsTable', { where: {}, page: { curr: 1 } });
+    });
+
+    // =============== 导出卡密逻辑 ===============
+    // 显示“导出卡密”弹窗
+    // 中文注释：弹出导出条件选择弹窗，允许管理员按状态/类型/批次/备注筛选导出
+    const showExportDialog = () => {
+      layer.open({
+        type: 1,
+        title: '导出卡密',
+        content: $('#cardExportModal'),
+        area: ['520px', '360px'],
+        btn: ['导出', '取消'],
+        btnAlign: 'c',
+        yes: (index) => {
+          doExportCards();
+          layer.close(index); // 关闭导出弹窗
+          layer.msg('卡密导出中...', { icon: 1 });
+          return false;
+        },
+        success: () => {
+          form.render();
+        }
+      });
+    };
+
+    // 绑定按钮事件
+    $('#btnExportCards').on('click', () => {
+      showExportDialog();
+    });
+
+    // 导出选中卡密
+    // 中文注释：导出当前表格中选中的卡密，无需弹窗筛选，直接根据选中的卡密ID进行导出
+    $('#btnExportSelectedCards').on('click', () => {
+      const checkStatus = table.checkStatus('cardsTable');
+      const data = checkStatus.data;
+      
+      if (data.length === 0) {
+        layer.msg('请选择要导出的卡密', { icon: 2 });
+        return;
+      }
+      
+      layer.confirm(`确定要导出选中的 ${data.length} 个卡密吗？`, {
+        icon: 3,
+        title: '导出选中确认'
+      }, (index) => {
+        layer.close(index);
+        const ids = data.map(item => item.id);
+        const params = new URLSearchParams();
+        params.set('ids', ids.join(','));
+        
+        const url = '/admin/api/cards/export_selected?' + params.toString();
+        triggerDownload(url);
+        
+        layer.msg(`正在导出 ${data.length} 个卡密...`, { icon: 1 });
+      });
+    });
+
+    // 执行导出
+    // 中文注释：根据表单条件拼接导出URL，并以下载方式触发导出（CSV 文件）
+    const doExportCards = () => {
+      const formData = form.val('cardExportForm');
+      const params = new URLSearchParams();
+      if (formData.status !== '') params.set('status', formData.status);
+      if (formData.card_type) params.set('card_type_id', formData.card_type);
+      if (formData.batch && formData.batch.trim() !== '') params.set('batch', formData.batch.trim());
+      if (formData.remark && formData.remark.trim() !== '') params.set('remark', formData.remark.trim());
+
+      const url = '/admin/api/cards/export' + (params.toString() ? ('?' + params.toString()) : '');
+      triggerDownload(url);
+    };
+
+    // 触发下载
+    // 中文注释：通过创建临时 <a> 元素点击，保持当前页面不跳转，触发后端附件下载
+    const triggerDownload = (url) => {
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
+});
+</script>
+{{ end }}

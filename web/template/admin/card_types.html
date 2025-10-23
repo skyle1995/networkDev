@@ -1,0 +1,415 @@
+{{ define "card_types.html" }}
+<section>
+  <h2>卡密类型管理</h2>
+  <div class="layui-btn-container" style="margin:12px 0">
+    <button class="layui-btn" id="btnAddCardType"><i class="layui-icon layui-icon-add-1"></i> 新增类型</button>
+    <button class="layui-btn layui-btn-normal" id="btnBatchEnableCardTypes"><i class="layui-icon layui-icon-ok-circle"></i> 批量启用</button>
+    <button class="layui-btn layui-btn-warm" id="btnBatchDisableCardTypes"><i class="layui-icon layui-icon-close-fill"></i> 批量禁用</button>
+    <button class="layui-btn layui-btn-danger" id="btnBatchDeleteCardTypes"><i class="layui-icon layui-icon-delete"></i> 批量删除</button>
+  </div>
+
+  <div class="layui-card" style="margin-top:12px">
+    <div class="layui-card-header">筛选</div>
+    <div class="layui-card-body">
+      <form class="layui-form layui-form-pane" id="cardTypeFilterForm" lay-filter="cardTypeFilterForm">
+        <div class="layui-form-item">
+          <div class="layui-inline">
+            <label class="layui-form-label">名称</label>
+            <div class="layui-input-inline">
+              <input type="text" name="keyword" placeholder="卡密类型名称" autocomplete="off" class="layui-input" />
+            </div>
+          </div>
+          <div class="layui-inline">
+            <label class="layui-form-label">状态</label>
+            <div class="layui-input-inline">
+              <select name="status">
+                <option value="">全部</option>
+                <option value="1">启用</option>
+                <option value="0">禁用</option>
+              </select>
+            </div>
+          </div>
+          <div class="layui-inline">
+            <button type="button" class="layui-btn" id="btnSearchCardTypes">查询</button>
+            <button type="button" class="layui-btn layui-btn-primary" id="btnResetCardTypes">重置</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="layui-card" style="margin-top:12px">
+    <div class="layui-card-header">卡密类型列表</div>
+    <div class="layui-card-body">
+      <table id="cardTypesTable" lay-filter="cardTypesTableFilter"></table>
+      <script type="text/html" id="tpl-cardtypes-ops">
+        <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+        <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+      </script>
+    </div>
+  </div>
+
+  <!-- 隐藏的表单弹层内容 -->
+  <div id="cardTypeFormModal" style="display:none;padding:16px">
+    <!-- 参考demo表单2样式，添加layui-form-pane类实现方框风格 -->
+    <form class="layui-form layui-form-pane" id="cardTypeForm">
+      <input type="hidden" name="id" />
+      <div class="layui-form-item">
+        <label class="layui-form-label">名称</label>
+        <div class="layui-input-block">
+          <input type="text" name="name" required lay-verify="required" placeholder="请输入类型名称" autocomplete="off" class="layui-input" />
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label">状态</label>
+        <div class="layui-input-block">
+          <select name="status">
+            <option value="1">启用</option>
+            <option value="0">禁用</option>
+          </select>
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label">登录</label>
+        <div class="layui-input-block">
+          <input type="text" name="login_types" placeholder="请输入登录方式名称，多个用逗号分隔" class="layui-input" />
+        </div>
+      </div>
+      <!-- 操作按钮已移除，统一由 layer.open 的 btn 控制“提交/取消” -->
+      <!-- 操作按钮移除：统一由 layer.open 的 btn 控制“提交/取消” -->
+    </form>
+  </div>
+</section>
+
+<script>
+layui.use(['table', 'form', 'layer'], () => {
+  const { table, form, layer, $ } = layui;
+  let currentFormLayerIndex; // 保存当前表单弹窗的索引
+
+  // 渲染表格
+  const cardTypesTable = table.render({
+    elem: '#cardTypesTable',
+    url: '/admin/api/card_types/list',
+    method: 'GET',
+    page: true,
+    limit: 20,
+    limits: [10, 20, 50, 100],
+    loading: true,
+    cols: [[
+      { type: 'checkbox' },
+      { field: 'id', title: 'ID', width: 80, sort: true },
+      { field: 'name', title: '名称' },
+      {
+        field: 'status',
+        title: '状态',
+        width: 100,
+        templet: (d) => {
+          return d.status === 1
+            ? '<span class="layui-badge layui-bg-green">启用</span>'
+            : '<span class="layui-badge">禁用</span>';
+        }
+      },
+      { field: 'login_types', title: '登录方式' },
+      { 
+        field: 'created_at', 
+        title: '创建时间', 
+        width: 180,
+        templet: (d) => {
+          return formatDateTime(d.created_at);
+        }
+      },
+      { 
+        field: 'updated_at', 
+        title: '更新时间', 
+        width: 180,
+        templet: (d) => {
+          return formatDateTime(d.updated_at);
+        }
+      },
+      { title: '操作', toolbar: '#tpl-cardtypes-ops', width: 150, fixed: 'right' }
+    ]],
+    parseData: (res) => {
+      // 后端已返回正确格式，直接使用
+      return {
+        "code": res.code,
+        "msg": res.msg || '',
+        "count": res.data ? res.data.total : 0,
+        "data": res.data ? res.data.items : []
+      };
+    },
+    request: {
+      pageName: 'page',
+      limitName: 'page_size'
+    },
+    where: {}
+  });
+
+  // 格式化日期时间
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.getFullYear() + '-' + 
+           String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+           String(date.getDate()).padStart(2, '0') + ' ' +
+           String(date.getHours()).padStart(2, '0') + ':' + 
+           String(date.getMinutes()).padStart(2, '0') + ':' + 
+           String(date.getSeconds()).padStart(2, '0');
+  };
+
+  // 监听表格工具条
+  table.on('tool(cardTypesTableFilter)', (obj) => {
+    const { data, event } = obj;
+    if (event === 'edit') {
+      editCardType(data);
+    } else if (event === 'del') {
+      deleteCardType(data.id);
+    }
+  });
+
+  // 新增卡密类型
+  $('#btnAddCardType').on('click', () => {
+    showCardTypeForm();
+  });
+
+  // 显示表单弹窗（统一使用 layer.open 的按钮作为确认/取消）
+  const showCardTypeForm = (data = null) => {
+    const title = data ? '编辑卡密类型' : '新增卡密类型';
+    currentFormLayerIndex = layer.open({
+      type: 1,
+      title: title,
+      content: $('#cardTypeFormModal'),
+      area: ['500px', '300px'],
+      btn: ['提交', '取消'],
+      btnAlign: 'c',
+      yes: () => {
+        // 点击“提交”时，执行统一的提交方法
+        doCardTypeSubmit();
+      },
+      btn2: (index) => {
+        // 点击“取消”时，关闭当前弹窗
+        layer.close(index);
+      },
+      success: () => {
+        // 成功打开弹窗后渲染表单，并根据是否为编辑模式进行回填
+        form.render();
+        if (data) {
+          // 编辑模式，填充数据
+          $('#cardTypeForm input[name="id"]').val(data.id);
+          $('#cardTypeForm input[name="name"]').val(data.name);
+          $('#cardTypeForm select[name="status"]').val(data.status);
+          $('#cardTypeForm input[name="login_types"]').val(data.login_types);
+          form.render('select');
+        } else {
+          // 新增模式，清空表单
+          $('#cardTypeForm')[0].reset();
+          $('#cardTypeForm input[name="id"]').val('');
+          form.render();
+        }
+      }
+    });
+  };
+
+  // 编辑卡密类型
+  const editCardType = (data) => {
+    showCardTypeForm(data);
+  };
+
+  // 提交表单（通过 layer.open 的“提交”按钮触发）
+  const doCardTypeSubmit = () => {
+    // 读取表单数据
+    const idValue = $('#cardTypeForm input[name="id"]').val();
+    const formData = {
+      id: idValue ? parseInt(idValue) : 0,
+      name: $('#cardTypeForm input[name="name"]').val().trim(),
+      status: parseInt($('#cardTypeForm select[name="status"]').val()),
+      login_types: $('#cardTypeForm input[name="login_types"]').val().trim()
+    };
+
+    // 校验必填项
+    if (!formData.name) {
+      layer.msg('请输入类型名称', { icon: 2 });
+      return;
+    }
+
+    // 根据是否存在 id 判断是创建还是更新
+    const url = formData.id ? '/admin/api/card_types/update' : '/admin/api/card_types/create';
+    const loadIndex = layer.load(2);
+
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    })
+      .then(res => res.json())
+      .then(res => {
+        layer.close(loadIndex);
+        if (res.code === 0) {
+          layer.msg(res.msg || (formData.id ? '更新成功' : '创建成功'), { icon: 1 });
+          layer.close(currentFormLayerIndex);
+          cardTypesTable.reload();
+        } else {
+          layer.msg(res.msg || '操作失败', { icon: 2 });
+        }
+      })
+      .catch(() => {
+        layer.close(loadIndex);
+        layer.msg('网络错误，请重试', { icon: 2 });
+      });
+  };
+
+  // 取消按钮已移除，统一由 layer.open 的“取消”按钮处理
+// 取消按钮已移除：统一由 layer.open 的“取消”按钮处理
+
+  // 删除卡密类型
+  const deleteCardType = (id) => {
+    layer.confirm('确定要删除这个卡密类型吗？', {
+      icon: 3,
+      title: '提示'
+    }, (index) => {
+      layer.close(index);
+      const loadIndex = layer.load(2);
+
+      fetch('/admin/api/card_types/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id: id })
+      })
+      .then(response => response.json())
+      .then(data => {
+        layer.close(loadIndex);
+        if (data.code === 0) {
+          layer.msg(data.msg, { icon: 1 });
+          cardTypesTable.reload();
+        } else {
+          layer.msg(data.msg, { icon: 2 });
+        }
+      })
+      .catch(error => {
+        layer.close(loadIndex);
+        layer.msg('网络错误，请重试', { icon: 2 });
+      });
+    });
+  };
+
+  // 批量删除
+  $('#btnBatchDeleteCardTypes').on('click', () => {
+    const checkStatus = table.checkStatus('cardTypesTable');
+    if (checkStatus.data.length === 0) {
+      layer.msg('请选择要删除的数据', { icon: 2 });
+      return;
+    }
+
+    layer.confirm(`确定要删除选中的 ${checkStatus.data.length} 条数据吗？`, {
+      icon: 3,
+      title: '提示'
+    }, (index) => {
+      layer.close(index);
+      const ids = checkStatus.data.map(item => item.id);
+      const loadIndex = layer.load(2);
+
+      fetch('/admin/api/card_types/batch_delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ids: ids })
+      })
+      .then(response => response.json())
+      .then(data => {
+        layer.close(loadIndex);
+        if (data.code === 0) {
+          layer.msg(data.msg, { icon: 1 });
+          cardTypesTable.reload();
+        } else {
+          layer.msg(data.msg, { icon: 2 });
+        }
+      })
+      .catch(error => {
+        layer.close(loadIndex);
+        layer.msg('网络错误，请重试', { icon: 2 });
+      });
+    });
+  });
+
+  // 批量启用
+  $('#btnBatchEnableCardTypes').on('click', () => {
+    batchUpdateStatus('/admin/api/card_types/batch_enable', '启用');
+  });
+
+  // 批量禁用
+  $('#btnBatchDisableCardTypes').on('click', () => {
+    batchUpdateStatus('/admin/api/card_types/batch_disable', '禁用');
+  });
+
+  // 批量更新状态的通用函数
+  const batchUpdateStatus = (url, action) => {
+    const checkStatus = table.checkStatus('cardTypesTable');
+    if (checkStatus.data.length === 0) {
+      layer.msg('请选择要操作的数据', { icon: 2 });
+      return;
+    }
+
+    layer.confirm(`确定要${action}选中的 ${checkStatus.data.length} 条数据吗？`, {
+      icon: 3,
+      title: '提示'
+    }, (index) => {
+      layer.close(index);
+      const ids = checkStatus.data.map(item => item.id);
+      const loadIndex = layer.load(2);
+
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ids: ids })
+      })
+      .then(response => response.json())
+      .then(data => {
+        layer.close(loadIndex);
+        if (data.code === 0) {
+          layer.msg(data.msg, { icon: 1 });
+          cardTypesTable.reload();
+        } else {
+          layer.msg(data.msg, { icon: 2 });
+        }
+      })
+      .catch(error => {
+        layer.close(loadIndex);
+        layer.msg('网络错误，请重试', { icon: 2 });
+      });
+    });
+  };
+
+  // 搜索功能
+  $('#btnSearchCardTypes').on('click', () => {
+    const keyword = $('#cardTypeFilterForm input[name="keyword"]').val();
+    const status = $('#cardTypeFilterForm select[name="status"]').val();
+    
+    cardTypesTable.reload({
+      where: {
+        keyword: keyword,
+        status: status
+      },
+      page: {
+        curr: 1
+      }
+    });
+  });
+
+  // 重置搜索
+  $('#btnResetCardTypes').on('click', () => {
+    $('#cardTypeFilterForm')[0].reset();
+    form.render();
+    cardTypesTable.reload({
+      where: {},
+      page: {
+        curr: 1
+      }
+    });
+  });
+});
+</script>
+{{ end }}

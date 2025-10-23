@@ -1,0 +1,412 @@
+{{ define "apps.html" }}
+<section>
+  <h2>应用管理</h2>
+  <div class="layui-btn-container" style="margin:12px 0">
+    <button class="layui-btn" id="btnAddApp"><i class="layui-icon layui-icon-add-1"></i> 新增应用</button>
+    <button class="layui-btn layui-btn-danger" id="btnBatchDeleteApps"><i class="layui-icon layui-icon-delete"></i> 批量删除</button>
+    <button class="layui-btn layui-btn-normal" id="btnBatchEnableApps"><i class="layui-icon layui-icon-ok-circle"></i> 批量启用</button>
+    <button class="layui-btn layui-btn-warm" id="btnBatchDisableApps"><i class="layui-icon layui-icon-close-fill"></i> 批量禁用</button>
+  </div>
+
+  <div class="layui-card" style="margin-top:12px">
+    <div class="layui-card-header">筛选</div>
+    <div class="layui-card-body">
+      <form class="layui-form layui-form-pane" id="appFilterForm" lay-filter="appFilterForm">
+        <div class="layui-form-item">
+          <div class="layui-inline">
+            <label class="layui-form-label">搜索</label>
+            <div class="layui-input-inline">
+              <input type="text" name="search" placeholder="应用名称/UUID" autocomplete="off" class="layui-input" />
+            </div>
+          </div>
+          <div class="layui-inline">
+            <button type="button" class="layui-btn" id="btnSearchApps">查询</button>
+            <button type="button" class="layui-btn layui-btn-primary" id="btnResetApps">重置</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="layui-card" style="margin-top:12px">
+    <div class="layui-card-header">应用列表</div>
+    <div class="layui-card-body">
+      <table id="appsTable" lay-filter="appsTableFilter"></table>
+      <script type="text/html" id="tpl-apps-ops">
+        <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+        <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+      </script>
+      <script type="text/html" id="tpl-apps-status">
+        {{`{{# if(d.status === 1) { }}`}}
+          <span class="layui-badge layui-bg-green">启用</span>
+        {{`{{# } else { }}`}}
+          <span class="layui-badge">禁用</span>
+        {{`{{# } }}`}}
+      </script>
+    </div>
+  </div>
+
+  <!-- 隐藏的表单弹层内容：新增/编辑应用 -->
+  <div id="appFormModal" style="display:none;padding:16px">
+    <form class="layui-form layui-form-pane" id="appForm">
+      <input type="hidden" name="id" />
+      <div class="layui-form-item">
+        <label class="layui-form-label">应用名称</label>
+        <div class="layui-input-block">
+          <input type="text" name="name" placeholder="请输入应用名称" autocomplete="off" class="layui-input" lay-verify="required" />
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label">版本号</label>
+        <div class="layui-input-block">
+          <input type="text" name="version" placeholder="请输入版本号，默认1.0.0" autocomplete="off" class="layui-input" />
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label">状态</label>
+        <div class="layui-input-block">
+          <select name="status">
+            <option value="1" selected>启用</option>
+            <option value="0">禁用</option>
+          </select>
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label">强制更新</label>
+        <div class="layui-input-block">
+          <select name="force_update">
+            <option value="0" selected>不开启</option>
+            <option value="1">开启</option>
+          </select>
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label">更新方式</label>
+        <div class="layui-input-block">
+          <select name="download_type" lay-filter="downloadTypeChange">
+            <option value="0" selected>不启用更新</option>
+            <option value="1">自动更新</option>
+            <option value="2">手动下载</option>
+          </select>
+        </div>
+      </div>
+      <div class="layui-form-item" id="downloadUrlItem">
+        <label class="layui-form-label">下载地址</label>
+        <div class="layui-input-block">
+          <input type="text" name="download_url" placeholder="请输入下载地址" autocomplete="off" class="layui-input" />
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <div class="layui-input-block">
+          <button type="submit" class="layui-btn" lay-submit lay-filter="appFormSubmit">提交</button>
+          <button type="button" class="layui-btn layui-btn-primary" id="btnCancelApp">取消</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    layui.use(['table', 'form', 'layer', 'element'], function() {
+      const table = layui.table;
+      const form = layui.form;
+      const layer = layui.layer;
+      const $ = layui.$;
+
+      // 格式化时间函数
+      function formatDateTime(dateStr) {
+        if (!dateStr) return '-';
+        return new Date(dateStr).toLocaleString();
+      }
+
+      // 渲染表格
+      const appsTable = table.render({
+        elem: '#appsTable',
+        id: 'appsTable',
+        url: '/admin/api/apps/list',
+        parseData: function(res) {
+          // 后端返回的数据结构处理
+          return {
+            code: res.code,
+            msg: res.msg || '',
+            count: res.count || 0,
+            data: res.data || []
+          };
+        },
+        request: {
+          pageName: 'page', // 页码的参数名称，默认：page
+          limitName: 'page_size' // 每页数据量的参数名称，默认：limit
+        },
+        method: 'GET',
+        page: true,
+        limit: 20,
+        limits: [10, 20, 50, 100],
+        loading: true,
+        done: function(res, curr, count) {
+          // 表格渲染完成后的回调
+        },
+        cols: [[
+          { type: 'checkbox', width: 50 },
+          { field: 'id', title: 'ID', width: 80, sort: true },
+          { field: 'name', title: '应用名称', minWidth: 180 },
+          { field: 'uuid', title: 'UUID', minWidth: 320 },
+          { field: 'version', title: '版本', width: 100 },
+          { 
+            field: 'status', 
+            title: '状态', 
+            width: 100,
+            templet: (d) => {
+              if (d.status === 1) return '<span style="color: #5FB878;">启用</span>';
+              return '<span style="color: #FF5722;">禁用</span>';
+            }
+          },
+          { 
+            field: 'secret', 
+            title: '密钥', 
+            minWidth: 320, 
+            templet: (d) => '<span style="font-family: monospace;">' + d.secret + '</span>'
+          },
+          { 
+            field: 'created_at', 
+            title: '创建时间', 
+            width: 180,
+            templet: (d) => formatDateTime(d.created_at)
+          },
+          { fixed: 'right', title: '操作', toolbar: '#tpl-apps-ops', width: 120 }
+        ]]
+      });
+
+      // 搜索功能
+      $('#btnSearchApps').on('click', function() {
+        const search = $('input[name="search"]').val();
+        appsTable.reload({
+          where: {
+            search: search
+          },
+          page: {
+            curr: 1
+          }
+        });
+      });
+
+      // 重置搜索
+      $('#btnResetApps').on('click', function() {
+        $('#appFilterForm')[0].reset();
+        appsTable.reload({
+          where: {},
+          page: {
+            curr: 1
+          }
+        });
+      });
+
+      // 新增应用
+      $('#btnAddApp').on('click', function() {
+        $('#appForm')[0].reset();
+        $('input[name="id"]').val('');
+        
+        layer.open({
+          type: 1,
+          title: '新增应用',
+          content: $('#appFormModal'),
+          area: ['500px', '460px'],
+          btn: false,
+          shadeClose: false
+        });
+        form.render();
+      });
+
+      // 监听更新方式切换（保留事件监听器以备将来扩展）
+      form.on('select(downloadTypeChange)', function(data) {
+        // 下载地址字段现在始终显示，无需切换显示状态
+      });
+
+      // 表单提交
+      form.on('submit(appFormSubmit)', function(data) {
+        const isEdit = data.field.id !== '';
+        const url = isEdit ? '/admin/api/apps/update' : '/admin/api/apps/create';
+        
+        // 转换字段类型为正确的数据类型
+        const formData = {
+          ...data.field,
+          status: parseInt(data.field.status) || 0,
+          download_type: parseInt(data.field.download_type) || 0,
+          force_update: parseInt(data.field.force_update) || 0
+        };
+        
+        // 如果是编辑模式，确保id也是整数
+        if (isEdit) {
+          formData.id = parseInt(data.field.id);
+        }
+        
+        $.ajax({
+          url: url,
+          type: 'POST',
+          data: JSON.stringify(formData),
+          contentType: 'application/json',
+          success: function(res) {
+            if (res.code === 0) {
+              layer.msg(res.msg, {icon: 1});
+              layer.closeAll();
+              appsTable.reload();
+            } else {
+              layer.msg(res.msg || '操作失败', {icon: 2});
+            }
+          },
+          error: function(xhr) {
+            layer.msg(xhr.responseText || '操作失败', {icon: 2});
+          }
+        });
+        return false;
+      });
+
+      // 取消按钮
+      $('#btnCancelApp').on('click', function() {
+        layer.closeAll();
+      });
+
+      // 表格工具栏事件
+      table.on('tool(appsTableFilter)', function(obj) {
+        const data = obj.data;
+        
+        if (obj.event === 'edit') {
+          // 编辑
+          $('#appForm')[0].reset();
+          $('input[name="id"]').val(data.id);
+          $('input[name="name"]').val(data.name);
+          $('input[name="version"]').val(data.version);
+          $('select[name="status"]').val(data.status);
+          $('select[name="download_type"]').val(data.download_type || 0);
+          $('input[name="download_url"]').val(data.download_url || '');
+          $('select[name="force_update"]').val(data.force_update || 0);
+          
+          layer.open({
+            type: 1,
+            title: '编辑应用',
+            content: $('#appFormModal'),
+            area: ['500px', '460px'],
+            btn: false,
+            shadeClose: false
+          });
+          form.render();
+          
+        } else if (obj.event === 'del') {
+          // 删除
+          layer.confirm('确定删除该应用吗？', {icon: 3, title: '提示'}, function(index) {
+            $.ajax({
+              url: '/admin/api/apps/delete',
+              type: 'POST',
+              data: JSON.stringify({id: data.id}),
+              contentType: 'application/json',
+              success: function(res) {
+                if (res.code === 0) {
+                  layer.msg(res.msg, {icon: 1});
+                  appsTable.reload();
+                } else {
+                  layer.msg(res.msg || '删除失败', {icon: 2});
+                }
+              },
+              error: function(xhr) {
+                layer.msg(xhr.responseText || '删除失败', {icon: 2});
+              }
+            });
+            layer.close(index);
+          });
+        }
+      });
+
+      // 批量删除
+      $('#btnBatchDeleteApps').on('click', function() {
+        const checkStatus = table.checkStatus('appsTable');
+        const data = checkStatus.data;
+        
+        if (data.length === 0) {
+          layer.msg('请选择要删除的应用', {icon: 2});
+          return;
+        }
+        
+        layer.confirm('确定删除选中的 ' + data.length + ' 个应用吗？', {icon: 3, title: '提示'}, function(index) {
+          const ids = data.map(item => item.id);
+          $.ajax({
+            url: '/admin/api/apps/batch_delete',
+            type: 'POST',
+            data: JSON.stringify({ids: ids}),
+            contentType: 'application/json',
+            success: function(res) {
+              if (res.code === 0) {
+                layer.msg(res.msg, {icon: 1});
+                appsTable.reload();
+              } else {
+                layer.msg(res.msg || '批量删除失败', {icon: 2});
+              }
+            },
+            error: function(xhr) {
+              layer.msg(xhr.responseText || '批量删除失败', {icon: 2});
+            }
+          });
+          layer.close(index);
+        });
+      });
+
+      // 批量启用
+      $('#btnBatchEnableApps').on('click', function() {
+        const checkStatus = table.checkStatus('appsTable');
+        const data = checkStatus.data;
+        
+        if (data.length === 0) {
+          layer.msg('请选择要启用的应用', {icon: 2});
+          return;
+        }
+        
+        const ids = data.map(item => item.id);
+        $.ajax({
+          url: '/admin/api/apps/batch_update_status',
+          type: 'POST',
+          data: JSON.stringify({ids: ids, status: 1}),
+          contentType: 'application/json',
+          success: function(res) {
+            if (res.code === 0) {
+              layer.msg(res.msg, {icon: 1});
+              appsTable.reload();
+            } else {
+              layer.msg(res.msg || '批量启用失败', {icon: 2});
+            }
+          },
+          error: function(xhr) {
+            layer.msg(xhr.responseText || '批量启用失败', {icon: 2});
+          }
+        });
+      });
+
+      // 批量禁用
+      $('#btnBatchDisableApps').on('click', function() {
+        const checkStatus = table.checkStatus('appsTable');
+        const data = checkStatus.data;
+        
+        if (data.length === 0) {
+          layer.msg('请选择要禁用的应用', {icon: 2});
+          return;
+        }
+        
+        const ids = data.map(item => item.id);
+        $.ajax({
+          url: '/admin/api/apps/batch_update_status',
+          type: 'POST',
+          data: JSON.stringify({ids: ids, status: 0}),
+          contentType: 'application/json',
+          success: function(res) {
+            if (res.code === 0) {
+              layer.msg(res.msg, {icon: 1});
+              appsTable.reload();
+            } else {
+              layer.msg(res.msg || '批量禁用失败', {icon: 2});
+            }
+          },
+          error: function(xhr) {
+            layer.msg(xhr.responseText || '批量禁用失败', {icon: 2});
+          }
+        });
+      });
+    });
+  </script>
+</section>
+{{ end }}

@@ -1,0 +1,422 @@
+{{ define "login_types.html" }}
+<section>
+  <h2>登录方式管理</h2>
+  <div class="layui-btn-container" style="margin:12px 0">
+    <button class="layui-btn" id="btnAddLoginType"><i class="layui-icon layui-icon-add-1"></i> 新增方式</button>
+    <button class="layui-btn layui-btn-normal" id="btnBatchEnableLoginTypes"><i class="layui-icon layui-icon-ok-circle"></i> 批量启用</button>
+    <button class="layui-btn layui-btn-warm" id="btnBatchDisableLoginTypes"><i class="layui-icon layui-icon-close-fill"></i> 批量禁用</button>
+    <button class="layui-btn layui-btn-danger" id="btnBatchDeleteLoginTypes"><i class="layui-icon layui-icon-delete"></i> 批量删除</button>
+  </div>
+
+  <div class="layui-card" style="margin-top:12px">
+    <div class="layui-card-header">筛选</div>
+    <div class="layui-card-body">
+      <form class="layui-form layui-form-pane" id="loginTypeFilterForm" lay-filter="loginTypeFilterForm">
+        <div class="layui-form-item">
+          <div class="layui-inline">
+            <label class="layui-form-label">名称</label>
+            <div class="layui-input-inline">
+              <input type="text" name="keyword" placeholder="登录方式名称" autocomplete="off" class="layui-input" />
+            </div>
+          </div>
+          <div class="layui-inline">
+            <label class="layui-form-label">状态</label>
+            <div class="layui-input-inline">
+              <select name="status">
+                <option value="">全部</option>
+                <option value="1">启用</option>
+                <option value="0">禁用</option>
+              </select>
+            </div>
+          </div>
+          <div class="layui-inline">
+            <button type="button" class="layui-btn" id="btnSearchLoginTypes">查询</button>
+            <button type="button" class="layui-btn layui-btn-primary" id="btnResetLoginTypes">重置</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="layui-card" style="margin-top:12px">
+    <div class="layui-card-header">登录方式列表</div>
+    <div class="layui-card-body">
+      <table id="loginTypesTable" lay-filter="loginTypesTableFilter"></table>
+      <script type="text/html" id="tpl-logintypes-ops">
+        <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+        <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+      </script>
+    </div>
+  </div>
+
+  <!-- 隐藏的表单弹层内容 -->
+  <div id="loginTypeFormModal" style="display:none;padding:16px">
+    <!-- 参考demo表单2样式，添加layui-form-pane类实现方框风格 -->
+    <form class="layui-form layui-form-pane" id="loginTypeForm" lay-filter="loginTypeForm">
+      <input type="hidden" name="id" />
+      <div class="layui-form-item">
+        <label class="layui-form-label">名称</label>
+        <div class="layui-input-block">
+          <input type="text" name="name" required lay-verify="required" placeholder="请输入登录方式名称" autocomplete="off" class="layui-input" />
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label">状态</label>
+        <div class="layui-input-block">
+          <select name="status">
+            <option value="1">启用</option>
+            <option value="0">禁用</option>
+          </select>
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label">验证类型</label>
+        <div class="layui-input-block">
+          <input type="text" name="verify_types" placeholder="请输入验证类型，多个用逗号分隔" autocomplete="off" class="layui-input" />
+        </div>
+      </div>
+      <!-- 操作按钮移除：统一由 layer.open 的 btn 控制“提交/取消” -->
+    </form>
+  </div>
+</section>
+
+<script>
+// 登录类型管理页面的JavaScript脚本
+layui.use(['table', 'form', 'layer'], function(){
+  const table = layui.table;
+  const form = layui.form;
+  const layer = layui.layer;
+  const $ = layui.$;
+
+  // 表格实例
+  let tableIns;
+
+  // 初始化表格
+  const initTable = () => {
+    tableIns = table.render({
+      elem: '#loginTypesTable',
+      url: '/admin/api/login_types/list',
+      method: 'GET',
+      page: true,
+      limit: 20,
+      limits: [10, 20, 50, 100],
+      loading: true,
+      cols: [[
+        {type: 'checkbox'},
+        {field: 'id', title: 'ID', width: 80, sort: true},
+        {field: 'name', title: '名称'},
+        {field: 'status', title: '状态', width: 100, templet: function(d){
+          return d.status === 1 ? '<span class="layui-badge layui-bg-green">启用</span>' : '<span class="layui-badge">禁用</span>';
+        }},
+        {field: 'verify_types', title: '验证类型'},
+        {field: 'created_at', title: '创建时间', width: 180, templet: function(d){
+          return formatDateTime(d.created_at);
+        }},
+        {field: 'updated_at', title: '更新时间', width: 180, templet: function(d){
+          return formatDateTime(d.updated_at);
+        }},
+        {title: '操作', toolbar: '#tpl-logintypes-ops', width: 150, fixed: 'right'}
+      ]],
+      parseData: function(res){
+        // 后端已返回正确格式，直接使用
+        return {
+          "code": res.code,
+          "msg": res.msg || '',
+          "count": res.data ? res.data.total : 0,
+          "data": res.data ? res.data.items : []
+        };
+      },
+      request: {
+        pageName: 'page',
+        limitName: 'page_size'
+      },
+      where: {}
+    });
+  };
+
+  // 格式化日期时间
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.getFullYear() + '-' + 
+           String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+           String(date.getDate()).padStart(2, '0') + ' ' +
+           String(date.getHours()).padStart(2, '0') + ':' + 
+           String(date.getMinutes()).padStart(2, '0') + ':' + 
+           String(date.getSeconds()).padStart(2, '0');
+  };
+
+  // 重载表格数据
+  const reloadTable = (where = {}) => {
+    tableIns.reload({
+      where: where,
+      page: {
+        curr: 1
+      }
+    });
+  };
+
+  // 获取选中的行数据
+  const getCheckData = () => {
+    const checkStatus = table.checkStatus('loginTypesTable');
+    return checkStatus.data;
+  };
+
+  // 当前表单弹窗索引
+  let currentFormLayerIndex = null;
+
+  // 显示表单弹层（统一使用 layer.open 的按钮作为确认/取消）
+  const showFormModal = (title, data = {}) => {
+    // 重置表单
+    $('#loginTypeForm')[0].reset();
+    
+    // 填充表单数据
+    if (data.id) {
+      $('input[name="id"]').val(data.id);
+      $('input[name="name"]').val(data.name);
+      $('select[name="status"]').val(data.status);
+      $('input[name="verify_types"]').val(data.verify_types);
+    }
+    
+    // 刷新表单渲染
+    form.render();
+    
+    // 显示弹层并保存索引
+    currentFormLayerIndex = layer.open({
+      type: 1,
+      title: title,
+      content: $('#loginTypeFormModal'),
+      area: ['500px', '300px'],
+      btn: ['提交', '取消'],
+      btnAlign: 'c',
+      yes: () => {
+        // 点击“提交”时执行提交
+        doLoginTypeSubmit();
+      },
+      btn2: (index) => {
+        // 点击“取消”时关闭弹层
+        layer.close(index);
+      },
+      closeBtn: 1
+    });
+  };
+
+  // 提交表单（通过 layer.open 的“提交”按钮触发）
+  const doLoginTypeSubmit = () => {
+    // 读取表单数据并校验
+    const idVal = $('input[name="id"]').val();
+    const isEdit = idVal && idVal !== '';
+    const name = $('input[name="name"]').val().trim();
+    const status = parseInt($('select[name="status"]').val() || '0');
+    const verifyTypes = $('input[name="verify_types"]').val().trim();
+
+    if (!name) {
+      layer.msg('请输入登录方式名称', { icon: 2 });
+      return;
+    }
+
+    const url = isEdit ? '/admin/api/login_types/update' : '/admin/api/login_types/create';
+    const requestData = {
+      name: name,
+      status: status,
+      verify_types: verifyTypes
+    };
+    if (isEdit) requestData.id = parseInt(idVal);
+
+    $.ajax({
+      url: url,
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify(requestData),
+      success: function(res) {
+        if (res.code === 0) {
+          layer.msg(isEdit ? '更新成功' : '创建成功', { icon: 1, time: 1000 });
+          layer.close(currentFormLayerIndex);
+          reloadTable();
+        } else {
+          // 失败时对提示信息做截断，避免过长
+          const raw = res.msg || '操作失败';
+          const shortMsg = raw.length > 100 ? (raw.slice(0, 100) + '...') : raw;
+          layer.msg(shortMsg, { icon: 2 });
+        }
+      },
+      // 优先展示后端返回的业务错误信息，避免统一显示“网络错误”
+      error: (xhr) => {
+        // 失败时对提示信息做截断，避免过长
+        const raw = (xhr.responseJSON && xhr.responseJSON.msg) ? xhr.responseJSON.msg : '网络错误，请重试';
+        const shortMsg = raw.length > 100 ? (raw.slice(0, 100) + '...') : raw;
+        layer.msg(shortMsg, { icon: 2 });
+      }
+    });
+  };
+
+  // 删除单个记录
+  // 说明：删除前二次确认；后端返回400/500也能显示具体错误信息
+  const deleteItem = (id) => {
+    layer.confirm('确定要删除这条记录吗？', {icon: 3, title: '提示'}, function(index){
+      $.ajax({
+        url: '/admin/api/login_types/delete',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({id: id}),
+        success: function(res) {
+          if (res.code === 0) {
+            layer.msg('删除成功', { icon: 1, time: 3000 });
+            reloadTable();
+          } else {
+            // 删除失败：使用折行展示错误信息，便于阅读（不再截断）
+            const raw = res.msg || '删除失败';
+            const safe = String(raw)
+              .replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&#39;');
+            // 将常见分隔符替换为换行，结合 white-space: pre-wrap 生效
+            const content = `<div style="white-space:pre-wrap;word-break:break-word;">${safe.replace(/[，,;；]/g, '\n')}</div>`;
+            layer.msg(content, { icon: 2 });
+          }
+        },
+        // 解析后端JSON错误响应，展示msg内容（支持折行）
+        error: (xhr) => {
+          const raw = (xhr.responseJSON && xhr.responseJSON.msg) ? xhr.responseJSON.msg : '网络错误，请重试';
+          const safe = String(raw)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+          const content = `<div style="white-space:pre-wrap;word-break:break-word;">${safe.replace(/[，,;；]/g, '\n')}</div>`;
+          layer.msg(content, { icon: 2 });
+        }
+      });
+      layer.close(index);
+    });
+  };
+
+  // 批量操作
+  // 参数：operation 用于提示文案，url 为接口地址，confirmMsg 为确认提示语
+  const batchOperation = (operation, url, confirmMsg) => {
+    const checkData = getCheckData();
+    if (checkData.length === 0) {
+      layer.msg('请选择要操作的数据', { icon: 2 });
+      return;
+    }
+    
+    const ids = checkData.map(item => item.id);
+    
+    layer.confirm(confirmMsg, {icon: 3, title: '提示'}, function(index){
+      $.ajax({
+        url: url,
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ids: ids}),
+        // 统一成功/失败提示，移除残留的diff标记
+        success: function(res) {
+          if (res.code === 0) {
+            layer.msg(operation + '成功', { icon: 1 });
+            reloadTable();
+          } else {
+            // 批量失败：使用折行展示长信息（例如占用明细），便于阅读
+            const raw = res.msg || operation + '失败';
+            const safe = String(raw)
+              .replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&#39;');
+            const content = `<div style="white-space:pre-wrap;word-break:break-word;">${safe.replace(/[，,;；]/g, '\n')}</div>`;
+            layer.msg(content, { icon: 2 });
+          }
+        },
+        // 出错时同样尝试展示后端返回的msg（支持折行）
+        error: (xhr) => {
+          const raw = (xhr.responseJSON && xhr.responseJSON.msg) ? xhr.responseJSON.msg : '网络错误，请重试';
+          const safe = String(raw)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+          const content = `<div style="white-space:pre-wrap;word-break:break-word;">${safe.replace(/[，,;；]/g, '\n')}</div>`;
+          layer.msg(content, { icon: 2 });
+        }
+      });
+      layer.close(index);
+    });
+  };
+
+  // 事件绑定
+  
+  // 新增按钮
+  $('#btnAddLoginType').on('click', function(){
+    showFormModal('新增登录方式');
+  });
+  
+  // 批量启用按钮
+  $('#btnBatchEnableLoginTypes').on('click', function(){
+    batchOperation('批量启用', '/admin/api/login_types/batch_enable', '确定要启用选中的登录方式吗？');
+  });
+  
+  // 批量禁用按钮
+  $('#btnBatchDisableLoginTypes').on('click', function(){
+    batchOperation('批量禁用', '/admin/api/login_types/batch_disable', '确定要禁用选中的登录方式吗？');
+  });
+  
+  // 批量删除按钮
+  $('#btnBatchDeleteLoginTypes').on('click', function(){
+    batchOperation('批量删除', '/admin/api/login_types/batch_delete', '确定要删除选中的登录方式吗？删除后不可恢复！');
+  });
+  
+  // 查询按钮
+  $('#btnSearchLoginTypes').on('click', function(){
+    const formData = form.val('loginTypeFilterForm');
+    const where = {};
+    
+    if (formData.keyword && formData.keyword.trim() !== '') {
+      where.keyword = formData.keyword.trim();
+    }
+    if (formData.status && formData.status !== '') {
+      where.status = formData.status;
+    }
+    
+    reloadTable(where);
+  });
+  
+  // 重置按钮
+  $('#btnResetLoginTypes').on('click', function(){
+    $('#loginTypeFilterForm')[0].reset();
+    form.render();
+    reloadTable();
+  });
+  
+  // Layui表单提交事件
+  // 删除 Layui 表单提交监听（由 layer.open 的“提交”按钮统一触发）
+  // form.on('submit(loginTypeSubmit)', function(data){
+  //   submitForm();
+  //   return false; // 阻止表单跳转
+  // });
+  
+  // 删除表单取消按钮事件（由 layer.open 的“取消”按钮统一处理）
+  // $('#btnCancelLoginType').on('click', function(){
+  //   layer.close(currentFormLayerIndex);
+  // });
+  
+  // 表格工具栏事件
+  table.on('tool(loginTypesTableFilter)', function(obj){
+    const data = obj.data;
+    const layEvent = obj.event;
+    
+    if (layEvent === 'edit') {
+      showFormModal('编辑登录方式', data);
+    } else if (layEvent === 'del') {
+      deleteItem(data.id);
+    }
+  });
+  
+  // 初始化页面
+  initTable();
+  
+});
+</script>
+{{ end }}

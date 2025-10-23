@@ -1,0 +1,238 @@
+package admin
+
+import (
+	"encoding/json"
+	"net/http"
+	"networkDev/database"
+	"networkDev/models"
+	"networkDev/utils"
+	"strings"
+)
+
+// UserFragmentHandler 个人资料片段渲染
+// - 渲染个人资料与修改密码表单
+func UserFragmentHandler(w http.ResponseWriter, r *http.Request) {
+	utils.RenderTemplate(w, "user.html", map[string]interface{}{})
+}
+
+// UserProfileQueryHandler 查询当前登录管理员的基本信息
+// - 返回 id/username/role 三个字段
+// - 自动刷新接近过期的JWT令牌
+func UserProfileQueryHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	claims, _, err := GetCurrentAdminUserWithRefresh(w, r)
+	if err != nil {
+		utils.JsonResponse(w, http.StatusUnauthorized, false, "未登录或会话已过期", nil)
+		return
+	}
+
+	utils.JsonResponse(w, http.StatusOK, true, "ok", map[string]interface{}{
+		"id":       claims.UserID,
+		"username": claims.Username,
+		"role":     claims.Role,
+	})
+}
+
+// UserPasswordUpdateHandler 修改当前登录管理员的密码
+// - 接收 JSON: {old_password, new_password, confirm_password}
+// - 校验旧密码正确性、新密码与确认一致性
+// - 成功后更新密码哈希
+// - 自动刷新接近过期的JWT令牌
+func UserPasswordUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	claims, _, err := GetCurrentAdminUserWithRefresh(w, r)
+	if err != nil {
+		utils.JsonResponse(w, http.StatusUnauthorized, false, "未登录或会话已过期", nil)
+		return
+	}
+
+	var body struct {
+		OldPassword     string `json:"old_password"`
+		NewPassword     string `json:"new_password"`
+		ConfirmPassword string `json:"confirm_password"`
+	}
+	var decodeErr error
+	if decodeErr = json.NewDecoder(r.Body).Decode(&body); decodeErr != nil {
+		utils.JsonResponse(w, http.StatusBadRequest, false, "请求参数错误", nil)
+		return
+	}
+
+	// 基础校验
+	if body.OldPassword == "" || body.NewPassword == "" || body.ConfirmPassword == "" {
+		utils.JsonResponse(w, http.StatusBadRequest, false, "旧密码/新密码/确认密码均不能为空", nil)
+		return
+	}
+	if len(body.NewPassword) < 6 {
+		utils.JsonResponse(w, http.StatusBadRequest, false, "新密码长度不能少于6位", nil)
+		return
+	}
+	if body.NewPassword != body.ConfirmPassword {
+		utils.JsonResponse(w, http.StatusBadRequest, false, "两次输入的新密码不一致", nil)
+		return
+	}
+	if body.NewPassword == body.OldPassword {
+		utils.JsonResponse(w, http.StatusBadRequest, false, "新密码不能与旧密码相同", nil)
+		return
+	}
+
+	db, err := database.GetDB()
+	if err != nil {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "数据库连接失败", nil)
+		return
+	}
+
+	// 查询当前用户
+	var user models.User
+	if dbErr := db.First(&user, claims.UserID).Error; dbErr != nil {
+		utils.JsonResponse(w, http.StatusNotFound, false, "用户不存在", nil)
+		return
+	}
+
+	// 校验旧密码（使用盐值验证）
+	if !utils.VerifyPasswordWithSalt(body.OldPassword, user.PasswordSalt, user.Password) {
+		utils.JsonResponse(w, http.StatusUnauthorized, false, "旧密码不正确", nil)
+		return
+	}
+
+	// 生成新的密码盐值
+	newSalt, err := utils.GenerateRandomSalt()
+	if err != nil {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "生成密码盐失败", nil)
+		return
+	}
+
+	// 使用新盐值生成密码哈希
+	hash, err := utils.HashPasswordWithSalt(body.NewPassword, newSalt)
+	if err != nil {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "生成密码哈希失败", nil)
+		return
+	}
+
+	// 更新密码和盐值
+	if err := db.Model(&models.User{}).Where("id = ?", claims.UserID).Updates(map[string]interface{}{
+		"password":      hash,
+		"password_salt": newSalt,
+	}).Error; err != nil {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "更新密码失败", nil)
+		return
+	}
+
+	// 可选：安全起见，通知前端跳转到登录页
+	utils.JsonResponse(w, http.StatusOK, true, "密码修改成功，请重新登录", map[string]interface{}{
+		"redirect": "/admin/login",
+	})
+}
+
+// UserProfileUpdateHandler 修改当前登录管理员的用户名
+// - 接收 JSON: {username}
+// - 校验用户名非空、长度与唯一性
+// - 更新数据库后重新签发JWT并写入 Cookie，保持前端展示的一致性
+// - 自动刷新接近过期的JWT令牌
+func UserProfileUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	claims, _, err := GetCurrentAdminUserWithRefresh(w, r)
+	if err != nil {
+		utils.JsonResponse(w, http.StatusUnauthorized, false, "未登录或会话已过期", nil)
+		return
+	}
+
+	var body struct {
+		Username    string `json:"username"`
+		OldPassword string `json:"old_password"`
+	}
+	if decodeErr := json.NewDecoder(r.Body).Decode(&body); decodeErr != nil {
+		utils.JsonResponse(w, http.StatusBadRequest, false, "请求参数错误", nil)
+		return
+	}
+
+	username := strings.TrimSpace(body.Username)
+	if username == "" {
+		utils.JsonResponse(w, http.StatusBadRequest, false, "用户名不能为空", nil)
+		return
+	}
+	if len(username) > 64 {
+		utils.JsonResponse(w, http.StatusBadRequest, false, "用户名长度不能超过64字符", nil)
+		return
+	}
+
+	db, err := database.GetDB()
+	if err != nil {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "数据库连接失败", nil)
+		return
+	}
+
+	// 检查唯一性：排除当前用户ID
+	var cnt int64
+	if dbErr := db.Model(&models.User{}).Where("username = ? AND id <> ?", username, claims.UserID).Count(&cnt).Error; dbErr != nil {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "检查用户名唯一性失败", nil)
+		return
+	}
+	if cnt > 0 {
+		utils.JsonResponse(w, http.StatusBadRequest, false, "用户名已存在，请更换", nil)
+		return
+	}
+
+	// 如果未变化则直接返回成功（无需校验旧密码）
+	if strings.EqualFold(username, claims.Username) {
+		utils.JsonResponse(w, http.StatusOK, true, "保存成功", map[string]interface{}{
+			"username": username,
+		})
+		return
+	}
+
+	// 修改用户名需要进行当前密码校验
+	if strings.TrimSpace(body.OldPassword) == "" {
+		utils.JsonResponse(w, http.StatusBadRequest, false, "修改用户名需要提供当前密码", nil)
+		return
+	}
+	// 查询当前用户并校验旧密码
+	var user models.User
+	if dbErr := db.First(&user, claims.UserID).Error; dbErr != nil {
+		utils.JsonResponse(w, http.StatusNotFound, false, "用户不存在", nil)
+		return
+	}
+	// 使用盐值验证当前密码
+	if !utils.VerifyPasswordWithSalt(body.OldPassword, user.PasswordSalt, user.Password) {
+		utils.JsonResponse(w, http.StatusUnauthorized, false, "当前密码不正确", nil)
+		return
+	}
+
+	// 执行更新
+	if dbErr := db.Model(&models.User{}).Where("id = ?", claims.UserID).Update("username", username).Error; dbErr != nil {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "更新用户名失败", nil)
+		return
+	}
+
+	// 重新签发JWT并写入Cookie
+	newUser := models.User{ID: claims.UserID, Username: username, Role: claims.Role}
+	token, err := generateJWTToken(newUser)
+	if err != nil {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "生成新令牌失败", nil)
+		return
+	}
+	cookie := &http.Cookie{
+		Name:     "admin_session",
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+		MaxAge:   24 * 60 * 60,
+	}
+	http.SetCookie(w, cookie)
+
+	utils.JsonResponse(w, http.StatusOK, true, "保存成功", map[string]interface{}{
+		"username": username,
+	})
+}

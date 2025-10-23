@@ -1,0 +1,259 @@
+{{/* 管理员登录页面模板：使用layui构建的登录界面 */}}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>{{ .Title }}</title>
+    <link rel="stylesheet" href="https://unpkg.com/layui@2.10.1/dist/css/layui.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            margin: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .login-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px 20px;
+            text-align: center;
+            color: #fff;
+        }
+        .login-header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 300;
+        }
+        .login-header p {
+            margin: 8px 0 0;
+            opacity: 0.8;
+            font-size: 14px;
+        }
+        .login-form {
+            padding: 40px 30px;
+        }
+        .layui-form-item {
+            margin-bottom: 25px;
+        }
+        .layui-input {
+            border: 1px solid #e6e6e6;
+            border-radius: 4px;
+            padding: 12px 15px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .layui-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+        .layui-btn-fluid {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 4px;
+            padding: 12px;
+            font-size: 16px;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+        .layui-btn-fluid:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        /* 修复登录按钮文字垂直位置偏下：使用flex进行垂直水平居中，并设置固定高度 */
+        .login-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 44px;
+            padding: 0 16px;
+            line-height: normal; /* 避免与高度不一致导致的文字偏移 */
+            font-weight: 500;
+        }
+        .error-msg {
+            color: #ff5722;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+        .login-footer {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-size: 12px;
+            border-top: 1px solid #f0f0f0;
+        }
+        
+        /* 响应式设计 - 移动端适配 */
+        @media (max-width: 768px) {
+            .login-container {
+                margin: 10px;
+                border-radius: 4px;
+            }
+            .login-header {
+                padding: 25px 15px;
+            }
+            .login-header h1 {
+                font-size: 20px;
+            }
+            .login-form {
+                padding: 30px 20px;
+            }
+            .layui-form-item {
+                margin-bottom: 20px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .login-container {
+                margin: 5px;
+                border-radius: 0;
+                min-height: calc(100vh - 10px);
+                display: flex;
+                flex-direction: column;
+            }
+            .login-header {
+                padding: 20px 15px;
+            }
+            .login-header h1 {
+                font-size: 18px;
+            }
+            .login-form {
+                padding: 25px 15px;
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+            .layui-input {
+                padding: 15px;
+                font-size: 16px; /* 防止iOS缩放 */
+            }
+            .login-btn {
+                height: 48px;
+                font-size: 16px;
+            }
+        }
+        
+        /* 超小屏幕适配 */
+        @media (max-width: 320px) {
+            .login-form {
+                padding: 20px 10px;
+            }
+            .login-header {
+                padding: 15px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>{{ .SystemName }}</h1>
+            <p>管理员登录</p>
+        </div>
+        
+        <div class="login-form">
+            <form class="layui-form" id="loginForm">
+                <div class="layui-form-item">
+                    <div class="layui-input-wrap">
+                        <div class="layui-input-prefix">
+                            <i class="layui-icon layui-icon-username"></i>
+                        </div>
+                        <input type="text" name="username" placeholder="请输入用户名" lay-verify="required" lay-reqtext="请输入用户名" class="layui-input" autocomplete="off">
+                    </div>
+                </div>
+                
+                <div class="layui-form-item">
+                    <div class="layui-input-wrap">
+                        <div class="layui-input-prefix">
+                            <i class="layui-icon layui-icon-password"></i>
+                        </div>
+                        <input type="password" name="password" placeholder="请输入密码" lay-verify="required" lay-reqtext="请输入密码" class="layui-input" autocomplete="off">
+                    </div>
+                </div>
+                
+                <div class="layui-form-item">
+                    <input type="checkbox" name="remember" title="记住登录状态" lay-skin="primary">
+                </div>
+                
+                <div class="layui-form-item">
+                    <button class="layui-btn layui-btn-fluid login-btn" lay-submit lay-filter="login">立即登录</button>
+                </div>
+                
+                <div class="error-msg" id="errorMsg"></div>
+            </form>
+        </div>
+        
+        <div class="login-footer">
+            <p>{{ .FooterText }}</p>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/layui@2.10.1/dist/layui.js"></script>
+    <script>
+        layui.use(['form', 'layer'], function(){
+            var form = layui.form;
+            var layer = layui.layer;
+            
+            // 登录提交回调：向 /admin/login 发送请求，并依据 code===0 判断成功与否
+            form.on('submit(login)', function(data){
+                var loadIndex = layer.load(1, {
+                    shade: [0.1, '#fff']
+                });
+                
+                // 发送登录请求
+                fetch('/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data.field)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    layer.close(loadIndex);
+                    
+                    // 根据统一接口：code === 0 表示成功
+                    const isOk = result && result.code === 0;
+                    if (isOk) {
+                        layer.msg('登录成功', {
+                            icon: 1,
+                            time: 1500
+                        }, function(){
+                            const redirect = (result.data && result.data.redirect) || '/admin';
+                            window.location.href = redirect;
+                        });
+                    } else {
+                        const msg = (result && (result.msg || result.message)) || '登录失败，请检查用户名和密码';
+                        document.getElementById('errorMsg').style.display = 'block';
+                        document.getElementById('errorMsg').textContent = msg;
+                        layer.msg(msg, {icon: 2});
+                    }
+                })
+                .catch(error => {
+                    layer.close(loadIndex);
+                    console.error('登录错误:', error);
+                    document.getElementById('errorMsg').style.display = 'block';
+                    document.getElementById('errorMsg').textContent = '网络错误，请稍后重试';
+                    layer.msg('网络错误，请稍后重试', {icon: 2});
+                });
+                
+                return false; // 阻止表单跳转
+            });
+        });
+    </script>
+</body>
+</html>
