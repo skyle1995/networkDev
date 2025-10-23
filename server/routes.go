@@ -10,6 +10,7 @@ import (
 // RegisterRoutes 聚合注册所有路由
 func RegisterRoutes(mux *http.ServeMux) {
 	registerStaticRoutes(mux)
+	registerFaviconRoute(mux)
 	RegisterHomeRoutes(mux)
 	RegisterAdminRoutes(mux)
 
@@ -34,4 +35,12 @@ func registerStaticRoutes(mux *http.ServeMux) {
 	} else {
 		log.Printf("初始化静态资源文件系统失败: %v", err)
 	}
+}
+
+// registerFaviconRoute 注册favicon路由
+func registerFaviconRoute(mux *http.ServeMux) {
+	// 将 /favicon.ico 重定向到 /assets/favicon.svg
+	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/assets/favicon.svg", http.StatusMovedPermanently)
+	})
 }

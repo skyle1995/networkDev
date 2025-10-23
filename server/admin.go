@@ -32,6 +32,9 @@ func RegisterAdminRoutes(mux *http.ServeMux) {
 	// 退出登录（无需拦截，幂等清理）
 	mux.HandleFunc("/admin/logout", adminctl.LogoutHandler)
 
+	// 验证码生成路由（无需认证）
+	mux.HandleFunc("/admin/captcha", adminctl.CaptchaHandler)
+
 	// 后台布局页（需要管理员认证）
 	mux.HandleFunc("/admin/layout", adminctl.AdminAuthRequired(adminctl.AdminLayoutHandler))
 

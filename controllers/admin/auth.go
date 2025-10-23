@@ -46,6 +46,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
+		Captcha  string `json:"captcha"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		utils.JsonResponse(w, http.StatusBadRequest, false, "请求参数错误", nil)
@@ -53,6 +54,16 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if body.Username == "" || body.Password == "" {
 		utils.JsonResponse(w, http.StatusBadRequest, false, "用户名和密码不能为空", nil)
+		return
+	}
+	if body.Captcha == "" {
+		utils.JsonResponse(w, http.StatusBadRequest, false, "验证码不能为空", nil)
+		return
+	}
+
+	// 验证验证码
+	if !VerifyCaptcha(r, body.Captcha) {
+		utils.JsonResponse(w, http.StatusBadRequest, false, "验证码错误", nil)
 		return
 	}
 

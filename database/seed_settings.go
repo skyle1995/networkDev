@@ -24,17 +24,17 @@ func SeedDefaultSettings() error {
 		},
 		{
 			Name:        "site_keywords",
-			Value:       "验证,网络,管理系统,网络验证,账户管理",
+			Value:       "验证,网络,管理系统,网络验证,卡密管理,账户管理",
 			Description: "网站关键词，用于SEO优化，多个关键词用逗号分隔",
 		},
 		{
 			Name:        "site_description",
-			Value:       "专业的网络验证管理系统，提供便捷的在线网络验证服务和账户管理功能",
+			Value:       "专业的网络验证管理系统，提供便捷的在线网络验证服务和设备管理功能",
 			Description: "网站描述，用于SEO优化和社交媒体分享",
 		},
 		{
 			Name:        "site_logo",
-			Value:       "/assets/logo.png",
+			Value:       "/favicon.ico",
 			Description: "网站Logo图片路径",
 		},
 		{

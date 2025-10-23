@@ -5,7 +5,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <title>{{ .Title }}</title>
-    <link rel="stylesheet" href="https://unpkg.com/layui@2.10.1/dist/css/layui.css">
+    <!-- 站点图标 -->
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <!-- 请勿在项目正式环境中引用该 layui.css 地址 -->
+    <link href="//unpkg.com/layui@2.12.1/dist/css/layui.css" rel="stylesheet">
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -17,10 +21,9 @@
             align-items: center;
             justify-content: center;
         }
-        .login-container {
-            width: 100%;
-            max-width: 400px;
-            margin: 20px;
+        .demo-login-container {
+            width: 400px;
+            margin: 21px auto 0;
             background: #fff;
             border-radius: 8px;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
@@ -43,51 +46,25 @@
             font-size: 14px;
         }
         .login-form {
-            padding: 40px 30px;
+            padding: 30px 20px;
         }
-        .layui-form-item {
-            margin-bottom: 25px;
+        
+        /* 调整表单项间距 */
+        .login-form .layui-form-item {
+            margin-bottom: 20px;
         }
-        .layui-input {
-            border: 1px solid #e6e6e6;
-            border-radius: 4px;
-            padding: 12px 15px;
-            font-size: 14px;
-            transition: all 0.3s;
+        
+        /* 最后一个表单项不需要底部边距 */
+        .login-form .layui-form-item:last-child {
+            margin-bottom: 0;
         }
-        .layui-input:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
-        }
-        .layui-btn-fluid {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 4px;
-            padding: 12px;
-            font-size: 16px;
-            letter-spacing: 1px;
-            transition: all 0.3s;
-        }
-        .layui-btn-fluid:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-        /* 修复登录按钮文字垂直位置偏下：使用flex进行垂直水平居中，并设置固定高度 */
-        .login-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 44px;
-            padding: 0 16px;
-            line-height: normal; /* 避免与高度不一致导致的文字偏移 */
-            font-weight: 500;
-        }
-        .error-msg {
-            color: #ff5722;
-            font-size: 12px;
-            margin-top: 5px;
-            display: none;
-        }
+        .demo-login-other .layui-icon {
+             position: relative;
+             display: inline-block;
+             margin: 0 2px;
+             top: 2px;
+             font-size: 26px;
+         }
         .login-footer {
             text-align: center;
             padding: 20px;
@@ -98,8 +75,9 @@
         
         /* 响应式设计 - 移动端适配 */
         @media (max-width: 768px) {
-            .login-container {
-                margin: 10px;
+            .demo-login-container {
+                width: 90%;
+                margin: 10px auto;
                 border-radius: 4px;
             }
             .login-header {
@@ -109,16 +87,19 @@
                 font-size: 20px;
             }
             .login-form {
-                padding: 30px 20px;
+                padding: 25px 15px;
             }
-            .layui-form-item {
-                margin-bottom: 20px;
+            
+            /* 移动端表单项间距调整 */
+            .login-form .layui-form-item {
+                margin-bottom: 18px;
             }
         }
         
         @media (max-width: 480px) {
-            .login-container {
-                margin: 5px;
+            .demo-login-container {
+                width: 95%;
+                margin: 5px auto;
                 border-radius: 0;
                 min-height: calc(100vh - 10px);
                 display: flex;
@@ -131,48 +112,35 @@
                 font-size: 18px;
             }
             .login-form {
-                padding: 25px 15px;
+                padding: 20px 15px;
+            }
+            
+            /* 小屏幕表单项间距调整 */
+            .login-form .layui-form-item {
+                margin-bottom: 16px;
                 flex: 1;
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
             }
-            .layui-input {
-                padding: 15px;
-                font-size: 16px; /* 防止iOS缩放 */
-            }
-            .login-btn {
-                height: 48px;
-                font-size: 16px;
-            }
-        }
-        
-        /* 超小屏幕适配 */
-        @media (max-width: 320px) {
-            .login-form {
-                padding: 20px 10px;
-            }
-            .login-header {
-                padding: 15px 10px;
-            }
         }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-header">
-            <h1>{{ .SystemName }}</h1>
-            <p>管理员登录</p>
-        </div>
-        
-        <div class="login-form">
-            <form class="layui-form" id="loginForm">
+    <form class="layui-form">
+        <div class="demo-login-container">
+            <div class="login-header">
+                <h1>{{ .SystemName }}</h1>
+                <p>管理员登录</p>
+            </div>
+            
+            <div class="login-form">
                 <div class="layui-form-item">
                     <div class="layui-input-wrap">
                         <div class="layui-input-prefix">
                             <i class="layui-icon layui-icon-username"></i>
                         </div>
-                        <input type="text" name="username" placeholder="请输入用户名" lay-verify="required" lay-reqtext="请输入用户名" class="layui-input" autocomplete="off">
+                        <input type="text" name="username" value="" lay-verify="required" placeholder="用户名" lay-reqtext="请填写用户名" autocomplete="off" class="layui-input" lay-affix="clear">
                     </div>
                 </div>
                 
@@ -181,35 +149,48 @@
                         <div class="layui-input-prefix">
                             <i class="layui-icon layui-icon-password"></i>
                         </div>
-                        <input type="password" name="password" placeholder="请输入密码" lay-verify="required" lay-reqtext="请输入密码" class="layui-input" autocomplete="off">
+                        <input type="password" name="password" value="" lay-verify="required" placeholder="密   码" lay-reqtext="请填写密码" autocomplete="off" class="layui-input" lay-affix="eye">
                     </div>
                 </div>
                 
                 <div class="layui-form-item">
-                    <input type="checkbox" name="remember" title="记住登录状态" lay-skin="primary">
+                    <div class="layui-row">
+                        <div class="layui-col-xs7">
+                            <div class="layui-input-wrap">
+                                <div class="layui-input-prefix">
+                                    <i class="layui-icon layui-icon-vercode"></i>
+                                </div>
+                                <input type="text" name="captcha" value="" lay-verify="required" placeholder="验证码" lay-reqtext="请填写验证码" autocomplete="off" class="layui-input" lay-affix="clear">
+                            </div>
+                        </div>
+                        <div class="layui-col-xs5">
+                            <div style="margin-left: 5px; text-align: right;">
+                                <img id="captcha-img" src="/admin/captcha" onclick="this.src='/admin/captcha?t='+ new Date().getTime();" style="cursor: pointer; height: 38px; border-radius: 4px; width: 100%;" title="点击刷新验证码">
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="layui-form-item">
-                    <button class="layui-btn layui-btn-fluid login-btn" lay-submit lay-filter="login">立即登录</button>
+                    <button class="layui-btn layui-btn-fluid" lay-submit lay-filter="demo-login">立即登录</button>
                 </div>
-                
-                <div class="error-msg" id="errorMsg"></div>
-            </form>
+            </div>
+            
+            <div class="login-footer">
+                <p>{{ .FooterText }}</p>
+            </div>
         </div>
-        
-        <div class="login-footer">
-            <p>{{ .FooterText }}</p>
-        </div>
-    </div>
+    </form>
 
-    <script src="https://unpkg.com/layui@2.10.1/dist/layui.js"></script>
+    <!-- 请勿在项目正式环境中引用该 layui.js 地址 -->
+    <script src="//unpkg.com/layui@2.12.1/dist/layui.js"></script>
     <script>
-        layui.use(['form', 'layer'], function(){
+        layui.use(function(){
             var form = layui.form;
             var layer = layui.layer;
             
             // 登录提交回调：向 /admin/login 发送请求，并依据 code===0 判断成功与否
-            form.on('submit(login)', function(data){
+            form.on('submit(demo-login)', function(data){
                 var loadIndex = layer.load(1, {
                     shade: [0.1, '#fff']
                 });
@@ -238,17 +219,19 @@
                         });
                     } else {
                         const msg = (result && (result.msg || result.message)) || '登录失败，请检查用户名和密码';
-                        document.getElementById('errorMsg').style.display = 'block';
-                        document.getElementById('errorMsg').textContent = msg;
                         layer.msg(msg, {icon: 2});
+                        
+                        // 登录失败时刷新验证码
+                        document.getElementById('captcha-img').src = '/admin/captcha?t=' + new Date().getTime();
                     }
                 })
                 .catch(error => {
                     layer.close(loadIndex);
                     console.error('登录错误:', error);
-                    document.getElementById('errorMsg').style.display = 'block';
-                    document.getElementById('errorMsg').textContent = '网络错误，请稍后重试';
                     layer.msg('网络错误，请稍后重试', {icon: 2});
+                    
+                    // 网络错误时也刷新验证码
+                    document.getElementById('captcha-img').src = '/admin/captcha?t=' + new Date().getTime();
                 });
                 
                 return false; // 阻止表单跳转
