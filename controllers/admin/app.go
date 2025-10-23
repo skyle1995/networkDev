@@ -278,7 +278,7 @@ func AppCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 确保UUID和Secret被设置（虽然BeforeCreate钩子应该处理这些，但为了保险起见）
 	if app.UUID == "" {
-		app.UUID = uuid.New().String()
+		app.UUID = strings.ToUpper(uuid.New().String())
 	}
 	if app.Secret == "" {
 		// 生成32位大写16进制随机字符

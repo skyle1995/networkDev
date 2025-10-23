@@ -58,7 +58,7 @@ type App struct {
 // BeforeCreate 在创建记录前自动生成UUID和密钥
 func (app *App) BeforeCreate(tx *gorm.DB) error {
 	if app.UUID == "" {
-		app.UUID = uuid.New().String()
+		app.UUID = strings.ToUpper(uuid.New().String())
 	}
 	if app.Secret == "" {
 		// 生成32位大写16进制随机字符
