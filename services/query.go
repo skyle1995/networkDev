@@ -12,37 +12,7 @@ import (
 
 
 
-// FindCardByCardNumber 根据卡号查找卡密
-// cardNumber: 卡号
-// db: 数据库连接
-// 返回: 卡密信息和错误
-func FindCardByCardNumber(cardNumber string, db *gorm.DB) (*models.Card, error) {
-	key := fmt.Sprintf("card:number:%s", cardNumber)
-	return utils.RedisGetOrSet(context.Background(), key, 60*time.Second, func() (*models.Card, error) {
-		var card models.Card
-		err := db.Where("card_number = ?", cardNumber).First(&card).Error
-		if err != nil {
-			return nil, err
-		}
-		return &card, nil
-	})
-}
 
-// FindCardTypeByID 根据ID查找卡密类型
-// id: 卡密类型ID
-// db: 数据库连接
-// 返回: 卡密类型信息和错误
-func FindCardTypeByID(id uint, db *gorm.DB) (*models.CardType, error) {
-	key := fmt.Sprintf("card_type:id:%d", id)
-	return utils.RedisGetOrSet(context.Background(), key, 30*time.Minute, func() (*models.CardType, error) {
-		var cardType models.CardType
-		err := db.Where("id = ?", id).First(&cardType).Error
-		if err != nil {
-			return nil, err
-		}
-		return &cardType, nil
-	})
-}
 
 // FindSettingByName 根据名称查找设置
 // name: 设置名称

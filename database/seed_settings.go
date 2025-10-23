@@ -88,11 +88,6 @@ func SeedDefaultSettings() error {
 			Value:       "https://www.beian.gov.cn/portal/registerSystemInfo?recordcode=11000002000001",
 			Description: "公安备案查询链接，留空则不显示",
 		},
-		{
-			Name:        "card_batch_counter",
-			Value:       "0",
-			Description: "卡密批次号计数器（用于记录上次生成批次号的序号，自增使用）",
-		},
 	}
 
 	// 逐个检查并创建不存在的设置项

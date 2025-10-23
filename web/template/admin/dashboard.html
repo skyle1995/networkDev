@@ -39,41 +39,7 @@
   </div>
 </section>
 
-<!-- 卡密统计区域 -->
-<section style="margin-top:16px">
-  <div class="layui-row layui-col-space15">
-    <!-- 当日卡密统计 -->
-    <div class="layui-col-md6">
-      <div class="layui-card">
-        <div class="layui-card-header">当日卡密统计 <span class="layui-badge layui-bg-blue" style="margin-left:8px">总数：<span id="today-total">-</span></span></div>
-        <div class="layui-card-body">
-          <div id="chart-today-by-status" style="width:100%;height:320px"></div>
-        </div>
-      </div>
-    </div>
-    <!-- 所有卡密统计 -->
-    <div class="layui-col-md6">
-      <div class="layui-card">
-        <div class="layui-card-header">所有卡密统计 <span class="layui-badge layui-bg-blue" style="margin-left:8px">总数：<span id="all-total">-</span></span></div>
-        <div class="layui-card-body">
-          <div id="chart-all-by-status" style="width:100%;height:320px"></div>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- 30天走势图 -->
-  <div class="layui-row layui-col-space15" style="margin-top:16px">
-    <div class="layui-col-md12">
-      <div class="layui-card">
-        <div class="layui-card-header">近30天卡密走势</div>
-        <div class="layui-card-body">
-          <div id="chart-trend-30days" style="width:100%;height:360px"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
 
 <script>
 // 仪表盘统计脚本（采用箭头函数与中文注释）
@@ -100,107 +66,7 @@ layui.use(['layer', 'util'], function(){
     }
   };
 
-  // 工具函数：状态码 -> 名称 映射
-  // 说明：卡密状态映射，0=未使用，1=已使用，2=禁用
-  const getStatusText = (s) => {
-    const map = {0:'未使用',1:'已使用',2:'禁用'};
-    const k = Number(s);
-    return map[k] ?? String(s);
-  };
 
-  // 工具函数：状态码 -> 颜色 映射（与徽章风格一致，尽量贴近 Layui 配色）
-  const getStatusColor = (s) => {
-    switch (Number(s)) {
-      case 0: return '#1E9FFF';       // 蓝色 - 未使用
-      case 1: return '#5FB878';       // 绿色 - 已使用
-      case 2: return '#FF5722';       // 红色 - 禁用
-      default: return '#909399';      // 灰色 - 默认
-    }
-  };
-
-  // 函数：渲染饼图
-  // 说明：接收状态分布对象（键为状态码，值为数量），绘制环形图
-  const renderPie = (domId, byStatus) => {
-    const el = document.getElementById(domId);
-    if (!el) return;
-    const chart = echarts.init(el);
-
-    const codes = [0,1,2]; // 卡密状态：0=未使用，1=已使用，2=禁用
-    const data = codes.map(code => ({
-      name: getStatusText(code),
-      value: Number((byStatus && byStatus[code]) || 0),
-      itemStyle: { color: getStatusColor(code) }
-    }));
-
-    chart.setOption({
-      tooltip: { trigger: 'item' },
-      legend: { top: 'bottom' },
-      series: [{
-        name: '按状态分布',
-        type: 'pie',
-        radius: ['38%', '68%'],
-        avoidLabelOverlap: true,
-        label: { formatter: '{b}: {c} ({d}%)' },
-        data
-      }]
-    });
-
-    // 自适应
-    window.addEventListener('resize', () => chart.resize());
-    return chart;
-  };
-
-  // 函数：渲染 30 天折线图
-  // 说明：三条序列：total/used/unused，对应后台返回的数组
-  const renderTrend = (domId, trend) => {
-    const el = document.getElementById(domId);
-    if (!el) return;
-    const chart = echarts.init(el);
-
-    const dates = (trend && trend.dates) || [];
-    const total = (trend && trend.total) || [];
-    const used = (trend && trend.used) || [];
-    const unused = (trend && trend.unused) || [];
-
-    chart.setOption({
-      tooltip: { trigger: 'axis' },
-      legend: { data: ['总数', '已使用', '未使用'] },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-      xAxis: { type: 'category', boundaryGap: false, data: dates },
-      yAxis: { type: 'value' },
-      series: [
-        { name: '总数', type: 'line', smooth: true, data: total, itemStyle: { color: '#909399' } },
-        { name: '已使用', type: 'line', smooth: true, data: used, itemStyle: { color: getStatusColor(1) } },
-        { name: '未使用', type: 'line', smooth: true, data: unused, itemStyle: { color: getStatusColor(0) } }
-      ]
-    });
-
-    window.addEventListener('resize', () => chart.resize());
-    return chart;
-  };
-
-  // 函数：拉取概览并渲染
-  // 说明：请求 /admin/api/cards/stats_overview，更新总数文本并渲染两个饼图
-  const loadAndRenderOverview = () => {
-    $.get('/admin/api/cards/stats_overview', (res) => {
-      if (!res || res.code !== 0) { layer.msg(res && res.msg ? res.msg : '获取统计概览失败'); return; }
-      const data = res.data || {};
-      $('#today-total').text((data.today && data.today.total) ?? '-');
-      $('#all-total').text((data.all && data.all.total) ?? '-');
-      // 渲染饼图
-      renderPie('chart-today-by-status', data.today ? data.today.by_status : {});
-      renderPie('chart-all-by-status', data.all ? data.all.by_status : {});
-    });
-  };
-
-  // 函数：拉取 30 天数据并渲染折线图
-  // 说明：请求 /admin/api/cards/trend_30days，渲染趋势图
-  const loadAndRenderTrend = () => {
-    $.get('/admin/api/cards/trend_30days', (res) => {
-      if (!res || res.code !== 0) { layer.msg(res && res.msg ? res.msg : '获取30天趋势失败'); return; }
-      renderTrend('chart-trend-30days', res.data || {});
-    });
-  };
 
   // 函数：刷新基本信息和运行状态
   // 说明：请求后台获取最新的系统信息并更新页面显示
@@ -223,14 +89,8 @@ layui.use(['layer', 'util'], function(){
     });
   };
 
-  // 入口：确保 ECharts 已加载后开始渲染
-  ensureECharts(() => {
-    loadAndRenderOverview();
-    loadAndRenderTrend();
-    
-    // 立即刷新一次系统信息
-    refreshSystemInfo();
-  });
+  // 立即刷新一次系统信息
+  refreshSystemInfo();
 });
 </script>
 {{ end }}

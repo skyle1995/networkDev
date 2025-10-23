@@ -2,6 +2,7 @@ package admin
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
@@ -81,6 +82,141 @@ func AppsListHandler(w http.ResponseWriter, r *http.Request) {
 		"msg":   "success",
 		"count": total,
 		"data":  apps,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// AppGetAnnouncementHandler 获取应用程序公告处理器
+func AppGetAnnouncementHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// 获取UUID参数
+	uuid := r.URL.Query().Get("uuid")
+	if uuid == "" {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "应用UUID不能为空",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 获取数据库连接
+	db, err := database.GetDB()
+	if err != nil {
+		logrus.WithError(err).Error("Failed to get database connection")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "数据库连接失败",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 查找应用
+	var app models.App
+	if err := db.Where("uuid = ?", uuid).First(&app).Error; err != nil {
+		logrus.WithError(err).Error("Failed to find app")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "应用不存在",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 解码base64公告内容
+	var announcement string
+	if app.Announcement != "" {
+		decodedBytes, err := base64.StdEncoding.DecodeString(app.Announcement)
+		if err != nil {
+			logrus.WithError(err).Error("Failed to decode announcement")
+			// 如果解码失败，返回空字符串
+			announcement = ""
+		} else {
+			announcement = string(decodedBytes)
+		}
+	}
+
+	response := map[string]interface{}{
+		"code": 0,
+		"msg":  "获取成功",
+		"data": map[string]interface{}{
+			"announcement": announcement,
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// AppResetSecretHandler 重置应用密钥API处理器
+func AppResetSecretHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		UUID string `json:"uuid"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if req.UUID == "" {
+		http.Error(w, "应用UUID不能为空", http.StatusBadRequest)
+		return
+	}
+
+	db, err := database.GetDB()
+	if err != nil {
+		logrus.WithError(err).Error("Failed to get database connection")
+		http.Error(w, "数据库连接失败", http.StatusInternalServerError)
+		return
+	}
+
+	// 查找应用
+	var app models.App
+	if err := db.Where("uuid = ?", req.UUID).First(&app).Error; err != nil {
+		logrus.WithError(err).Error("Failed to find app by UUID")
+		http.Error(w, "应用不存在", http.StatusNotFound)
+		return
+	}
+
+	// 生成新的密钥
+	bytes := make([]byte, 16)
+	if _, err := rand.Read(bytes); err != nil {
+		logrus.WithError(err).Error("Failed to generate random secret")
+		http.Error(w, "生成密钥失败", http.StatusInternalServerError)
+		return
+	}
+	newSecret := strings.ToUpper(hex.EncodeToString(bytes))
+
+	// 更新密钥
+	if err := db.Model(&app).Update("secret", newSecret).Error; err != nil {
+		logrus.WithError(err).Error("Failed to update app secret")
+		http.Error(w, "更新密钥失败", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"code": 0,
+		"msg":  "密钥重置成功",
+		"data": map[string]interface{}{
+			"uuid":   app.UUID,
+			"secret": newSecret,
+		},
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -385,4 +521,227 @@ func AppsBatchUpdateStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+// AppUpdateAnnouncementHandler 更新应用程序公告处理器
+func AppUpdateAnnouncementHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// 解析请求体
+	var req struct {
+		UUID         string `json:"uuid"`
+		Announcement string `json:"announcement"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		logrus.WithError(err).Error("Failed to decode request body")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "请求参数格式错误",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 验证UUID
+	if req.UUID == "" {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "应用UUID不能为空",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 验证UUID格式
+	if _, err := uuid.Parse(req.UUID); err != nil {
+		logrus.WithError(err).Error("Invalid UUID format")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "无效的UUID格式",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 获取数据库连接
+	db, err := database.GetDB()
+	if err != nil {
+		logrus.WithError(err).Error("Failed to get database connection")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "数据库连接失败",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 查找应用
+	var app models.App
+	if err := db.Where("uuid = ?", req.UUID).First(&app).Error; err != nil {
+		logrus.WithError(err).Error("Failed to find app")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "应用不存在",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 对公告内容进行base64编码
+	encodedAnnouncement := base64.StdEncoding.EncodeToString([]byte(req.Announcement))
+
+	// 更新应用的公告内容
+	if err := db.Model(&app).Update("announcement", encodedAnnouncement).Error; err != nil {
+		logrus.WithError(err).Error("Failed to update app announcement")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "更新程序公告失败",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"app_uuid": req.UUID,
+		"app_name": app.Name,
+	}).Info("App announcement updated successfully")
+
+	response := map[string]interface{}{
+		"code": 0,
+		"msg":  "程序公告更新成功",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// ... existing code ...
+
+// AppGetMultiConfigHandler 获取应用多开配置
+func AppGetMultiConfigHandler(w http.ResponseWriter, r *http.Request) {
+	appUUID := r.URL.Query().Get("uuid")
+	if appUUID == "" {
+		http.Error(w, "缺少应用UUID", http.StatusBadRequest)
+		return
+	}
+
+	// 验证UUID格式
+	if _, err := uuid.Parse(appUUID); err != nil {
+		http.Error(w, "无效的UUID格式", http.StatusBadRequest)
+		return
+	}
+
+	db, err := database.GetDB()
+	if err != nil {
+		logrus.WithError(err).Error("Failed to get database connection")
+		http.Error(w, "数据库连接失败", http.StatusInternalServerError)
+		return
+	}
+
+	var app models.App
+	if err := db.Where("uuid = ?", appUUID).First(&app).Error; err != nil {
+		logrus.WithError(err).Error("Failed to find app")
+		http.Error(w, "应用不存在", http.StatusNotFound)
+		return
+	}
+
+	// 返回多开配置信息
+	response := map[string]interface{}{
+		"login_type":       app.LoginType,
+		"multi_open_scope": app.MultiOpenScope,
+		"clean_interval":   app.CleanInterval,
+		"check_interval":   app.CheckInterval,
+		"multi_open_count": app.MultiOpenCount,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// AppUpdateMultiConfigHandler 更新应用多开配置
+func AppUpdateMultiConfigHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		UUID            string `json:"uuid"`
+		LoginType       int    `json:"login_type"`
+		MultiOpenScope  int    `json:"multi_open_scope"`
+		CleanInterval   int    `json:"clean_interval"`
+		CheckInterval   int    `json:"check_interval"`
+		MultiOpenCount  int    `json:"multi_open_count"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// 验证UUID格式
+	if _, err := uuid.Parse(req.UUID); err != nil {
+		http.Error(w, "无效的UUID格式", http.StatusBadRequest)
+		return
+	}
+
+	// 验证参数范围
+	if req.LoginType < 0 || req.LoginType > 1 {
+		http.Error(w, "登录方式参数无效", http.StatusBadRequest)
+		return
+	}
+	if req.MultiOpenScope < 0 || req.MultiOpenScope > 2 {
+		http.Error(w, "多开范围参数无效", http.StatusBadRequest)
+		return
+	}
+	if req.CleanInterval < 1 {
+		http.Error(w, "清理间隔必须大于0", http.StatusBadRequest)
+		return
+	}
+	if req.CheckInterval < 1 {
+		http.Error(w, "校验间隔必须大于0", http.StatusBadRequest)
+		return
+	}
+	if req.MultiOpenCount < 1 {
+		http.Error(w, "多开数量必须大于0", http.StatusBadRequest)
+		return
+	}
+
+	db, err := database.GetDB()
+	if err != nil {
+		logrus.WithError(err).Error("Failed to get database connection")
+		http.Error(w, "数据库连接失败", http.StatusInternalServerError)
+		return
+	}
+
+	// 查找应用
+	var app models.App
+	if err := db.Where("uuid = ?", req.UUID).First(&app).Error; err != nil {
+		logrus.WithError(err).Error("Failed to find app")
+		http.Error(w, "应用不存在", http.StatusNotFound)
+		return
+	}
+
+	// 更新多开配置
+	updates := map[string]interface{}{
+		"login_type":       req.LoginType,
+		"multi_open_scope": req.MultiOpenScope,
+		"clean_interval":   req.CleanInterval,
+		"check_interval":   req.CheckInterval,
+		"multi_open_count": req.MultiOpenCount,
+	}
+
+	if err := db.Model(&app).Updates(updates).Error; err != nil {
+		logrus.WithError(err).Error("Failed to update app multi config")
+		http.Error(w, "更新多开配置失败", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "多开配置更新成功"})
 }

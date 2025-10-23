@@ -1,6 +1,6 @@
 .DS_Store
 networkDev
 node.txt
-recharge.db
 config.json
-data.db
+database.db
+模板

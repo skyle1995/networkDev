@@ -33,8 +33,13 @@
     <div class="layui-card-body">
       <table id="appsTable" lay-filter="appsTableFilter"></table>
       <script type="text/html" id="tpl-apps-ops">
-        <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
-        <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+        <div style="white-space: nowrap;">
+          <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+          <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+          <a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="more">
+            更多 <i class="layui-icon layui-icon-down"></i>
+          </a>
+        </div>
       </script>
       <script type="text/html" id="tpl-apps-status">
         {{`{{# if(d.status === 1) { }}`}}
@@ -57,37 +62,29 @@
         </div>
       </div>
       <div class="layui-form-item">
-        <label class="layui-form-label">版本号</label>
+        <label class="layui-form-label">应用版本</label>
         <div class="layui-input-block">
-          <input type="text" name="version" placeholder="请输入版本号，默认1.0.0" autocomplete="off" class="layui-input" />
+          <input type="text" name="version" placeholder="请输入应用版本，默认1.0.0" autocomplete="off" class="layui-input" />
         </div>
       </div>
-      <div class="layui-form-item">
-        <label class="layui-form-label">状态</label>
+      <div class="layui-form-item" pane>
+        <label class="layui-form-label">应用状态</label>
         <div class="layui-input-block">
-          <select name="status">
-            <option value="1" selected>启用</option>
-            <option value="0">禁用</option>
-          </select>
+          <input type="checkbox" name="status" lay-skin="switch" lay-text="启用|禁用" checked>
         </div>
       </div>
-      <div class="layui-form-item">
+      <div class="layui-form-item" pane>
         <label class="layui-form-label">强制更新</label>
         <div class="layui-input-block">
-          <select name="force_update">
-            <option value="0" selected>不开启</option>
-            <option value="1">开启</option>
-          </select>
+          <input type="checkbox" name="force_update" lay-skin="switch" lay-text="开启|关闭">
         </div>
       </div>
-      <div class="layui-form-item">
+      <div class="layui-form-item" pane>
         <label class="layui-form-label">更新方式</label>
         <div class="layui-input-block">
-          <select name="download_type" lay-filter="downloadTypeChange">
-            <option value="0" selected>不启用更新</option>
-            <option value="1">自动更新</option>
-            <option value="2">手动下载</option>
-          </select>
+          <input type="radio" name="download_type" value="0" title="不启用" checked lay-filter="downloadTypeChange">
+          <input type="radio" name="download_type" value="1" title="自动更新" lay-filter="downloadTypeChange">
+          <input type="radio" name="download_type" value="2" title="手动下载" lay-filter="downloadTypeChange">
         </div>
       </div>
       <div class="layui-form-item" id="downloadUrlItem">
@@ -106,10 +103,11 @@
   </div>
 
   <script>
-    layui.use(['table', 'form', 'layer', 'element'], function() {
+    layui.use(['table', 'form', 'layer', 'element', 'dropdown'], function() {
       const table = layui.table;
       const form = layui.form;
       const layer = layui.layer;
+      const dropdown = layui.dropdown;
       const $ = layui.$;
 
       // 格式化时间函数
@@ -149,10 +147,10 @@
           { field: 'id', title: 'ID', width: 80, sort: true },
           { field: 'name', title: '应用名称', minWidth: 180 },
           { field: 'uuid', title: 'UUID', minWidth: 320 },
-          { field: 'version', title: '版本', width: 100 },
+          { field: 'version', title: '应用版本', width: 100 },
           { 
             field: 'status', 
-            title: '状态', 
+            title: '应用状态', 
             width: 100,
             templet: (d) => {
               if (d.status === 1) return '<span style="color: #5FB878;">启用</span>';
@@ -171,7 +169,7 @@
             width: 180,
             templet: (d) => formatDateTime(d.created_at)
           },
-          { fixed: 'right', title: '操作', toolbar: '#tpl-apps-ops', width: 120 }
+          { fixed: 'right', title: '操作', toolbar: '#tpl-apps-ops', width: 180 }
         ]]
       });
 
@@ -216,7 +214,7 @@
       });
 
       // 监听更新方式切换（保留事件监听器以备将来扩展）
-      form.on('select(downloadTypeChange)', function(data) {
+      form.on('radio(downloadTypeChange)', function(data) {
         // 下载地址字段现在始终显示，无需切换显示状态
       });
 
@@ -228,9 +226,9 @@
         // 转换字段类型为正确的数据类型
         const formData = {
           ...data.field,
-          status: parseInt(data.field.status) || 0,
+          status: data.field.status === 'on' ? 1 : 0, // switch开关处理
           download_type: parseInt(data.field.download_type) || 0,
-          force_update: parseInt(data.field.force_update) || 0
+          force_update: data.field.force_update === 'on' ? 1 : 0 // switch开关处理
         };
         
         // 如果是编辑模式，确保id也是整数
@@ -274,10 +272,13 @@
           $('input[name="id"]').val(data.id);
           $('input[name="name"]').val(data.name);
           $('input[name="version"]').val(data.version);
-          $('select[name="status"]').val(data.status);
-          $('select[name="download_type"]').val(data.download_type || 0);
+          // 设置应用状态开关
+          $('input[name="status"]').prop('checked', data.status === 1);
+          // 设置更新方式单选按钮
+          $('input[name="download_type"][value="' + (data.download_type || 0) + '"]').prop('checked', true);
           $('input[name="download_url"]').val(data.download_url || '');
-          $('select[name="force_update"]').val(data.force_update || 0);
+          // 设置强制更新开关
+          $('input[name="force_update"]').prop('checked', data.force_update === 1);
           
           layer.open({
             type: 1,
@@ -310,6 +311,248 @@
               }
             });
             layer.close(index);
+          });
+        } else if (obj.event === 'more') {
+          // 更多操作下拉菜单
+          dropdown.render({
+            elem: this, // 使用 this 而不是查找元素
+            show: true, // 外部事件触发即显示
+            data: [
+              {
+                title: '程序公告',
+                id: 'announcement'
+              },
+              {
+                title: '多开配置',
+                id: 'multi_instance'
+              },
+              {
+                title: '重置密钥',
+                id: 'reset_secret'
+              }
+            ],
+            click: function(menudata, othis) {
+              if (menudata.id === 'announcement') {
+                // 程序公告
+                // 先获取当前公告内容
+                $.ajax({
+                  url: '/admin/api/apps/get_announcement?uuid=' + obj.data.uuid,
+                  type: 'GET',
+                  success: function(res) {
+                    var currentAnnouncement = '';
+                    if (res.code === 0 && res.data && res.data.announcement) {
+                      currentAnnouncement = res.data.announcement;
+                    }
+                    
+                    // 显示编辑弹窗
+                    layer.open({
+                      type: 1,
+                      title: '编辑程序公告 - ' + obj.data.name,
+                      area: ['600px', '400px'],
+                      content: '<div style="padding: 20px;">' +
+                               '<textarea id="announcementEditor" class="layui-textarea" placeholder="请输入程序公告内容..." style="height: 250px;">' + 
+                               currentAnnouncement + 
+                               '</textarea>' +
+                               '</div>',
+                      btn: ['保存', '取消'],
+                      yes: function(index, layero) {
+                        var announcementContent = $('#announcementEditor').val();
+                        
+                        // 发送更新请求
+                        $.ajax({
+                          url: '/admin/api/apps/update_announcement',
+                          type: 'POST',
+                          contentType: 'application/json',
+                          data: JSON.stringify({
+                            uuid: obj.data.uuid,
+                            announcement: announcementContent
+                          }),
+                          success: function(res) {
+                            if (res.code === 0) {
+                              layer.msg('程序公告更新成功！', {
+                                icon: 1,
+                                time: 2000
+                              });
+                              layer.close(index);
+                            } else {
+                              layer.msg(res.msg || '更新程序公告失败', {icon: 2});
+                            }
+                          },
+                          error: function() {
+                            layer.msg('网络错误，请稍后重试', {icon: 2});
+                          }
+                        });
+                      },
+                      btn2: function(index) {
+                        layer.close(index);
+                      }
+                    });
+                  },
+                  error: function() {
+                    layer.msg('获取程序公告失败，请稍后重试', {icon: 2});
+                  }
+                });
+              } else if (menudata.id === 'multi_instance') {
+                // 多开配置
+                $.ajax({
+                  url: '/admin/api/apps/get_multi_config?uuid=' + obj.data.uuid,
+                  type: 'GET',
+                  success: function(config) {
+                    layer.open({
+                      type: 1,
+                      title: '多开配置 - ' + obj.data.name,
+                      area: ['550px', '450px'],
+                      content: '<div style="padding: 20px;">' +
+                               '<form class="layui-form layui-form-pane" lay-filter="multiConfigForm">' +
+                               '<div class="layui-form-item" pane>' +
+                               '<label class="layui-form-label">登录方式</label>' +
+                               '<div class="layui-input-block">' +
+                               '<input type="radio" name="login_type" value="0" title="顶号登录" ' + (config.login_type === 0 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="login_type" value="1" title="非顶号登录" ' + (config.login_type === 1 ? 'checked' : '') + '>' +
+                               '</div>' +
+                               '</div>' +
+                               '<div class="layui-form-item" pane>' +
+                               '<label class="layui-form-label">多开范围</label>' +
+                               '<div class="layui-input-block">' +
+                               '<input type="radio" name="multi_open_scope" value="0" title="单电脑" ' + (config.multi_open_scope === 0 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="multi_open_scope" value="1" title="单IP" ' + (config.multi_open_scope === 1 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="multi_open_scope" value="2" title="全部电脑" ' + (config.multi_open_scope === 2 ? 'checked' : '') + '>' +
+                               '</div>' +
+                               '</div>' +
+                               '<div class="layui-form-item">' +
+                               '<div class="layui-inline">' +
+                               '<label class="layui-form-label">清理间隔</label>' +
+                               '<div class="layui-input-inline">' +
+                               '<input type="number" name="clean_interval" class="layui-input" value="' + config.clean_interval + '" placeholder="请输入" lay-verify="required|number" min="1">' +
+                               '</div>' +
+                               '<div class="layui-form-mid layui-text-em">小时</div>' +
+                               '</div>' +
+                               '</div>' +
+                               '<div class="layui-form-item">' +
+                               '<div class="layui-inline">' +
+                               '<label class="layui-form-label">校验间隔</label>' +
+                               '<div class="layui-input-inline">' +
+                               '<input type="number" name="check_interval" class="layui-input" value="' + config.check_interval + '" placeholder="请输入" lay-verify="required|number" min="1">' +
+                               '</div>' +
+                               '<div class="layui-form-mid layui-text-em">分钟</div>' +
+                               '</div>' +
+                               '</div>' +
+                               '<div class="layui-form-item">' +
+                               '<label class="layui-form-label">多开数量</label>' +
+                               '<div class="layui-input-block">' +
+                               '<input type="number" name="multi_open_count" class="layui-input" value="' + config.multi_open_count + '" placeholder="请输入允许的多开数量" lay-verify="required|number" min="1">' +
+                               '</div>' +
+                               '</div>' +
+                               '</form>' +
+                               '</div>',
+                      btn: ['保存', '取消'],
+                      yes: function(index, layero) {
+                        var formData = {
+                          uuid: obj.data.uuid,
+                          login_type: parseInt($('input[name="login_type"]:checked').val()),
+                          multi_open_scope: parseInt($('input[name="multi_open_scope"]:checked').val()),
+                          clean_interval: parseInt($('input[name="clean_interval"]').val()),
+                          check_interval: parseInt($('input[name="check_interval"]').val()),
+                          multi_open_count: parseInt($('input[name="multi_open_count"]').val())
+                        };
+                        
+                        // 验证数据
+                        if (isNaN(formData.login_type) || formData.login_type < 0 || formData.login_type > 1) {
+                          layer.msg('请选择登录方式', {icon: 2});
+                          return;
+                        }
+                        if (isNaN(formData.multi_open_scope) || formData.multi_open_scope < 0 || formData.multi_open_scope > 2) {
+                          layer.msg('请选择多开范围', {icon: 2});
+                          return;
+                        }
+                        if (isNaN(formData.clean_interval) || formData.clean_interval < 1) {
+                          layer.msg('清理间隔必须大于0', {icon: 2});
+                          return;
+                        }
+                        if (isNaN(formData.check_interval) || formData.check_interval < 1) {
+                          layer.msg('校验间隔必须大于0', {icon: 2});
+                          return;
+                        }
+                        if (isNaN(formData.multi_open_count) || formData.multi_open_count < 1) {
+                          layer.msg('多开数量必须大于0', {icon: 2});
+                          return;
+                        }
+                        
+                        // 发送更新请求
+                        $.ajax({
+                          url: '/admin/api/apps/update_multi_config',
+                          type: 'POST',
+                          contentType: 'application/json',
+                          data: JSON.stringify(formData),
+                          success: function(res) {
+                            if (res.message) {
+                              layer.msg('多开配置更新成功', {icon: 1});
+                              layer.close(index);
+                              table.reload('appsTable');
+                            } else {
+                              layer.msg(res.msg || '更新多开配置失败', {icon: 2});
+                            }
+                          },
+                          error: function() {
+                            layer.msg('网络错误，请稍后重试', {icon: 2});
+                          }
+                        });
+                      },
+                      btn2: function(index) {
+                        layer.close(index);
+                      },
+                      success: function() {
+                        // 重新渲染表单
+                        form.render();
+                      }
+                    });
+                  },
+                  error: function() {
+                    layer.msg('获取多开配置失败，请稍后重试', {icon: 2});
+                  }
+                });
+              } else if (menudata.id === 'reset_secret') {
+                // 重置密钥
+                layer.confirm('确定重置该应用的密钥吗？重置后原密钥将失效！', {icon: 3, title: '提示'}, function(index) {
+                  // 发送重置密钥请求
+                  $.ajax({
+                    url: '/admin/api/apps/reset_secret',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                      uuid: obj.data.uuid
+                    }),
+                    success: function(res) {
+                       if (res.code === 0) {
+                         layer.msg('密钥重置成功！', {
+                           icon: 1,
+                           time: 2000 // 显示2秒
+                         });
+                         // 刷新表格数据
+                         table.reload('appsTable');
+                       } else {
+                         layer.msg(res.msg || '重置密钥失败', {icon: 2});
+                       }
+                     },
+                    error: function(xhr) {
+                      let errorMsg = '重置密钥失败';
+                      if (xhr.responseText) {
+                        try {
+                          const errorRes = JSON.parse(xhr.responseText);
+                          errorMsg = errorRes.msg || errorMsg;
+                        } catch (e) {
+                          errorMsg = xhr.responseText;
+                        }
+                      }
+                      layer.msg(errorMsg, {icon: 2});
+                    }
+                  });
+                  layer.close(index);
+                });
+              }
+            },
+            align: 'right', // 右对齐弹出
+            style: 'box-shadow: 1px 1px 10px rgb(0 0 0 / 12%);' // 设置额外样式
           });
         }
       });
