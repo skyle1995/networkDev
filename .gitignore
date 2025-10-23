@@ -1,7 +1,7 @@
 .DS_Store
 networkDev
 node.txt
-config.json
+/config.json
 database.db
 logs
 模板
