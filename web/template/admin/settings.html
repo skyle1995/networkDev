@@ -8,25 +8,25 @@
     <div class="layui-card-body">
       <form class="layui-form" id="basicForm">
         <div class="layui-form-item">
-          <label class="layui-form-label">站点标题</label>
+          <label class="layui-form-label" style="cursor: pointer;" data-tips="site-title">站点标题</label>
           <div class="layui-input-block">
             <input type="text" name="site_title" lay-verify="required" placeholder="请输入站点标题" class="layui-input" />
           </div>
         </div>
         <div class="layui-form-item">
-          <label class="layui-form-label">关键词</label>
+          <label class="layui-form-label" style="cursor: pointer;" data-tips="site-keywords">关键词</label>
           <div class="layui-input-block">
             <input type="text" name="site_keywords" placeholder="请输入站点关键词，多个关键词用逗号分隔" class="layui-input" />
           </div>
         </div>
         <div class="layui-form-item layui-form-text">
-          <label class="layui-form-label">站点描述</label>
+          <label class="layui-form-label" style="cursor: pointer;" data-tips="site-description">站点描述</label>
           <div class="layui-input-block">
             <textarea name="site_description" placeholder="请输入站点描述" class="layui-textarea"></textarea>
           </div>
         </div>
         <div class="layui-form-item">
-          <label class="layui-form-label">站点Logo</label>
+          <label class="layui-form-label" style="cursor: pointer;" data-tips="site-logo">站点Logo</label>
           <div class="layui-input-block">
             <input type="text" name="site_logo" placeholder="/assets/logo.svg" class="layui-input" />
           </div>
@@ -41,7 +41,7 @@
     <div class="layui-card-body">
       <form class="layui-form" id="systemForm">
         <div class="layui-form-item">
-          <label class="layui-form-label">关闭系统</label>
+          <label class="layui-form-label" style="cursor: pointer;" data-tips="maintenance-mode">关闭系统</label>
           <div class="layui-input-block">
             <div style="display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
               <input type="checkbox" name="maintenance_mode" lay-skin="switch" lay-text="关闭系统|开启系统" title="关闭系统|开启系统">
@@ -49,7 +49,7 @@
           </div>
         </div>
         <div class="layui-form-item">
-          <label class="layui-form-label">默认角色</label>
+          <label class="layui-form-label" style="cursor: pointer;" data-tips="default-user-role">默认角色</label>
           <div class="layui-input-block">
             <select name="default_user_role">
               <option value="0">管理员</option>
@@ -58,7 +58,7 @@
           </div>
         </div>
         <div class="layui-form-item">
-          <label class="layui-form-label">会话超时</label>
+          <label class="layui-form-label" style="cursor: pointer;" data-tips="session-timeout">会话超时</label>
           <div class="layui-input-block">
             <div style="display: flex; align-items: center; gap: 10px;">
               <input type="number" name="session_timeout" placeholder="3600" min="300" max="86400" class="layui-input" style="width: 120px;" />
@@ -77,31 +77,31 @@
     <div class="layui-card-body">
       <form class="layui-form" id="footerForm">
         <div class="layui-form-item layui-form-text">
-          <label class="layui-form-label">页脚文本</label>
+          <label class="layui-form-label" style="cursor: pointer;" data-tips="footer-text">页脚文本</label>
           <div class="layui-input-block">
             <textarea name="footer_text" placeholder="© 2025 凌动技术 保留所有权利" class="layui-textarea"></textarea>
           </div>
         </div>
         <div class="layui-form-item">
-          <label class="layui-form-label">ICP备案</label>
+          <label class="layui-form-label" style="cursor: pointer;" data-tips="icp-record">ICP备案</label>
           <div class="layui-input-block">
             <input type="text" name="icp_record" placeholder="京ICP备12345678号" class="layui-input" />
           </div>
         </div>
         <div class="layui-form-item">
-          <label class="layui-form-label">备案链接</label>
+          <label class="layui-form-label" style="cursor: pointer;" data-tips="icp-record-link">备案链接</label>
           <div class="layui-input-block">
             <input type="url" name="icp_record_link" placeholder="https://beian.miit.gov.cn" class="layui-input" />
           </div>
         </div>
         <div class="layui-form-item">
-          <label class="layui-form-label">公安备案</label>
+          <label class="layui-form-label" style="cursor: pointer;" data-tips="psb-record">公安备案</label>
           <div class="layui-input-block">
             <input type="text" name="psb_record" placeholder="京公网安备11010802012345号" class="layui-input" />
           </div>
         </div>
         <div class="layui-form-item">
-          <label class="layui-form-label">备案链接</label>
+          <label class="layui-form-label" style="cursor: pointer;" data-tips="psb-record-link">备案链接</label>
           <div class="layui-input-block">
             <input type="url" name="psb_record_link" placeholder="http://www.beian.gov.cn/portal/registerSystemInfo" class="layui-input" />
           </div>
@@ -120,8 +120,18 @@
 </section>
 
 <script>
-  layui.use(['jquery', 'form', 'layer'], function() {
-    const { $, form, layer } = layui;
+  // 等待layui加载完成
+  function waitForLayui(callback) {
+    if (typeof layui !== 'undefined') {
+      callback();
+    } else {
+      setTimeout(() => waitForLayui(callback), 100);
+    }
+  }
+
+  waitForLayui(function() {
+    layui.use(['jquery', 'form', 'layer', 'util'], function() {
+      const { $, form, layer, util } = layui;
 
     // 缓存上次加载的设置值，用于“重置”恢复
     let originalSettings = {};
@@ -272,6 +282,7 @@
 
     // 初始化：加载设置
     loadSettings();
+    });
   });
 </script>
 {{ end }}

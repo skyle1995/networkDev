@@ -220,6 +220,82 @@ loadScript(layuijs, function () {
     // 绑定刷新按钮点击事件
     $('#refresh-btn').on('click', handleRefresh);
 
+    // 统一的Tips提示功能
+    // 使用事件委托避免重复绑定问题
+    $(document).off('click', '[data-tips]').on('click', '[data-tips]', function() {
+      var tipsType = $(this).data('tips');
+      var tipsContent = getTipsContent(tipsType);
+      layer.tips(tipsContent, this, {
+        tips: [2, '#16b777'], // 向右显示，绿色背景
+        time: 3000 // 3秒后自动关闭
+      });
+    });
+
+    // 获取Tips内容的统一函数
+    function getTipsContent(type) {
+      var tips = {
+        // 基本信息设置 (settings.html)
+        'site-title': '站点标题：网站的主标题，显示在浏览器标题栏和搜索引擎结果中',
+        'site-keywords': '关键词：网站的SEO关键词，用于搜索引擎优化，多个关键词用逗号分隔',
+        'site-description': '站点描述：网站的简要描述，用于SEO和搜索引擎结果展示',
+        'site-logo': '站点Logo：网站的标志图片路径，建议使用SVG格式',
+        // 系统配置 (settings.html)
+        'maintenance-mode': '系统关闭：开启后网站将进入维护模式，普通用户无法访问',
+        'default-user-role': '默认角色：新注册用户的默认权限级别，0为管理员，1为普通成员',
+        'session-timeout': '会话超时：用户登录会话的有效时间，单位为秒，超时后需要重新登录',
+        // 页脚与备案信息 (settings.html)
+        'footer-text': '页脚文本：显示在网站底部的版权信息或其他文本',
+        'icp-record': 'ICP备案：网站的ICP备案号，中国大陆网站必须显示',
+        'icp-record-link': 'ICP备案链接：ICP备案号对应的查询链接，通常指向工信部备案网站',
+        'psb-record': '公安备案：网站的公安备案号，部分地区要求显示',
+        'psb-record-link': '公安备案链接：公安备案号对应的查询链接，通常指向公安部备案网站',
+        // 应用管理相关 (apps.html)
+        'app-name': '应用名称：设置应用的显示名称，用户在客户端看到的应用标识',
+        'app-version': '应用版本：当前应用的版本号，用于版本控制和更新检测',
+        'app-status': '应用状态：控制应用是否可用，禁用后用户无法使用该应用',
+        'force-update': '强制更新：开启后用户必须更新到最新版本才能使用',
+        'download-type': '更新方式：设置应用的更新下载方式，支持不同的分发渠道',
+        'download-url': '下载地址：应用安装包的下载链接地址',
+        // 多开配置相关 (apps.html)
+        'login-type': '登录方式：设置用户登录验证的方式，如账号密码、卡密等',
+        'multi-open-scope': '多开范围：设置多开功能的作用范围，如全局或特定应用',
+        'clean-interval': '清理间隔：系统自动清理无效会话的时间间隔（分钟）',
+        'check-interval': '校验间隔：系统检查用户状态的时间间隔（分钟）',
+        'multi-open-count': '多开数量：允许用户同时运行的应用实例数量',
+        // 机器验证相关 (apps.html)
+        'machine-verify': '机器码验证：控制是否启用机器码验证功能，用于限制软件在特定设备上运行',
+        'machine-rebind': '机器码重绑：允许用户重新绑定机器码，当设备更换或重装系统时使用',
+        'machine-rebind-limit': '重绑限制：设置重绑的时间限制，每天表示每天可重绑，永久表示不限制重绑时间',
+        'machine-free-count': '免费次数：用户可以免费重绑机器码的次数',
+        'machine-rebind-count': '重绑次数：用户总共可以重绑机器码的次数限制',
+        'machine-rebind-deduct': '重绑扣除：每次重绑机器码时扣除的时间（分钟）',
+        // IP验证相关 (apps.html)
+        'ip-verify': 'IP地址验证：控制是否启用IP地址验证，关闭/开启/开启(市)/开启(省)分别对应不同的验证级别',
+        'ip-rebind': 'IP地址重绑：允许用户重新绑定IP地址，当网络环境变化时使用',
+        'ip-rebind-limit': '重绑限制：设置IP重绑的时间限制，每天表示每天可重绑，永久表示不限制重绑时间',
+        'ip-free-count': '免费次数：用户可以免费重绑IP地址的次数',
+        'ip-rebind-count': '重绑次数：用户总共可以重绑IP地址的次数限制',
+        'ip-rebind-deduct': '重绑扣除：每次重绑IP地址时扣除的时间（分钟）',
+        // 注册设置相关 (apps.html)
+        'register-enabled': '账号注册：控制是否允许新用户注册账号',
+        'register-limit': '注册限制：设置注册的限制规则，如时间限制等',
+        'register-limit-time': '限制时间：注册限制的时间周期，每天或永久',
+        'register-count': '注册次数：在限制时间内允许注册的账号数量',
+        // 试用设置相关 (apps.html)
+        'trial-enabled': '领取试用：控制是否允许用户领取试用时间',
+        'trial-limit-time': '限制时间：试用领取的时间限制周期',
+        'trial-time': '试用时间：用户可以领取的试用时长（分钟）',
+        // 用户资料相关 (user.html)
+        'user-id': '用户ID：系统自动分配的唯一标识符，不可修改',
+        'user-role': '用户角色：当前用户的权限级别，管理员拥有所有权限，普通成员权限有限',
+        'user-username': '用户名：用于登录的用户名，可以修改但需要保证唯一性',
+        'user-old-password': '旧密码：修改密码时需要输入当前密码进行验证，不修改密码时可留空',
+        'user-new-password': '新密码：要设置的新密码，长度至少6位，不修改密码时可留空',
+        'user-confirm-password': '确认密码：再次输入新密码进行确认，必须与新密码一致'
+      };
+      return tips[type] || '暂无说明';
+    }
+
     function routerTo({
       elem = '#router-view',
       path = 'dashboard',

@@ -5,29 +5,29 @@
     <form class="layui-form" id="accountForm" lay-filter="accountForm" onsubmit="return false">
       <!-- 按照要求纵向排序：ID、角色、用户名、旧密码、新密码、确认新密码 -->
       <div class="layui-form-item">
-        <label class="layui-form-label">ID</label>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="user-id">ID</label>
         <div class="layui-input-block">
           <input type="text" name="id" disabled readonly class="layui-input" />
         </div>
       </div>
 
       <div class="layui-form-item">
-        <label class="layui-form-label">角色</label>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="user-role">角色</label>
         <div class="layui-input-block">
-          <!-- 角色禁用与只读，仅作展示用途，显示中文标签“管理员/普通成员” -->
+          <!-- 角色禁用与只读，仅作展示用途，显示中文标签"管理员/普通成员" -->
           <input type="text" name="role" disabled readonly class="layui-input" />
         </div>
       </div>
 
       <div class="layui-form-item">
-        <label class="layui-form-label">用户名</label>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="user-username">用户名</label>
         <div class="layui-input-block">
           <input type="text" name="username" placeholder="请输入用户名（不修改可留空或保持不变）" autocomplete="off" class="layui-input" />
         </div>
       </div>
 
       <div class="layui-form-item">
-        <label class="layui-form-label">旧密码</label>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="user-old-password">旧密码</label>
         <div class="layui-input-block">
           <!-- 不修改密码时可留空 -->
           <input type="password" name="old_password" placeholder="不修改可留空" autocomplete="off" class="layui-input">
@@ -35,7 +35,7 @@
       </div>
 
       <div class="layui-form-item">
-        <label class="layui-form-label">新密码</label>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="user-new-password">新密码</label>
         <div class="layui-input-block">
           <!-- 不修改密码时可留空 -->
           <input type="password" name="new_password" placeholder="不修改可留空（至少6位）" autocomplete="off" class="layui-input">
@@ -43,7 +43,7 @@
       </div>
 
       <div class="layui-form-item">
-        <label class="layui-form-label">确认密码</label>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="user-confirm-password">确认密码</label>
         <div class="layui-input-block">
           <!-- 不修改密码时可留空 -->
           <input type="password" name="confirm_password" placeholder="不修改可留空" autocomplete="off" class="layui-input">

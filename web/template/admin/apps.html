@@ -56,31 +56,31 @@
     <form class="layui-form layui-form-pane" id="appForm">
       <input type="hidden" name="id" />
       <div class="layui-form-item">
-        <label class="layui-form-label">应用名称</label>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="app-name">应用名称</label>
         <div class="layui-input-block">
           <input type="text" name="name" placeholder="请输入应用名称" autocomplete="off" class="layui-input" lay-verify="required" />
         </div>
       </div>
       <div class="layui-form-item">
-        <label class="layui-form-label">应用版本</label>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="app-version">应用版本</label>
         <div class="layui-input-block">
           <input type="text" name="version" placeholder="请输入应用版本，默认1.0.0" autocomplete="off" class="layui-input" />
         </div>
       </div>
       <div class="layui-form-item" pane>
-        <label class="layui-form-label">应用状态</label>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="app-status">应用状态</label>
         <div class="layui-input-block">
           <input type="checkbox" name="status" lay-skin="switch" lay-text="启用|禁用" checked>
         </div>
       </div>
       <div class="layui-form-item" pane>
-        <label class="layui-form-label">强制更新</label>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="force-update">强制更新</label>
         <div class="layui-input-block">
           <input type="checkbox" name="force_update" lay-skin="switch" lay-text="开启|关闭">
         </div>
       </div>
       <div class="layui-form-item" pane>
-        <label class="layui-form-label">更新方式</label>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="download-type">更新方式</label>
         <div class="layui-input-block">
           <input type="radio" name="download_type" value="0" title="不启用" checked lay-filter="downloadTypeChange">
           <input type="radio" name="download_type" value="1" title="自动更新" lay-filter="downloadTypeChange">
@@ -88,7 +88,7 @@
         </div>
       </div>
       <div class="layui-form-item" id="downloadUrlItem">
-        <label class="layui-form-label">下载地址</label>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="download-url">下载地址</label>
         <div class="layui-input-block">
           <input type="text" name="download_url" placeholder="请输入下载地址" autocomplete="off" class="layui-input" />
         </div>
@@ -102,12 +102,225 @@
     </form>
   </div>
 
+  <!-- 隐藏的表单弹层内容：多开配置 -->
+  <div id="multiConfigModal" style="display:none;padding:20px">
+    <form class="layui-form layui-form-pane" lay-filter="multiConfigForm">
+      <div class="layui-form-item" pane>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="login-type">登录方式</label>
+        <div class="layui-input-block">
+          <input type="radio" name="login_type" value="0" title="顶号登录">
+          <input type="radio" name="login_type" value="1" title="非顶号登录">
+        </div>
+      </div>
+      <div class="layui-form-item" pane>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="multi-open-scope">多开范围</label>
+        <div class="layui-input-block">
+          <input type="radio" name="multi_open_scope" value="0" title="单设备">
+          <input type="radio" name="multi_open_scope" value="1" title="单IP">
+          <input type="radio" name="multi_open_scope" value="2" title="全部设备">
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <div class="layui-inline">
+          <label class="layui-form-label" style="cursor: pointer;" data-tips="clean-interval">清理间隔</label>
+          <div class="layui-input-inline">
+            <input type="number" name="clean_interval" class="layui-input" placeholder="请输入" lay-verify="required|number" min="1">
+          </div>
+          <div class="layui-form-mid layui-text-em">小时</div>
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <div class="layui-inline">
+          <label class="layui-form-label" style="cursor: pointer;" data-tips="check-interval">校验间隔</label>
+          <div class="layui-input-inline">
+            <input type="number" name="check_interval" class="layui-input" placeholder="请输入" lay-verify="required|number" min="1">
+          </div>
+          <div class="layui-form-mid layui-text-em">分钟</div>
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="multi-open-count">多开数量</label>
+        <div class="layui-input-block">
+          <input type="number" name="multi_open_count" class="layui-input" placeholder="请输入允许的多开数量" lay-verify="required|number" min="1">
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- 隐藏的表单弹层内容：绑定设置 -->
+  <div id="bindConfigModal" style="display:none;padding:20px">
+    <form class="layui-form layui-form-pane" lay-filter="bindConfigForm">
+      <!-- 机器码验证设置 -->
+      <fieldset class="layui-elem-field layui-field-title">
+        <legend>机器验证设置</legend>
+      </fieldset>
+      <div class="layui-form-item" pane>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="machine-verify">机器码验证</label>
+        <div class="layui-input-block">
+          <input type="radio" name="machine_verify" value="0" title="关闭">
+          <input type="radio" name="machine_verify" value="1" title="开启">
+        </div>
+      </div>
+      <div class="layui-form-item" pane>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="machine-rebind">机器码重绑</label>
+        <div class="layui-input-block">
+          <input type="radio" name="machine_rebind_enabled" value="0" title="关闭">
+          <input type="radio" name="machine_rebind_enabled" value="1" title="开启">
+        </div>
+      </div>
+      <div class="layui-form-item" pane>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="machine-rebind-limit">重绑限制</label>
+        <div class="layui-input-block">
+          <input type="radio" name="machine_rebind_limit" value="0" title="每天">
+          <input type="radio" name="machine_rebind_limit" value="1" title="永久">
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="machine-free-count">免费次数</label>
+        <div class="layui-input-block">
+          <input type="number" name="machine_free_count" class="layui-input" placeholder="请输入" lay-verify="number" min="0">
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="machine-rebind-count">重绑次数</label>
+        <div class="layui-input-block">
+          <input type="number" name="machine_rebind_count" class="layui-input" placeholder="请输入" lay-verify="number" min="0">
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="machine-rebind-deduct">重绑扣除</label>
+        <div class="layui-input-block">
+          <input type="number" name="machine_rebind_deduct" class="layui-input" placeholder="请输入重绑扣除时间（分钟）" lay-verify="number" min="0">
+        </div>
+      </div>
+      
+      <!-- IP地址验证设置 -->
+      <fieldset class="layui-elem-field layui-field-title" style="margin-top: 30px;">
+        <legend>IP地址验证设置</legend>
+      </fieldset>
+      <div class="layui-form-item" pane>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="ip-verify">IP地址验证</label>
+        <div class="layui-input-block">
+          <input type="radio" name="ip_verify" value="0" title="关闭">
+          <input type="radio" name="ip_verify" value="1" title="开启">
+          <input type="radio" name="ip_verify" value="2" title="开启(市)">
+          <input type="radio" name="ip_verify" value="3" title="开启(省)">
+        </div>
+      </div>
+      <div class="layui-form-item" pane>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="ip-rebind">IP地址重绑</label>
+        <div class="layui-input-block">
+          <input type="radio" name="ip_rebind_enabled" value="0" title="关闭">
+          <input type="radio" name="ip_rebind_enabled" value="1" title="开启">
+        </div>
+      </div>
+      <div class="layui-form-item" pane>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="ip-rebind-limit">重绑限制</label>
+        <div class="layui-input-block">
+          <input type="radio" name="ip_rebind_limit" value="0" title="每天">
+          <input type="radio" name="ip_rebind_limit" value="1" title="永久">
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="ip-free-count">免费次数</label>
+        <div class="layui-input-block">
+          <input type="number" name="ip_free_count" class="layui-input" placeholder="请输入" lay-verify="number" min="0">
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="ip-rebind-count">重绑次数</label>
+        <div class="layui-input-block">
+          <input type="number" name="ip_rebind_count" class="layui-input" placeholder="请输入" lay-verify="number" min="0">
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="ip-rebind-deduct">重绑扣除</label>
+        <div class="layui-input-block">
+          <input type="number" name="ip_rebind_deduct" class="layui-input" placeholder="请输入重绑扣除时间（分钟）" lay-verify="number" min="0">
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- 隐藏的表单弹层内容：注册设置 -->
+  <div id="registerConfigModal" style="display:none;padding:20px">
+    <form class="layui-form layui-form-pane" lay-filter="registerConfigForm">
+      <!-- 账号注册设置 -->
+      <fieldset class="layui-elem-field layui-field-title">
+        <legend>账号注册设置</legend>
+      </fieldset>
+      <div class="layui-form-item" pane>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="register-enabled">账号注册</label>
+        <div class="layui-input-block">
+          <input type="radio" name="register_enabled" value="0" title="关闭">
+          <input type="radio" name="register_enabled" value="1" title="开启">
+        </div>
+      </div>
+      <div class="layui-form-item" pane>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="register-limit">注册限制</label>
+        <div class="layui-input-block">
+          <input type="radio" name="register_limit_enabled" value="0" title="关闭">
+          <input type="radio" name="register_limit_enabled" value="1" title="开启">
+        </div>
+      </div>
+      <div class="layui-form-item" pane>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="register-limit-time">限制时间</label>
+        <div class="layui-input-block">
+          <input type="radio" name="register_limit_time" value="0" title="每天">
+          <input type="radio" name="register_limit_time" value="1" title="永久">
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="register-count">注册次数</label>
+        <div class="layui-input-block">
+          <input type="number" name="register_count" class="layui-input" placeholder="请输入" lay-verify="required|number" min="1">
+        </div>
+      </div>
+      
+      <!-- 领取试用设置 -->
+      <fieldset class="layui-elem-field layui-field-title" style="margin-top: 30px;">
+        <legend>领取试用设置</legend>
+      </fieldset>
+      <div class="layui-form-item" pane>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="trial-enabled">领取试用</label>
+        <div class="layui-input-block">
+          <input type="radio" name="trial_enabled" value="0" title="关闭">
+          <input type="radio" name="trial_enabled" value="1" title="开启">
+        </div>
+      </div>
+      <div class="layui-form-item" pane>
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="trial-limit-time">限制时间</label>
+        <div class="layui-input-block">
+          <input type="radio" name="trial_limit_time" value="0" title="每天">
+          <input type="radio" name="trial_limit_time" value="1" title="永久">
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label class="layui-form-label" style="cursor: pointer;" data-tips="trial-time">试用时间</label>
+        <div class="layui-input-block">
+          <input type="number" name="trial_duration" class="layui-input" placeholder="请输入试用时间（分钟）" lay-verify="number" min="0">
+        </div>
+      </div>
+    </form>
+  </div>
+
   <script>
-    layui.use(['table', 'form', 'layer', 'element', 'dropdown'], function() {
+    // 等待layui加载完成
+    function waitForLayui(callback) {
+      if (typeof layui !== 'undefined') {
+        callback();
+      } else {
+        setTimeout(() => waitForLayui(callback), 100);
+      }
+    }
+
+    waitForLayui(function() {
+      layui.use(['table', 'form', 'layer', 'element', 'dropdown', 'util'], function() {
       const table = layui.table;
       const form = layui.form;
       const layer = layui.layer;
       const dropdown = layui.dropdown;
+      const util = layui.util;
       const $ = layui.$;
 
       // 格式化时间函数
@@ -406,53 +619,19 @@
                   url: '/admin/api/apps/get_multi_config?uuid=' + obj.data.uuid,
                   type: 'GET',
                   success: function(config) {
-                    layer.open({
+                    // 填充表单数据
+                    $('input[name="login_type"][value="' + config.login_type + '"]').prop('checked', true);
+                    $('input[name="multi_open_scope"][value="' + config.multi_open_scope + '"]').prop('checked', true);
+                    $('input[name="clean_interval"]').val(config.clean_interval);
+                    $('input[name="check_interval"]').val(config.check_interval);
+                    $('input[name="multi_open_count"]').val(config.multi_open_count);
+                    
+                    // 打开静态弹窗
+                    var multiConfigIndex = layer.open({
                       type: 1,
                       title: '多开配置 - ' + obj.data.name,
                       area: ['550px', '450px'],
-                      content: '<div style="padding: 20px;">' +
-                               '<form class="layui-form layui-form-pane" lay-filter="multiConfigForm">' +
-                               '<div class="layui-form-item" pane>' +
-                               '<label class="layui-form-label">登录方式</label>' +
-                               '<div class="layui-input-block">' +
-                               '<input type="radio" name="login_type" value="0" title="顶号登录" ' + (config.login_type === 0 ? 'checked' : '') + '>' +
-                               '<input type="radio" name="login_type" value="1" title="非顶号登录" ' + (config.login_type === 1 ? 'checked' : '') + '>' +
-                               '</div>' +
-                               '</div>' +
-                               '<div class="layui-form-item" pane>' +
-                               '<label class="layui-form-label">多开范围</label>' +
-                               '<div class="layui-input-block">' +
-                               '<input type="radio" name="multi_open_scope" value="0" title="单电脑" ' + (config.multi_open_scope === 0 ? 'checked' : '') + '>' +
-                               '<input type="radio" name="multi_open_scope" value="1" title="单IP" ' + (config.multi_open_scope === 1 ? 'checked' : '') + '>' +
-                               '<input type="radio" name="multi_open_scope" value="2" title="全部电脑" ' + (config.multi_open_scope === 2 ? 'checked' : '') + '>' +
-                               '</div>' +
-                               '</div>' +
-                               '<div class="layui-form-item">' +
-                               '<div class="layui-inline">' +
-                               '<label class="layui-form-label">清理间隔</label>' +
-                               '<div class="layui-input-inline">' +
-                               '<input type="number" name="clean_interval" class="layui-input" value="' + config.clean_interval + '" placeholder="请输入" lay-verify="required|number" min="1">' +
-                               '</div>' +
-                               '<div class="layui-form-mid layui-text-em">小时</div>' +
-                               '</div>' +
-                               '</div>' +
-                               '<div class="layui-form-item">' +
-                               '<div class="layui-inline">' +
-                               '<label class="layui-form-label">校验间隔</label>' +
-                               '<div class="layui-input-inline">' +
-                               '<input type="number" name="check_interval" class="layui-input" value="' + config.check_interval + '" placeholder="请输入" lay-verify="required|number" min="1">' +
-                               '</div>' +
-                               '<div class="layui-form-mid layui-text-em">分钟</div>' +
-                               '</div>' +
-                               '</div>' +
-                               '<div class="layui-form-item">' +
-                               '<label class="layui-form-label">多开数量</label>' +
-                               '<div class="layui-input-block">' +
-                               '<input type="number" name="multi_open_count" class="layui-input" value="' + config.multi_open_count + '" placeholder="请输入允许的多开数量" lay-verify="required|number" min="1">' +
-                               '</div>' +
-                               '</div>' +
-                               '</form>' +
-                               '</div>',
+                      content: $('#multiConfigModal'),
                       btn: ['保存', '取消'],
                       yes: function(index, layero) {
                         var formData = {
@@ -563,121 +742,42 @@
                   url: '/admin/api/apps/get_bind_config?uuid=' + obj.data.uuid,
                   type: 'GET',
                   success: function(config) {
-                    layer.open({
+                    // 填充表单数据
+                    $('#bindConfigModal input[name="machine_verify"][value="' + config.machine_verify + '"]').prop('checked', true);
+                    $('#bindConfigModal input[name="machine_rebind_enabled"][value="' + config.machine_rebind_enabled + '"]').prop('checked', true);
+                    $('#bindConfigModal input[name="machine_rebind_limit"][value="' + config.machine_rebind_limit + '"]').prop('checked', true);
+                    $('#bindConfigModal input[name="machine_free_count"]').val(config.machine_free_count);
+                    $('#bindConfigModal input[name="machine_rebind_count"]').val(config.machine_rebind_count);
+                    $('#bindConfigModal input[name="machine_rebind_deduct"]').val(config.machine_rebind_deduct);
+                    $('#bindConfigModal input[name="ip_verify"][value="' + config.ip_verify + '"]').prop('checked', true);
+                    $('#bindConfigModal input[name="ip_rebind_enabled"][value="' + config.ip_rebind_enabled + '"]').prop('checked', true);
+                    $('#bindConfigModal input[name="ip_rebind_limit"][value="' + config.ip_rebind_limit + '"]').prop('checked', true);
+                    $('#bindConfigModal input[name="ip_free_count"]').val(config.ip_free_count);
+                    $('#bindConfigModal input[name="ip_rebind_count"]').val(config.ip_rebind_count);
+                    $('#bindConfigModal input[name="ip_rebind_deduct"]').val(config.ip_rebind_deduct);
+                    
+                    // 打开静态弹窗
+                    var bindConfigIndex = layer.open({
                       type: 1,
                       title: '绑定设置 - ' + obj.data.name,
                       area: ['650px', '600px'],
-                      content: '<div style="padding: 20px;">' +
-                               '<form class="layui-form layui-form-pane" lay-filter="bindConfigForm">' +
-                               
-                               // 机器码验证设置
-                               '<fieldset class="layui-elem-field layui-field-title">' +
-                               '<legend>机器验证设置</legend>' +
-                               '</fieldset>' +
-                               '<div class="layui-form-item" pane>' +
-                               '<label class="layui-form-label">机器码验证</label>' +
-                               '<div class="layui-input-block">' +
-                               '<input type="radio" name="machine_verify" value="0" title="关闭" ' + (config.machine_verify === 0 ? 'checked' : '') + '>' +
-                               '<input type="radio" name="machine_verify" value="1" title="开启" ' + (config.machine_verify === 1 ? 'checked' : '') + '>' +
-                               '</div>' +
-                               '</div>' +
-                               '<div class="layui-form-item" pane>' +
-                               '<label class="layui-form-label">机器码重绑</label>' +
-                               '<div class="layui-input-block">' +
-                               '<input type="radio" name="machine_rebind_enabled" value="0" title="关闭" ' + (config.machine_rebind_enabled === 0 ? 'checked' : '') + '>' +
-                               '<input type="radio" name="machine_rebind_enabled" value="1" title="开启" ' + (config.machine_rebind_enabled === 1 ? 'checked' : '') + '>' +
-                               '</div>' +
-                               '</div>' +
-                               '<div class="layui-form-item" pane>' +
-                               '<label class="layui-form-label">重绑限制</label>' +
-                               '<div class="layui-input-block">' +
-                               '<input type="radio" name="machine_rebind_limit" value="0" title="每天" ' + (config.machine_rebind_limit === 0 ? 'checked' : '') + '>' +
-                               '<input type="radio" name="machine_rebind_limit" value="1" title="永久" ' + (config.machine_rebind_limit === 1 ? 'checked' : '') + '>' +
-                               '</div>' +
-                               '</div>' +
-                               '<div class="layui-form-item">' +
-                               '<label class="layui-form-label">免费次数</label>' +
-                               '<div class="layui-input-block">' +
-                               '<input type="number" name="machine_free_count" class="layui-input" value="' + config.machine_free_count + '" placeholder="请输入" lay-verify="number" min="0">' +
-                               '</div>' +
-                               '</div>' +
-                               '<div class="layui-form-item">' +
-                               '<label class="layui-form-label">重绑次数</label>' +
-                               '<div class="layui-input-block">' +
-                               '<input type="number" name="machine_rebind_count" class="layui-input" value="' + config.machine_rebind_count + '" placeholder="请输入" lay-verify="number" min="0">' +
-                               '</div>' +
-                               '</div>' +
-                               '<div class="layui-form-item">' +
-                               '<label class="layui-form-label">重绑扣除</label>' +
-                               '<div class="layui-input-block">' +
-                               '<input type="number" name="machine_rebind_deduct" class="layui-input" value="' + config.machine_rebind_deduct + '" placeholder="请输入重绑扣除时间（分钟）" lay-verify="number" min="0">' +
-                               '</div>' +
-                               '</div>' +
-                               
-                               // IP地址验证设置
-                               '<fieldset class="layui-elem-field layui-field-title" style="margin-top: 30px;">' +
-                               '<legend>IP地址验证设置</legend>' +
-                               '</fieldset>' +
-                               '<div class="layui-form-item" pane>' +
-                               '<label class="layui-form-label">IP地址验证</label>' +
-                               '<div class="layui-input-block">' +
-                               '<input type="radio" name="ip_verify" value="0" title="关闭" ' + (config.ip_verify === 0 ? 'checked' : '') + '>' +
-                               '<input type="radio" name="ip_verify" value="1" title="开启" ' + (config.ip_verify === 1 ? 'checked' : '') + '>' +
-                               '<input type="radio" name="ip_verify" value="2" title="开启(市)" ' + (config.ip_verify === 2 ? 'checked' : '') + '>' +
-                               '<input type="radio" name="ip_verify" value="3" title="开启(省)" ' + (config.ip_verify === 3 ? 'checked' : '') + '>' +
-                               '</div>' +
-                               '</div>' +
-                               '<div class="layui-form-item" pane>' +
-                               '<label class="layui-form-label">IP地址重绑</label>' +
-                               '<div class="layui-input-block">' +
-                               '<input type="radio" name="ip_rebind_enabled" value="0" title="关闭" ' + (config.ip_rebind_enabled === 0 ? 'checked' : '') + '>' +
-                               '<input type="radio" name="ip_rebind_enabled" value="1" title="开启" ' + (config.ip_rebind_enabled === 1 ? 'checked' : '') + '>' +
-                               '</div>' +
-                               '</div>' +
-                               '<div class="layui-form-item" pane>' +
-                               '<label class="layui-form-label">重绑限制</label>' +
-                               '<div class="layui-input-block">' +
-                               '<input type="radio" name="ip_rebind_limit" value="0" title="每天" ' + (config.ip_rebind_limit === 0 ? 'checked' : '') + '>' +
-                               '<input type="radio" name="ip_rebind_limit" value="1" title="永久" ' + (config.ip_rebind_limit === 1 ? 'checked' : '') + '>' +
-                               '</div>' +
-                               '</div>' +
-                               '<div class="layui-form-item">' +
-                               '<label class="layui-form-label">免费次数</label>' +
-                               '<div class="layui-input-block">' +
-                               '<input type="number" name="ip_free_count" class="layui-input" value="' + config.ip_free_count + '" placeholder="请输入" lay-verify="number" min="0">' +
-                               '</div>' +
-                               '</div>' +
-                               '<div class="layui-form-item">' +
-                               '<label class="layui-form-label">重绑次数</label>' +
-                               '<div class="layui-input-block">' +
-                               '<input type="number" name="ip_rebind_count" class="layui-input" value="' + config.ip_rebind_count + '" placeholder="请输入" lay-verify="number" min="0">' +
-                               '</div>' +
-                               '</div>' +
-                               '<div class="layui-form-item">' +
-                               '<label class="layui-form-label">重绑扣除</label>' +
-                               '<div class="layui-input-block">' +
-                               '<input type="number" name="ip_rebind_deduct" class="layui-input" value="' + config.ip_rebind_deduct + '" placeholder="请输入重绑扣除时间（分钟）" lay-verify="number" min="0">' +
-                               '</div>' +
-                               '</div>' +
-                               
-                               '</form>' +
-                               '</div>',
+                      content: $('#bindConfigModal'),
                       btn: ['保存', '取消'],
                       yes: function(index, layero) {
                         var formData = {
                           uuid: obj.data.uuid,
-                          machine_verify: parseInt($('input[name="machine_verify"]:checked').val()),
-                          machine_rebind_enabled: parseInt($('input[name="machine_rebind_enabled"]:checked').val()),
-                          machine_rebind_limit: parseInt($('input[name="machine_rebind_limit"]:checked').val()),
-                          machine_free_count: parseInt($('input[name="machine_free_count"]').val()) || 0,
-                          machine_rebind_count: parseInt($('input[name="machine_rebind_count"]').val()) || 0,
-                          machine_rebind_deduct: parseInt($('input[name="machine_rebind_deduct"]').val()) || 0,
-                          ip_verify: parseInt($('input[name="ip_verify"]:checked').val()),
-                          ip_rebind_enabled: parseInt($('input[name="ip_rebind_enabled"]:checked').val()),
-                          ip_rebind_limit: parseInt($('input[name="ip_rebind_limit"]:checked').val()),
-                          ip_free_count: parseInt($('input[name="ip_free_count"]').val()) || 0,
-                          ip_rebind_count: parseInt($('input[name="ip_rebind_count"]').val()) || 0,
-                          ip_rebind_deduct: parseInt($('input[name="ip_rebind_deduct"]').val()) || 0
+                          machine_verify: parseInt($('#bindConfigModal input[name="machine_verify"]:checked').val()),
+                          machine_rebind_enabled: parseInt($('#bindConfigModal input[name="machine_rebind_enabled"]:checked').val()),
+                          machine_rebind_limit: parseInt($('#bindConfigModal input[name="machine_rebind_limit"]:checked').val()),
+                          machine_free_count: parseInt($('#bindConfigModal input[name="machine_free_count"]').val()) || 0,
+                          machine_rebind_count: parseInt($('#bindConfigModal input[name="machine_rebind_count"]').val()) || 0,
+                          machine_rebind_deduct: parseInt($('#bindConfigModal input[name="machine_rebind_deduct"]').val()) || 0,
+                          ip_verify: parseInt($('#bindConfigModal input[name="ip_verify"]:checked').val()),
+                          ip_rebind_enabled: parseInt($('#bindConfigModal input[name="ip_rebind_enabled"]:checked').val()),
+                          ip_rebind_limit: parseInt($('#bindConfigModal input[name="ip_rebind_limit"]:checked').val()),
+                          ip_free_count: parseInt($('#bindConfigModal input[name="ip_free_count"]').val()) || 0,
+                          ip_rebind_count: parseInt($('#bindConfigModal input[name="ip_rebind_count"]').val()) || 0,
+                          ip_rebind_deduct: parseInt($('#bindConfigModal input[name="ip_rebind_deduct"]').val()) || 0
                         };
                         
                         // 验证数据
@@ -745,83 +845,32 @@
                   url: '/admin/api/apps/get_register_config?uuid=' + obj.data.uuid,
                   type: 'GET',
                   success: function(config) {
-                    layer.open({
+                    // 填充表单数据
+                    $('#registerConfigModal input[name="register_enabled"][value="' + config.register_enabled + '"]').prop('checked', true);
+                    $('#registerConfigModal input[name="register_limit_enabled"][value="' + config.register_limit_enabled + '"]').prop('checked', true);
+                    $('#registerConfigModal input[name="register_limit_time"][value="' + config.register_limit_time + '"]').prop('checked', true);
+                    $('#registerConfigModal input[name="register_count"]').val(config.register_count);
+                    $('#registerConfigModal input[name="trial_enabled"][value="' + config.trial_enabled + '"]').prop('checked', true);
+                    $('#registerConfigModal input[name="trial_limit_time"][value="' + config.trial_limit_time + '"]').prop('checked', true);
+                    $('#registerConfigModal input[name="trial_duration"]').val(config.trial_duration);
+                    
+                    // 打开静态弹窗
+                    var registerConfigIndex = layer.open({
                       type: 1,
                       title: '注册设置 - ' + obj.data.name,
                       area: ['550px', '500px'],
-                      content: '<div style="padding: 20px;">' +
-                               '<form class="layui-form layui-form-pane" lay-filter="registerConfigForm">' +
-                               
-                               // 账号注册设置
-                               '<fieldset class="layui-elem-field layui-field-title">' +
-                               '<legend>账号注册设置</legend>' +
-                               '</fieldset>' +
-                               '<div class="layui-form-item" pane>' +
-                               '<label class="layui-form-label">账号注册</label>' +
-                               '<div class="layui-input-block">' +
-                               '<input type="radio" name="register_enabled" value="0" title="关闭" ' + (config.register_enabled === 0 ? 'checked' : '') + '>' +
-                               '<input type="radio" name="register_enabled" value="1" title="开启" ' + (config.register_enabled === 1 ? 'checked' : '') + '>' +
-                               '</div>' +
-                               '</div>' +
-                               '<div class="layui-form-item" pane>' +
-                               '<label class="layui-form-label">注册限制</label>' +
-                               '<div class="layui-input-block">' +
-                               '<input type="radio" name="register_limit_enabled" value="0" title="关闭" ' + (config.register_limit_enabled === 0 ? 'checked' : '') + '>' +
-                               '<input type="radio" name="register_limit_enabled" value="1" title="开启" ' + (config.register_limit_enabled === 1 ? 'checked' : '') + '>' +
-                               '</div>' +
-                               '</div>' +
-                               '<div class="layui-form-item" pane>' +
-                               '<label class="layui-form-label">限制时间</label>' +
-                               '<div class="layui-input-block">' +
-                               '<input type="radio" name="register_limit_time" value="0" title="每天" ' + (config.register_limit_time === 0 ? 'checked' : '') + '>' +
-                               '<input type="radio" name="register_limit_time" value="1" title="永久" ' + (config.register_limit_time === 1 ? 'checked' : '') + '>' +
-                               '</div>' +
-                               '</div>' +
-                               '<div class="layui-form-item">' +
-                               '<label class="layui-form-label">注册次数</label>' +
-                               '<div class="layui-input-block">' +
-                               '<input type="number" name="register_count" class="layui-input" value="' + config.register_count + '" placeholder="请输入" lay-verify="required|number" min="1">' +
-                               '</div>' +
-                               '</div>' +
-                               
-                               // 领取试用设置
-                               '<fieldset class="layui-elem-field layui-field-title" style="margin-top: 30px;">' +
-                               '<legend>领取试用设置</legend>' +
-                               '</fieldset>' +
-                               '<div class="layui-form-item" pane>' +
-                               '<label class="layui-form-label">领取试用</label>' +
-                               '<div class="layui-input-block">' +
-                               '<input type="radio" name="trial_enabled" value="0" title="关闭" ' + (config.trial_enabled === 0 ? 'checked' : '') + '>' +
-                               '<input type="radio" name="trial_enabled" value="1" title="开启" ' + (config.trial_enabled === 1 ? 'checked' : '') + '>' +
-                               '</div>' +
-                               '</div>' +
-                               '<div class="layui-form-item" pane>' +
-                               '<label class="layui-form-label">限制时间</label>' +
-                               '<div class="layui-input-block">' +
-                               '<input type="radio" name="trial_limit_time" value="0" title="每天" ' + (config.trial_limit_time === 0 ? 'checked' : '') + '>' +
-                               '<input type="radio" name="trial_limit_time" value="1" title="永久" ' + (config.trial_limit_time === 1 ? 'checked' : '') + '>' +
-                               '</div>' +
-                               '</div>' +
-                               '<div class="layui-form-item">' +
-                               '<label class="layui-form-label">试用时间</label>' +
-                               '<div class="layui-input-block">' +
-                               '<input type="number" name="trial_duration" class="layui-input" value="' + config.trial_duration + '" placeholder="请输入试用时间（分钟）" lay-verify="number" min="0">' +
-                               '</div>' +
-                               '</div>' +
-                               
-                               '</form>' +
-                               '</div>',
+                      content: $('#registerConfigModal'),
                       btn: ['保存', '取消'],
                       yes: function(index, layero) {
                         var formData = {
                           uuid: obj.data.uuid,
-                          register_enabled: parseInt($('input[name="register_enabled"]:checked').val()),
-                          register_limit_enabled: parseInt($('input[name="register_limit_enabled"]:checked').val()),
-                          register_limit_time: parseInt($('input[name="register_limit_time"]:checked').val()),
-                          register_count: parseInt($('input[name="register_count"]').val()) || 1,
-                          trial_enabled: parseInt($('input[name="trial_enabled"]:checked').val()),
-                          trial_limit_time: parseInt($('input[name="trial_limit_time"]:checked').val()),
-                          trial_duration: parseInt($('input[name="trial_duration"]').val()) || 0
+                          register_enabled: parseInt($('#registerConfigModal input[name="register_enabled"]:checked').val()),
+                          register_limit_enabled: parseInt($('#registerConfigModal input[name="register_limit_enabled"]:checked').val()),
+                          register_limit_time: parseInt($('#registerConfigModal input[name="register_limit_time"]:checked').val()),
+                          register_count: parseInt($('#registerConfigModal input[name="register_count"]').val()) || 1,
+                          trial_enabled: parseInt($('#registerConfigModal input[name="trial_enabled"]:checked').val()),
+                          trial_limit_time: parseInt($('#registerConfigModal input[name="trial_limit_time"]:checked').val()),
+                          trial_duration: parseInt($('#registerConfigModal input[name="trial_duration"]').val()) || 0
                         };
                         
                         // 验证数据
@@ -986,6 +1035,9 @@
             layer.msg(xhr.responseText || '批量禁用失败', {icon: 2});
           }
         });
+      });
+
+      // Tips提示功能已移至admin.js统一管理
       });
     });
   </script>
