@@ -53,27 +53,27 @@ type App struct {
 	// MultiOpenCount：多开数量（默认1）
 	MultiOpenCount int `gorm:"default:1;not null;comment:多开数量" json:"multi_open_count"`
 
-	// 机器码验证相关字段
-	// MachineCodeVerify：机器码验证（0=关闭，1=开启）
-	MachineCodeVerify int `gorm:"default:0;not null;comment:机器码验证，0=关闭，1=开启" json:"machine_code_verify"`
-	// MachineCodeRebindEnabled：机器码重绑开关（0=关闭，1=开启）
-	MachineCodeRebindEnabled int `gorm:"default:0;not null;comment:机器码重绑开关，0=关闭，1=开启" json:"machine_code_rebind_enabled"`
-	// MachineCodeOption：机器码选项（0=每天，1=永久）
-	MachineCodeOption int `gorm:"default:0;not null;comment:机器码选项，0=每天，1=永久" json:"machine_code_option"`
-	// MachineCodeFreeCount：机器码免费次数（默认0）
-	MachineCodeFreeCount int `gorm:"default:0;not null;comment:机器码免费次数" json:"machine_code_free_count"`
-	// MachineCodeRebindCount：机器码重绑次数（默认0）
-	MachineCodeRebindCount int `gorm:"default:0;not null;comment:机器码重绑次数" json:"machine_code_rebind_count"`
-	// MachineCodeRebindDeduct：机器码重绑扣除（默认0，单位：分钟）
-	MachineCodeRebindDeduct int `gorm:"default:0;not null;comment:机器码重绑扣除，单位分钟" json:"machine_code_rebind_deduct"`
+	// 机器验证相关字段
+	// MachineVerify：机器验证（0=关闭，1=开启）
+	MachineVerify int `gorm:"default:0;not null;comment:机器验证，0=关闭，1=开启" json:"machine_verify"`
+	// MachineRebindEnabled：机器重绑开关（0=关闭，1=开启）
+	MachineRebindEnabled int `gorm:"default:0;not null;comment:机器重绑开关，0=关闭，1=开启" json:"machine_rebind_enabled"`
+	// MachineRebindLimit：机器重绑限制（0=每天，1=永久）
+	MachineRebindLimit int `gorm:"default:0;not null;comment:机器重绑限制，0=每天，1=永久" json:"machine_rebind_limit"`
+	// MachineFreeCount：机器免费次数（默认0）
+	MachineFreeCount int `gorm:"default:0;not null;comment:机器免费次数" json:"machine_free_count"`
+	// MachineRebindCount：机器重绑次数（默认0）
+	MachineRebindCount int `gorm:"default:0;not null;comment:机器重绑次数" json:"machine_rebind_count"`
+	// MachineRebindDeduct：机器重绑扣除（默认0，单位：分钟）
+	MachineRebindDeduct int `gorm:"default:0;not null;comment:机器重绑扣除，单位分钟" json:"machine_rebind_deduct"`
 
 	// IP地址验证相关字段
 	// IPVerify：IP地址验证（0=关闭，1=开启，2=开启(市)，3=开启(省)）
 	IPVerify int `gorm:"default:0;not null;comment:IP地址验证，0=关闭，1=开启，2=开启(市)，3=开启(省)" json:"ip_verify"`
 	// IPRebindEnabled：IP地址重绑开关（0=关闭，1=开启）
 	IPRebindEnabled int `gorm:"default:0;not null;comment:IP地址重绑开关，0=关闭，1=开启" json:"ip_rebind_enabled"`
-	// IPOption：IP地址选项（0=每天，1=永久）
-	IPOption int `gorm:"default:0;not null;comment:IP地址选项，0=每天，1=永久" json:"ip_option"`
+	// IPRebindLimit：IP地址重绑限制（0=每天，1=永久）
+	IPRebindLimit int `gorm:"default:0;not null;comment:IP地址重绑限制，0=每天，1=永久" json:"ip_rebind_limit"`
 	// IPFreeCount：IP地址免费次数（默认0）
 	IPFreeCount int `gorm:"default:0;not null;comment:IP地址免费次数" json:"ip_free_count"`
 	// IPRebindCount：IP地址重绑次数（默认0）

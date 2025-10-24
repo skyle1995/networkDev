@@ -146,7 +146,7 @@
           { type: 'checkbox', width: 50 },
           { field: 'id', title: 'ID', width: 80, sort: true },
           { field: 'name', title: '应用名称', minWidth: 180 },
-          { field: 'uuid', title: 'UUID', minWidth: 320 },
+          { field: 'uuid', title: 'UUID', minWidth: 335 },
           { field: 'version', title: '应用版本', width: 100 },
           { 
             field: 'status', 
@@ -572,45 +572,45 @@
                                
                                // 机器码验证设置
                                '<fieldset class="layui-elem-field layui-field-title">' +
-                               '<legend>机器码验证设置</legend>' +
+                               '<legend>机器验证设置</legend>' +
                                '</fieldset>' +
                                '<div class="layui-form-item" pane>' +
                                '<label class="layui-form-label">机器码验证</label>' +
                                '<div class="layui-input-block">' +
-                               '<input type="radio" name="machine_code_verify" value="0" title="关闭" ' + (config.machine_code_verify === 0 ? 'checked' : '') + '>' +
-                               '<input type="radio" name="machine_code_verify" value="1" title="开启" ' + (config.machine_code_verify === 1 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="machine_verify" value="0" title="关闭" ' + (config.machine_verify === 0 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="machine_verify" value="1" title="开启" ' + (config.machine_verify === 1 ? 'checked' : '') + '>' +
                                '</div>' +
                                '</div>' +
                                '<div class="layui-form-item" pane>' +
                                '<label class="layui-form-label">机器码重绑</label>' +
                                '<div class="layui-input-block">' +
-                               '<input type="radio" name="machine_code_rebind_enabled" value="0" title="关闭" ' + (config.machine_code_rebind_enabled === 0 ? 'checked' : '') + '>' +
-                               '<input type="radio" name="machine_code_rebind_enabled" value="1" title="开启" ' + (config.machine_code_rebind_enabled === 1 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="machine_rebind_enabled" value="0" title="关闭" ' + (config.machine_rebind_enabled === 0 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="machine_rebind_enabled" value="1" title="开启" ' + (config.machine_rebind_enabled === 1 ? 'checked' : '') + '>' +
                                '</div>' +
                                '</div>' +
                                '<div class="layui-form-item" pane>' +
-                               '<label class="layui-form-label">机器码选项</label>' +
+                               '<label class="layui-form-label">重绑限制</label>' +
                                '<div class="layui-input-block">' +
-                               '<input type="radio" name="machine_code_option" value="0" title="每天" ' + (config.machine_code_option === 0 ? 'checked' : '') + '>' +
-                               '<input type="radio" name="machine_code_option" value="1" title="永久" ' + (config.machine_code_option === 1 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="machine_rebind_limit" value="0" title="每天" ' + (config.machine_rebind_limit === 0 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="machine_rebind_limit" value="1" title="永久" ' + (config.machine_rebind_limit === 1 ? 'checked' : '') + '>' +
                                '</div>' +
                                '</div>' +
                                '<div class="layui-form-item">' +
                                '<label class="layui-form-label">免费次数</label>' +
                                '<div class="layui-input-block">' +
-                               '<input type="number" name="machine_code_free_count" class="layui-input" value="' + config.machine_code_free_count + '" placeholder="请输入" lay-verify="number" min="0">' +
+                               '<input type="number" name="machine_free_count" class="layui-input" value="' + config.machine_free_count + '" placeholder="请输入" lay-verify="number" min="0">' +
                                '</div>' +
                                '</div>' +
                                '<div class="layui-form-item">' +
                                '<label class="layui-form-label">重绑次数</label>' +
                                '<div class="layui-input-block">' +
-                               '<input type="number" name="machine_code_rebind_count" class="layui-input" value="' + config.machine_code_rebind_count + '" placeholder="请输入" lay-verify="number" min="0">' +
+                               '<input type="number" name="machine_rebind_count" class="layui-input" value="' + config.machine_rebind_count + '" placeholder="请输入" lay-verify="number" min="0">' +
                                '</div>' +
                                '</div>' +
                                '<div class="layui-form-item">' +
                                '<label class="layui-form-label">重绑扣除</label>' +
                                '<div class="layui-input-block">' +
-                               '<input type="number" name="machine_code_rebind_deduct" class="layui-input" value="' + config.machine_code_rebind_deduct + '" placeholder="请输入重绑扣除时间（分钟）" lay-verify="number" min="0">' +
+                               '<input type="number" name="machine_rebind_deduct" class="layui-input" value="' + config.machine_rebind_deduct + '" placeholder="请输入重绑扣除时间（分钟）" lay-verify="number" min="0">' +
                                '</div>' +
                                '</div>' +
                                
@@ -635,10 +635,10 @@
                                '</div>' +
                                '</div>' +
                                '<div class="layui-form-item" pane>' +
-                               '<label class="layui-form-label">IP地址选项</label>' +
+                               '<label class="layui-form-label">重绑限制</label>' +
                                '<div class="layui-input-block">' +
-                               '<input type="radio" name="ip_option" value="0" title="每天" ' + (config.ip_option === 0 ? 'checked' : '') + '>' +
-                               '<input type="radio" name="ip_option" value="1" title="永久" ' + (config.ip_option === 1 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="ip_rebind_limit" value="0" title="每天" ' + (config.ip_rebind_limit === 0 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="ip_rebind_limit" value="1" title="永久" ' + (config.ip_rebind_limit === 1 ? 'checked' : '') + '>' +
                                '</div>' +
                                '</div>' +
                                '<div class="layui-form-item">' +
@@ -666,31 +666,31 @@
                       yes: function(index, layero) {
                         var formData = {
                           uuid: obj.data.uuid,
-                          machine_code_verify: parseInt($('input[name="machine_code_verify"]:checked').val()),
-                          machine_code_rebind_enabled: parseInt($('input[name="machine_code_rebind_enabled"]:checked').val()),
-                          machine_code_option: parseInt($('input[name="machine_code_option"]:checked').val()),
-                          machine_code_free_count: parseInt($('input[name="machine_code_free_count"]').val()) || 0,
-                          machine_code_rebind_count: parseInt($('input[name="machine_code_rebind_count"]').val()) || 0,
-                          machine_code_rebind_deduct: parseInt($('input[name="machine_code_rebind_deduct"]').val()) || 0,
+                          machine_verify: parseInt($('input[name="machine_verify"]:checked').val()),
+                          machine_rebind_enabled: parseInt($('input[name="machine_rebind_enabled"]:checked').val()),
+                          machine_rebind_limit: parseInt($('input[name="machine_rebind_limit"]:checked').val()),
+                          machine_free_count: parseInt($('input[name="machine_free_count"]').val()) || 0,
+                          machine_rebind_count: parseInt($('input[name="machine_rebind_count"]').val()) || 0,
+                          machine_rebind_deduct: parseInt($('input[name="machine_rebind_deduct"]').val()) || 0,
                           ip_verify: parseInt($('input[name="ip_verify"]:checked').val()),
                           ip_rebind_enabled: parseInt($('input[name="ip_rebind_enabled"]:checked').val()),
-                          ip_option: parseInt($('input[name="ip_option"]:checked').val()),
+                          ip_rebind_limit: parseInt($('input[name="ip_rebind_limit"]:checked').val()),
                           ip_free_count: parseInt($('input[name="ip_free_count"]').val()) || 0,
                           ip_rebind_count: parseInt($('input[name="ip_rebind_count"]').val()) || 0,
                           ip_rebind_deduct: parseInt($('input[name="ip_rebind_deduct"]').val()) || 0
                         };
                         
                         // 验证数据
-                        if (isNaN(formData.machine_code_verify) || formData.machine_code_verify < 0 || formData.machine_code_verify > 1) {
-                          layer.msg('请选择机器码验证选项', {icon: 2});
+                        if (isNaN(formData.machine_verify) || formData.machine_verify < 0 || formData.machine_verify > 1) {
+                          layer.msg('请选择机器验证选项', {icon: 2});
                           return;
                         }
-                        if (isNaN(formData.machine_code_rebind_enabled) || formData.machine_code_rebind_enabled < 0 || formData.machine_code_rebind_enabled > 1) {
-                          layer.msg('请选择机器码重绑选项', {icon: 2});
+                        if (isNaN(formData.machine_rebind_enabled) || formData.machine_rebind_enabled < 0 || formData.machine_rebind_enabled > 1) {
+                          layer.msg('请选择机器重绑选项', {icon: 2});
                           return;
                         }
-                        if (isNaN(formData.machine_code_option) || formData.machine_code_option < 0 || formData.machine_code_option > 1) {
-                          layer.msg('请选择机器码选项', {icon: 2});
+                        if (isNaN(formData.machine_rebind_limit) || formData.machine_rebind_limit < 0 || formData.machine_rebind_limit > 1) {
+                          layer.msg('请选择机器重绑限制', {icon: 2});
                           return;
                         }
                         if (isNaN(formData.ip_verify) || formData.ip_verify < 0 || formData.ip_verify > 3) {
@@ -701,8 +701,8 @@
                           layer.msg('请选择IP地址重绑选项', {icon: 2});
                           return;
                         }
-                        if (isNaN(formData.ip_option) || formData.ip_option < 0 || formData.ip_option > 1) {
-                          layer.msg('请选择IP地址选项', {icon: 2});
+                        if (isNaN(formData.ip_rebind_limit) || formData.ip_rebind_limit < 0 || formData.ip_rebind_limit > 1) {
+                          layer.msg('请选择IP地址重绑限制', {icon: 2});
                           return;
                         }
                         

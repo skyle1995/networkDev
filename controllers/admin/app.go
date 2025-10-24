@@ -671,12 +671,12 @@ func AppGetMultiConfigHandler(w http.ResponseWriter, r *http.Request) {
 // AppUpdateMultiConfigHandler 更新应用多开配置
 func AppUpdateMultiConfigHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		UUID            string `json:"uuid"`
-		LoginType       int    `json:"login_type"`
-		MultiOpenScope  int    `json:"multi_open_scope"`
-		CleanInterval   int    `json:"clean_interval"`
-		CheckInterval   int    `json:"check_interval"`
-		MultiOpenCount  int    `json:"multi_open_count"`
+		UUID           string `json:"uuid"`
+		LoginType      int    `json:"login_type"`
+		MultiOpenScope int    `json:"multi_open_scope"`
+		CleanInterval  int    `json:"clean_interval"`
+		CheckInterval  int    `json:"check_interval"`
+		MultiOpenCount int    `json:"multi_open_count"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -801,18 +801,18 @@ func AppGetBindConfigHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 返回绑定配置信息
 	response := map[string]interface{}{
-		"machine_code_verify":         app.MachineCodeVerify,
-		"machine_code_rebind_enabled": app.MachineCodeRebindEnabled,
-		"machine_code_option":         app.MachineCodeOption,
-		"machine_code_free_count":     app.MachineCodeFreeCount,
-		"machine_code_rebind_count":   app.MachineCodeRebindCount,
-		"machine_code_rebind_deduct":  app.MachineCodeRebindDeduct,
-		"ip_verify":                   app.IPVerify,
-		"ip_rebind_enabled":           app.IPRebindEnabled,
-		"ip_option":                   app.IPOption,
-		"ip_free_count":               app.IPFreeCount,
-		"ip_rebind_count":             app.IPRebindCount,
-		"ip_rebind_deduct":            app.IPRebindDeduct,
+		"machine_verify":         app.MachineVerify,
+		"machine_rebind_enabled": app.MachineRebindEnabled,
+		"machine_rebind_limit":   app.MachineRebindLimit,
+		"machine_free_count":     app.MachineFreeCount,
+		"machine_rebind_count":   app.MachineRebindCount,
+		"machine_rebind_deduct":  app.MachineRebindDeduct,
+		"ip_verify":              app.IPVerify,
+		"ip_rebind_enabled":      app.IPRebindEnabled,
+		"ip_rebind_limit":        app.IPRebindLimit,
+		"ip_free_count":          app.IPFreeCount,
+		"ip_rebind_count":        app.IPRebindCount,
+		"ip_rebind_deduct":       app.IPRebindDeduct,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -827,19 +827,19 @@ func AppUpdateBindConfigHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		UUID                     string `json:"uuid"`
-		MachineCodeVerify        int    `json:"machine_code_verify"`
-		MachineCodeRebindEnabled int    `json:"machine_code_rebind_enabled"`
-		MachineCodeOption        int    `json:"machine_code_option"`
-		MachineCodeFreeCount     int    `json:"machine_code_free_count"`
-		MachineCodeRebindCount   int    `json:"machine_code_rebind_count"`
-		MachineCodeRebindDeduct  int    `json:"machine_code_rebind_deduct"`
-		IPVerify                 int    `json:"ip_verify"`
-		IPRebindEnabled          int    `json:"ip_rebind_enabled"`
-		IPOption                 int    `json:"ip_option"`
-		IPFreeCount              int    `json:"ip_free_count"`
-		IPRebindCount            int    `json:"ip_rebind_count"`
-		IPRebindDeduct           int    `json:"ip_rebind_deduct"`
+		UUID                 string `json:"uuid"`
+		MachineVerify        int    `json:"machine_verify"`
+		MachineRebindEnabled int    `json:"machine_rebind_enabled"`
+		MachineRebindLimit   int    `json:"machine_rebind_limit"`
+		MachineFreeCount     int    `json:"machine_free_count"`
+		MachineRebindCount   int    `json:"machine_rebind_count"`
+		MachineRebindDeduct  int    `json:"machine_rebind_deduct"`
+		IPVerify             int    `json:"ip_verify"`
+		IPRebindEnabled      int    `json:"ip_rebind_enabled"`
+		IPRebindLimit        int    `json:"ip_rebind_limit"`
+		IPFreeCount          int    `json:"ip_free_count"`
+		IPRebindCount        int    `json:"ip_rebind_count"`
+		IPRebindDeduct       int    `json:"ip_rebind_deduct"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -875,20 +875,20 @@ func AppUpdateBindConfigHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 验证参数范围
-	if req.MachineCodeVerify < 0 || req.MachineCodeVerify > 1 {
+	if req.MachineVerify < 0 || req.MachineVerify > 1 {
 		response := map[string]interface{}{
 			"code": 1,
-			"msg":  "机器码验证参数无效",
+			"msg":  "机器验证参数无效",
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 		return
 	}
 
-	if req.MachineCodeOption < 0 || req.MachineCodeOption > 1 {
+	if req.MachineRebindLimit < 0 || req.MachineRebindLimit > 1 {
 		response := map[string]interface{}{
 			"code": 1,
-			"msg":  "机器码选项参数无效",
+			"msg":  "机器重绑限制参数无效",
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
@@ -905,20 +905,20 @@ func AppUpdateBindConfigHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.IPOption < 0 || req.IPOption > 1 {
+	if req.IPRebindLimit < 0 || req.IPRebindLimit > 1 {
 		response := map[string]interface{}{
 			"code": 1,
-			"msg":  "IP地址选项参数无效",
+			"msg":  "IP地址重绑限制参数无效",
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 		return
 	}
 
-	if req.MachineCodeRebindEnabled < 0 || req.MachineCodeRebindEnabled > 1 {
+	if req.MachineRebindEnabled < 0 || req.MachineRebindEnabled > 1 {
 		response := map[string]interface{}{
 			"code": 1,
-			"msg":  "机器码重绑开关参数无效",
+			"msg":  "机器重绑开关参数无效",
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
@@ -935,7 +935,7 @@ func AppUpdateBindConfigHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.MachineCodeFreeCount < 0 || req.MachineCodeRebindCount < 0 || req.MachineCodeRebindDeduct < 0 ||
+	if req.MachineFreeCount < 0 || req.MachineRebindCount < 0 || req.MachineRebindDeduct < 0 ||
 		req.IPFreeCount < 0 || req.IPRebindCount < 0 || req.IPRebindDeduct < 0 {
 		response := map[string]interface{}{
 			"code": 1,
@@ -973,18 +973,18 @@ func AppUpdateBindConfigHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 更新绑定配置
 	updates := map[string]interface{}{
-		"machine_code_verify":         req.MachineCodeVerify,
-		"machine_code_rebind_enabled": req.MachineCodeRebindEnabled,
-		"machine_code_option":         req.MachineCodeOption,
-		"machine_code_free_count":     req.MachineCodeFreeCount,
-		"machine_code_rebind_count":   req.MachineCodeRebindCount,
-		"machine_code_rebind_deduct":  req.MachineCodeRebindDeduct,
-		"ip_verify":                   req.IPVerify,
-		"ip_rebind_enabled":           req.IPRebindEnabled,
-		"ip_option":                   req.IPOption,
-		"ip_free_count":               req.IPFreeCount,
-		"ip_rebind_count":             req.IPRebindCount,
-		"ip_rebind_deduct":            req.IPRebindDeduct,
+		"machine_verify":         req.MachineVerify,
+		"machine_rebind_enabled": req.MachineRebindEnabled,
+		"machine_rebind_limit":   req.MachineRebindLimit,
+		"machine_free_count":     req.MachineFreeCount,
+		"machine_rebind_count":   req.MachineRebindCount,
+		"machine_rebind_deduct":  req.MachineRebindDeduct,
+		"ip_verify":              req.IPVerify,
+		"ip_rebind_enabled":      req.IPRebindEnabled,
+		"ip_rebind_limit":        req.IPRebindLimit,
+		"ip_free_count":          req.IPFreeCount,
+		"ip_rebind_count":        req.IPRebindCount,
+		"ip_rebind_deduct":       req.IPRebindDeduct,
 	}
 
 	if err := db.Model(&app).Updates(updates).Error; err != nil {
