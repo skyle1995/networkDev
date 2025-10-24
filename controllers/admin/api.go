@@ -10,10 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/hex"
-	"encoding/pem"
 
 	"github.com/sirupsen/logrus"
 )
@@ -310,28 +307,51 @@ func APIGenerateKeysHandler(w http.ResponseWriter, r *http.Request) {
 		result["private_key"] = ""
 	case models.AlgorithmRC4:
 		// 生成16字节随机密钥并返回16位十六进制（大写）
-		bytes := make([]byte, 8)
-		if _, err := rand.Read(bytes); err != nil {
+		key, err := encrypt.GenerateRC4Key(8) // 生成8字节密钥
+		if err != nil {
 			logrus.WithError(err).Error("Failed to generate RC4 key")
 			http.Error(w, "生成RC4密钥失败", http.StatusInternalServerError)
 			return
 		}
 		result["public_key"] = ""
-		result["private_key"] = strings.ToUpper(hex.EncodeToString(bytes))
-	case models.AlgorithmRSA, models.AlgorithmRSADynamic:
-		// 生成RSA 2048密钥对，返回PEM明文字符串
-		key, err := rsa.GenerateKey(rand.Reader, 2048)
+		result["private_key"] = strings.ToUpper(hex.EncodeToString(key))
+	case models.AlgorithmRSA:
+		// 生成标准RSA 2048密钥对，返回PEM明文字符串
+		publicKey, privateKey, err := encrypt.GenerateRSAKeyPair(2048)
 		if err != nil {
 			logrus.WithError(err).Error("Failed to generate RSA key pair")
 			http.Error(w, "生成RSA密钥失败", http.StatusInternalServerError)
 			return
 		}
-		privBytes := x509.MarshalPKCS1PrivateKey(key)
-		pubBytes := x509.MarshalPKCS1PublicKey(&key.PublicKey)
-		privPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: privBytes})
-		pubPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PUBLIC KEY", Bytes: pubBytes})
-		result["private_key"] = string(privPEM)
-		result["public_key"] = string(pubPEM)
+		
+		// 转换为PEM格式
+		publicKeyPEM, err := encrypt.PublicKeyToPEM(publicKey)
+		if err != nil {
+			logrus.WithError(err).Error("Failed to convert public key to PEM")
+			http.Error(w, "转换公钥格式失败", http.StatusInternalServerError)
+			return
+		}
+		
+		privateKeyPEM, err := encrypt.PrivateKeyToPEM(privateKey)
+		if err != nil {
+			logrus.WithError(err).Error("Failed to convert private key to PEM")
+			http.Error(w, "转换私钥格式失败", http.StatusInternalServerError)
+			return
+		}
+		
+		result["public_key"] = publicKeyPEM
+		result["private_key"] = privateKeyPEM
+	case models.AlgorithmRSADynamic:
+		// 生成RSA动态加密密钥对，返回PEM明文字符串
+		publicKeyPEM, privateKeyPEM, err := encrypt.GenerateRSADynamicKeyPair(2048)
+		if err != nil {
+			logrus.WithError(err).Error("Failed to generate RSA dynamic key pair")
+			http.Error(w, "生成RSA动态密钥失败", http.StatusInternalServerError)
+			return
+		}
+		
+		result["public_key"] = publicKeyPEM
+		result["private_key"] = privateKeyPEM
 	case models.AlgorithmEasy:
 		// 生成易加密密钥对，返回逗号分隔的整数数组字符串
 		encryptKey, _, err := encrypt.GenerateEasyKey()

@@ -19,7 +19,7 @@
           <div class="layui-inline">
             <label class="layui-form-label">搜索</label>
             <div class="layui-input-inline">
-              <input type="text" name="search" placeholder="API密钥/应用UUID" autocomplete="off" class="layui-input" />
+              <input type="text" name="search" placeholder="API接口/应用UUID" autocomplete="off" class="layui-input" />
             </div>
           </div>
           <div class="layui-inline">
@@ -38,7 +38,7 @@
       <script type="text/html" id="tpl-apis-ops">
         <div style="white-space: nowrap;">
           <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
-          <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="reset">重置密钥</a>
+          <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="reset">重置接口</a>
         </div>
       </script>
       <script type="text/html" id="tpl-apis-status">
@@ -149,6 +149,46 @@ layui.use(['table', 'form', 'layer', 'dropdown'], function() {
   // 当前选中的应用UUID
   var currentAppUUID = '';
 
+  // 复制到剪贴板函数
+  window.copyToClipboard = function(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      // 使用现代 Clipboard API
+      navigator.clipboard.writeText(text).then(function() {
+        layer.msg('接口地址已复制到剪贴板', {icon: 1, time: 2000});
+      }).catch(function(err) {
+        console.error('复制失败:', err);
+        fallbackCopyTextToClipboard(text);
+      });
+    } else {
+      // 降级方案
+      fallbackCopyTextToClipboard(text);
+    }
+  };
+
+  // 降级复制方案
+  function fallbackCopyTextToClipboard(text) {
+    var textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      var successful = document.execCommand('copy');
+      if (successful) {
+        layer.msg('接口地址已复制到剪贴板', {icon: 1, time: 2000});
+      } else {
+        layer.msg('复制失败，请手动复制', {icon: 2, time: 3000});
+      }
+    } catch (err) {
+      console.error('复制失败:', err);
+      layer.msg('复制失败，请手动复制', {icon: 2, time: 3000});
+    }
+    document.body.removeChild(textArea);
+  }
+
   // 初始化接口表格
   var apisTable = table.render({
     elem: '#apisTable',
@@ -171,15 +211,21 @@ layui.use(['table', 'form', 'layer', 'dropdown'], function() {
     limits: [10, 20, 50, 100],
     loading: true,
     cols: [[
-      { type: 'checkbox', width: 50 },
       { field: 'id', title: 'ID', width: 80, sort: true },
-      { field: 'app_name', title: '应用名称', minWidth: 150 },
-      { field: 'api_type_name', title: '接口类型', minWidth: 120 },
+      { field: 'app_name', title: '应用名称', width: 180 },
+      { field: 'api_type_name', title: '接口类型', width: 120 },
       { 
         field: 'api_key', 
-        title: 'API密钥', 
-        minWidth: 280, 
-        templet: (d) => '<span style="font-family: monospace; font-size: 12px;">' + d.api_key + '</span>'
+        title: 'API接口', 
+        minWidth: 350, 
+        templet: (d) => {
+          const baseUrl = window.location.protocol + '//' + window.location.host;
+          const fullUrl = baseUrl + '/api/v1/' + d.api_key;
+          return '<span style="font-family: monospace; font-size: 12px; word-break: break-all; cursor: pointer; color: #1E9FFF; text-decoration: underline;" ' +
+                 'onclick="copyToClipboard(\'' + fullUrl + '\')" title="点击复制接口地址">' + 
+                 fullUrl + 
+                 '</span>';
+        }
       },
       { 
         field: 'status_name', 
@@ -487,7 +533,7 @@ layui.use(['table', 'form', 'layer', 'dropdown'], function() {
         shadeClose: false
       });
     } else if (obj.event === 'reset') {
-      layer.confirm('确定重置该接口密钥吗？', {icon: 3, title: '提示'}, function(index) {
+      layer.confirm('确定重置该接口吗？', {icon: 3, title: '提示'}, function(index) {
         $.ajax({
           url: '/admin/api/apis/reset_key',
           type: 'POST',
@@ -495,7 +541,7 @@ layui.use(['table', 'form', 'layer', 'dropdown'], function() {
           data: JSON.stringify({ id: data.id }),
           success: function(res) {
             if (res.success) {
-              layer.msg('密钥重置成功', {icon: 1});
+              layer.msg('接口重置成功', {icon: 1});
               // 更新当前行的密钥显示
               if (res.data && res.data.api_key) {
                 obj.update({ api_key: res.data.api_key });
