@@ -331,6 +331,10 @@
                 id: 'bind_settings'
               },
               {
+                title: '注册设置',
+                id: 'register_settings'
+              },
+              {
                 title: '重置密钥',
                 id: 'reset_secret'
               }
@@ -578,6 +582,13 @@
                                '</div>' +
                                '</div>' +
                                '<div class="layui-form-item" pane>' +
+                               '<label class="layui-form-label">机器码重绑</label>' +
+                               '<div class="layui-input-block">' +
+                               '<input type="radio" name="machine_code_rebind_enabled" value="0" title="关闭" ' + (config.machine_code_rebind_enabled === 0 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="machine_code_rebind_enabled" value="1" title="开启" ' + (config.machine_code_rebind_enabled === 1 ? 'checked' : '') + '>' +
+                               '</div>' +
+                               '</div>' +
+                               '<div class="layui-form-item" pane>' +
                                '<label class="layui-form-label">机器码选项</label>' +
                                '<div class="layui-input-block">' +
                                '<input type="radio" name="machine_code_option" value="0" title="每天" ' + (config.machine_code_option === 0 ? 'checked' : '') + '>' +
@@ -617,6 +628,13 @@
                                '</div>' +
                                '</div>' +
                                '<div class="layui-form-item" pane>' +
+                               '<label class="layui-form-label">IP地址重绑</label>' +
+                               '<div class="layui-input-block">' +
+                               '<input type="radio" name="ip_rebind_enabled" value="0" title="关闭" ' + (config.ip_rebind_enabled === 0 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="ip_rebind_enabled" value="1" title="开启" ' + (config.ip_rebind_enabled === 1 ? 'checked' : '') + '>' +
+                               '</div>' +
+                               '</div>' +
+                               '<div class="layui-form-item" pane>' +
                                '<label class="layui-form-label">IP地址选项</label>' +
                                '<div class="layui-input-block">' +
                                '<input type="radio" name="ip_option" value="0" title="每天" ' + (config.ip_option === 0 ? 'checked' : '') + '>' +
@@ -649,11 +667,13 @@
                         var formData = {
                           uuid: obj.data.uuid,
                           machine_code_verify: parseInt($('input[name="machine_code_verify"]:checked').val()),
+                          machine_code_rebind_enabled: parseInt($('input[name="machine_code_rebind_enabled"]:checked').val()),
                           machine_code_option: parseInt($('input[name="machine_code_option"]:checked').val()),
                           machine_code_free_count: parseInt($('input[name="machine_code_free_count"]').val()) || 0,
                           machine_code_rebind_count: parseInt($('input[name="machine_code_rebind_count"]').val()) || 0,
                           machine_code_rebind_deduct: parseInt($('input[name="machine_code_rebind_deduct"]').val()) || 0,
                           ip_verify: parseInt($('input[name="ip_verify"]:checked').val()),
+                          ip_rebind_enabled: parseInt($('input[name="ip_rebind_enabled"]:checked').val()),
                           ip_option: parseInt($('input[name="ip_option"]:checked').val()),
                           ip_free_count: parseInt($('input[name="ip_free_count"]').val()) || 0,
                           ip_rebind_count: parseInt($('input[name="ip_rebind_count"]').val()) || 0,
@@ -665,12 +685,20 @@
                           layer.msg('请选择机器码验证选项', {icon: 2});
                           return;
                         }
+                        if (isNaN(formData.machine_code_rebind_enabled) || formData.machine_code_rebind_enabled < 0 || formData.machine_code_rebind_enabled > 1) {
+                          layer.msg('请选择机器码重绑选项', {icon: 2});
+                          return;
+                        }
                         if (isNaN(formData.machine_code_option) || formData.machine_code_option < 0 || formData.machine_code_option > 1) {
                           layer.msg('请选择机器码选项', {icon: 2});
                           return;
                         }
                         if (isNaN(formData.ip_verify) || formData.ip_verify < 0 || formData.ip_verify > 3) {
                           layer.msg('请选择IP地址验证选项', {icon: 2});
+                          return;
+                        }
+                        if (isNaN(formData.ip_rebind_enabled) || formData.ip_rebind_enabled < 0 || formData.ip_rebind_enabled > 1) {
+                          layer.msg('请选择IP地址重绑选项', {icon: 2});
                           return;
                         }
                         if (isNaN(formData.ip_option) || formData.ip_option < 0 || formData.ip_option > 1) {
@@ -709,6 +737,154 @@
                   },
                   error: function() {
                     layer.msg('获取绑定设置失败，请稍后重试', {icon: 2});
+                  }
+                });
+              } else if (menudata.id === 'register_settings') {
+                // 注册设置
+                $.ajax({
+                  url: '/admin/api/apps/get_register_config?uuid=' + obj.data.uuid,
+                  type: 'GET',
+                  success: function(config) {
+                    layer.open({
+                      type: 1,
+                      title: '注册设置 - ' + obj.data.name,
+                      area: ['550px', '500px'],
+                      content: '<div style="padding: 20px;">' +
+                               '<form class="layui-form layui-form-pane" lay-filter="registerConfigForm">' +
+                               
+                               // 账号注册设置
+                               '<fieldset class="layui-elem-field layui-field-title">' +
+                               '<legend>账号注册设置</legend>' +
+                               '</fieldset>' +
+                               '<div class="layui-form-item" pane>' +
+                               '<label class="layui-form-label">账号注册</label>' +
+                               '<div class="layui-input-block">' +
+                               '<input type="radio" name="register_enabled" value="0" title="关闭" ' + (config.register_enabled === 0 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="register_enabled" value="1" title="开启" ' + (config.register_enabled === 1 ? 'checked' : '') + '>' +
+                               '</div>' +
+                               '</div>' +
+                               '<div class="layui-form-item" pane>' +
+                               '<label class="layui-form-label">注册限制</label>' +
+                               '<div class="layui-input-block">' +
+                               '<input type="radio" name="register_limit_enabled" value="0" title="关闭" ' + (config.register_limit_enabled === 0 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="register_limit_enabled" value="1" title="开启" ' + (config.register_limit_enabled === 1 ? 'checked' : '') + '>' +
+                               '</div>' +
+                               '</div>' +
+                               '<div class="layui-form-item" pane>' +
+                               '<label class="layui-form-label">限制时间</label>' +
+                               '<div class="layui-input-block">' +
+                               '<input type="radio" name="register_limit_time" value="0" title="每天" ' + (config.register_limit_time === 0 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="register_limit_time" value="1" title="永久" ' + (config.register_limit_time === 1 ? 'checked' : '') + '>' +
+                               '</div>' +
+                               '</div>' +
+                               '<div class="layui-form-item">' +
+                               '<label class="layui-form-label">注册次数</label>' +
+                               '<div class="layui-input-block">' +
+                               '<input type="number" name="register_count" class="layui-input" value="' + config.register_count + '" placeholder="请输入" lay-verify="required|number" min="1">' +
+                               '</div>' +
+                               '</div>' +
+                               
+                               // 领取试用设置
+                               '<fieldset class="layui-elem-field layui-field-title" style="margin-top: 30px;">' +
+                               '<legend>领取试用设置</legend>' +
+                               '</fieldset>' +
+                               '<div class="layui-form-item" pane>' +
+                               '<label class="layui-form-label">领取试用</label>' +
+                               '<div class="layui-input-block">' +
+                               '<input type="radio" name="trial_enabled" value="0" title="关闭" ' + (config.trial_enabled === 0 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="trial_enabled" value="1" title="开启" ' + (config.trial_enabled === 1 ? 'checked' : '') + '>' +
+                               '</div>' +
+                               '</div>' +
+                               '<div class="layui-form-item" pane>' +
+                               '<label class="layui-form-label">限制时间</label>' +
+                               '<div class="layui-input-block">' +
+                               '<input type="radio" name="trial_limit_time" value="0" title="每天" ' + (config.trial_limit_time === 0 ? 'checked' : '') + '>' +
+                               '<input type="radio" name="trial_limit_time" value="1" title="永久" ' + (config.trial_limit_time === 1 ? 'checked' : '') + '>' +
+                               '</div>' +
+                               '</div>' +
+                               '<div class="layui-form-item">' +
+                               '<label class="layui-form-label">试用时间</label>' +
+                               '<div class="layui-input-block">' +
+                               '<input type="number" name="trial_duration" class="layui-input" value="' + config.trial_duration + '" placeholder="请输入试用时间（分钟）" lay-verify="number" min="0">' +
+                               '</div>' +
+                               '</div>' +
+                               
+                               '</form>' +
+                               '</div>',
+                      btn: ['保存', '取消'],
+                      yes: function(index, layero) {
+                        var formData = {
+                          uuid: obj.data.uuid,
+                          register_enabled: parseInt($('input[name="register_enabled"]:checked').val()),
+                          register_limit_enabled: parseInt($('input[name="register_limit_enabled"]:checked').val()),
+                          register_limit_time: parseInt($('input[name="register_limit_time"]:checked').val()),
+                          register_count: parseInt($('input[name="register_count"]').val()) || 1,
+                          trial_enabled: parseInt($('input[name="trial_enabled"]:checked').val()),
+                          trial_limit_time: parseInt($('input[name="trial_limit_time"]:checked').val()),
+                          trial_duration: parseInt($('input[name="trial_duration"]').val()) || 0
+                        };
+                        
+                        // 验证数据
+                        if (isNaN(formData.register_enabled) || formData.register_enabled < 0 || formData.register_enabled > 1) {
+                          layer.msg('请选择账号注册选项', {icon: 2});
+                          return;
+                        }
+                        if (isNaN(formData.register_limit_enabled) || formData.register_limit_enabled < 0 || formData.register_limit_enabled > 1) {
+                          layer.msg('请选择注册限制选项', {icon: 2});
+                          return;
+                        }
+                        if (isNaN(formData.register_limit_time) || formData.register_limit_time < 0 || formData.register_limit_time > 1) {
+                          layer.msg('请选择限制时间选项', {icon: 2});
+                          return;
+                        }
+                        if (isNaN(formData.register_count) || formData.register_count < 1) {
+                          layer.msg('注册次数必须大于0', {icon: 2});
+                          return;
+                        }
+                        if (isNaN(formData.trial_enabled) || formData.trial_enabled < 0 || formData.trial_enabled > 1) {
+                          layer.msg('请选择领取试用选项', {icon: 2});
+                          return;
+                        }
+                        if (isNaN(formData.trial_limit_time) || formData.trial_limit_time < 0 || formData.trial_limit_time > 1) {
+                          layer.msg('请选择试用限制时间选项', {icon: 2});
+                          return;
+                        }
+                        if (isNaN(formData.trial_duration) || formData.trial_duration < 0) {
+                          layer.msg('试用时间不能小于0', {icon: 2});
+                          return;
+                        }
+                        
+                        // 发送更新请求
+                        $.ajax({
+                          url: '/admin/api/apps/update_register_config',
+                          type: 'POST',
+                          contentType: 'application/json',
+                          data: JSON.stringify(formData),
+                          success: function(res) {
+                            if (res.code === 0) {
+                              layer.msg('注册设置更新成功', {icon: 1});
+                              layer.close(index);
+                              table.reload('appsTable');
+                            } else {
+                              layer.msg(res.msg || '更新注册设置失败', {icon: 2});
+                            }
+                          },
+                          error: function() {
+                            layer.msg('网络错误，请稍后重试', {icon: 2});
+                          }
+                        });
+                      },
+                      btn2: function(index) {
+                        layer.close(index);
+                      },
+                      success: function() {
+                        // 重新渲染表单
+                        form.render();
+                      }
+                    });
+                  },
+                  error: function() {
+                    layer.msg('获取注册设置失败，请稍后重试', {icon: 2});
                   }
                 });
               }

@@ -801,16 +801,18 @@ func AppGetBindConfigHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 返回绑定配置信息
 	response := map[string]interface{}{
-		"machine_code_verify":       app.MachineCodeVerify,
-		"machine_code_option":       app.MachineCodeOption,
-		"machine_code_free_count":   app.MachineCodeFreeCount,
-		"machine_code_rebind_count": app.MachineCodeRebindCount,
-		"machine_code_rebind_deduct": app.MachineCodeRebindDeduct,
-		"ip_verify":                 app.IPVerify,
-		"ip_option":                 app.IPOption,
-		"ip_free_count":             app.IPFreeCount,
-		"ip_rebind_count":           app.IPRebindCount,
-		"ip_rebind_deduct":          app.IPRebindDeduct,
+		"machine_code_verify":         app.MachineCodeVerify,
+		"machine_code_rebind_enabled": app.MachineCodeRebindEnabled,
+		"machine_code_option":         app.MachineCodeOption,
+		"machine_code_free_count":     app.MachineCodeFreeCount,
+		"machine_code_rebind_count":   app.MachineCodeRebindCount,
+		"machine_code_rebind_deduct":  app.MachineCodeRebindDeduct,
+		"ip_verify":                   app.IPVerify,
+		"ip_rebind_enabled":           app.IPRebindEnabled,
+		"ip_option":                   app.IPOption,
+		"ip_free_count":               app.IPFreeCount,
+		"ip_rebind_count":             app.IPRebindCount,
+		"ip_rebind_deduct":            app.IPRebindDeduct,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -827,11 +829,13 @@ func AppUpdateBindConfigHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		UUID                     string `json:"uuid"`
 		MachineCodeVerify        int    `json:"machine_code_verify"`
+		MachineCodeRebindEnabled int    `json:"machine_code_rebind_enabled"`
 		MachineCodeOption        int    `json:"machine_code_option"`
 		MachineCodeFreeCount     int    `json:"machine_code_free_count"`
 		MachineCodeRebindCount   int    `json:"machine_code_rebind_count"`
 		MachineCodeRebindDeduct  int    `json:"machine_code_rebind_deduct"`
 		IPVerify                 int    `json:"ip_verify"`
+		IPRebindEnabled          int    `json:"ip_rebind_enabled"`
 		IPOption                 int    `json:"ip_option"`
 		IPFreeCount              int    `json:"ip_free_count"`
 		IPRebindCount            int    `json:"ip_rebind_count"`
@@ -911,6 +915,26 @@ func AppUpdateBindConfigHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.MachineCodeRebindEnabled < 0 || req.MachineCodeRebindEnabled > 1 {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "机器码重绑开关参数无效",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	if req.IPRebindEnabled < 0 || req.IPRebindEnabled > 1 {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "IP地址重绑开关参数无效",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
 	if req.MachineCodeFreeCount < 0 || req.MachineCodeRebindCount < 0 || req.MachineCodeRebindDeduct < 0 ||
 		req.IPFreeCount < 0 || req.IPRebindCount < 0 || req.IPRebindDeduct < 0 {
 		response := map[string]interface{}{
@@ -949,16 +973,18 @@ func AppUpdateBindConfigHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 更新绑定配置
 	updates := map[string]interface{}{
-		"machine_code_verify":        req.MachineCodeVerify,
-		"machine_code_option":        req.MachineCodeOption,
-		"machine_code_free_count":    req.MachineCodeFreeCount,
-		"machine_code_rebind_count":  req.MachineCodeRebindCount,
-		"machine_code_rebind_deduct": req.MachineCodeRebindDeduct,
-		"ip_verify":                  req.IPVerify,
-		"ip_option":                  req.IPOption,
-		"ip_free_count":              req.IPFreeCount,
-		"ip_rebind_count":            req.IPRebindCount,
-		"ip_rebind_deduct":           req.IPRebindDeduct,
+		"machine_code_verify":         req.MachineCodeVerify,
+		"machine_code_rebind_enabled": req.MachineCodeRebindEnabled,
+		"machine_code_option":         req.MachineCodeOption,
+		"machine_code_free_count":     req.MachineCodeFreeCount,
+		"machine_code_rebind_count":   req.MachineCodeRebindCount,
+		"machine_code_rebind_deduct":  req.MachineCodeRebindDeduct,
+		"ip_verify":                   req.IPVerify,
+		"ip_rebind_enabled":           req.IPRebindEnabled,
+		"ip_option":                   req.IPOption,
+		"ip_free_count":               req.IPFreeCount,
+		"ip_rebind_count":             req.IPRebindCount,
+		"ip_rebind_deduct":            req.IPRebindDeduct,
 	}
 
 	if err := db.Model(&app).Updates(updates).Error; err != nil {
@@ -975,6 +1001,251 @@ func AppUpdateBindConfigHandler(w http.ResponseWriter, r *http.Request) {
 	response := map[string]interface{}{
 		"code": 0,
 		"msg":  "绑定配置更新成功",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// AppGetRegisterConfigHandler 获取应用注册配置
+func AppGetRegisterConfigHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	appUUID := r.URL.Query().Get("uuid")
+	if appUUID == "" {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "缺少应用UUID",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 验证UUID格式
+	if _, err := uuid.Parse(appUUID); err != nil {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "无效的UUID格式",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	db, err := database.GetDB()
+	if err != nil {
+		logrus.WithError(err).Error("Failed to get database connection")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "数据库连接失败",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	var app models.App
+	if err := db.Where("uuid = ?", appUUID).First(&app).Error; err != nil {
+		logrus.WithError(err).Error("Failed to find app")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "应用不存在",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 返回注册配置信息
+	response := map[string]interface{}{
+		"register_enabled":       app.RegisterEnabled,
+		"register_limit_enabled": app.RegisterLimitEnabled,
+		"register_limit_time":    app.RegisterLimitTime,
+		"register_count":         app.RegisterCount,
+		"trial_enabled":          app.TrialEnabled,
+		"trial_limit_time":       app.TrialLimitTime,
+		"trial_duration":         app.TrialDuration,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// AppUpdateRegisterConfigHandler 更新应用注册配置
+func AppUpdateRegisterConfigHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		UUID                 string `json:"uuid"`
+		RegisterEnabled      int    `json:"register_enabled"`
+		RegisterLimitEnabled int    `json:"register_limit_enabled"`
+		RegisterLimitTime    int    `json:"register_limit_time"`
+		RegisterCount        int    `json:"register_count"`
+		TrialEnabled         int    `json:"trial_enabled"`
+		TrialLimitTime       int    `json:"trial_limit_time"`
+		TrialDuration        int    `json:"trial_duration"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		logrus.WithError(err).Error("Failed to decode JSON request")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "无效的JSON格式",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 验证UUID
+	if req.UUID == "" {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "应用UUID不能为空",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	if _, err := uuid.Parse(req.UUID); err != nil {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "无效的UUID格式",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 验证参数范围
+	if req.RegisterEnabled < 0 || req.RegisterEnabled > 1 {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "账号注册开关参数无效",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	if req.RegisterLimitEnabled < 0 || req.RegisterLimitEnabled > 1 {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "注册限制开关参数无效",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	if req.RegisterLimitTime < 0 || req.RegisterLimitTime > 1 {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "注册限制时间参数无效",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	if req.RegisterCount < 1 {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "注册次数必须大于0",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	if req.TrialEnabled < 0 || req.TrialEnabled > 1 {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "领取试用开关参数无效",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	if req.TrialLimitTime < 0 || req.TrialLimitTime > 1 {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "试用限制时间参数无效",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	if req.TrialDuration < 0 {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "试用时间不能为负数",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	db, err := database.GetDB()
+	if err != nil {
+		logrus.WithError(err).Error("Failed to get database connection")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "数据库连接失败",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 查找应用
+	var app models.App
+	if err := db.Where("uuid = ?", req.UUID).First(&app).Error; err != nil {
+		logrus.WithError(err).Error("Failed to find app")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "应用不存在",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 更新注册配置
+	updates := map[string]interface{}{
+		"register_enabled":       req.RegisterEnabled,
+		"register_limit_enabled": req.RegisterLimitEnabled,
+		"register_limit_time":    req.RegisterLimitTime,
+		"register_count":         req.RegisterCount,
+		"trial_enabled":          req.TrialEnabled,
+		"trial_limit_time":       req.TrialLimitTime,
+		"trial_duration":         req.TrialDuration,
+	}
+
+	if err := db.Model(&app).Updates(updates).Error; err != nil {
+		logrus.WithError(err).Error("Failed to update app register config")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "更新注册配置失败",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	response := map[string]interface{}{
+		"code": 0,
+		"msg":  "注册配置更新成功",
 	}
 
 	w.Header().Set("Content-Type", "application/json")

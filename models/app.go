@@ -56,6 +56,8 @@ type App struct {
 	// 机器码验证相关字段
 	// MachineCodeVerify：机器码验证（0=关闭，1=开启）
 	MachineCodeVerify int `gorm:"default:0;not null;comment:机器码验证，0=关闭，1=开启" json:"machine_code_verify"`
+	// MachineCodeRebindEnabled：机器码重绑开关（0=关闭，1=开启）
+	MachineCodeRebindEnabled int `gorm:"default:0;not null;comment:机器码重绑开关，0=关闭，1=开启" json:"machine_code_rebind_enabled"`
 	// MachineCodeOption：机器码选项（0=每天，1=永久）
 	MachineCodeOption int `gorm:"default:0;not null;comment:机器码选项，0=每天，1=永久" json:"machine_code_option"`
 	// MachineCodeFreeCount：机器码免费次数（默认0）
@@ -68,6 +70,8 @@ type App struct {
 	// IP地址验证相关字段
 	// IPVerify：IP地址验证（0=关闭，1=开启，2=开启(市)，3=开启(省)）
 	IPVerify int `gorm:"default:0;not null;comment:IP地址验证，0=关闭，1=开启，2=开启(市)，3=开启(省)" json:"ip_verify"`
+	// IPRebindEnabled：IP地址重绑开关（0=关闭，1=开启）
+	IPRebindEnabled int `gorm:"default:0;not null;comment:IP地址重绑开关，0=关闭，1=开启" json:"ip_rebind_enabled"`
 	// IPOption：IP地址选项（0=每天，1=永久）
 	IPOption int `gorm:"default:0;not null;comment:IP地址选项，0=每天，1=永久" json:"ip_option"`
 	// IPFreeCount：IP地址免费次数（默认0）
@@ -76,6 +80,24 @@ type App struct {
 	IPRebindCount int `gorm:"default:0;not null;comment:IP地址重绑次数" json:"ip_rebind_count"`
 	// IPRebindDeduct：IP地址重绑扣除（默认0，单位：分钟）
 	IPRebindDeduct int `gorm:"default:0;not null;comment:IP地址重绑扣除，单位分钟" json:"ip_rebind_deduct"`
+
+	// 账号注册相关字段
+	// RegisterEnabled：账号注册开关（0=关闭，1=开启）
+	RegisterEnabled int `gorm:"default:1;not null;comment:账号注册开关，0=关闭，1=开启" json:"register_enabled"`
+	// RegisterLimitEnabled：注册限制开关（0=关闭，1=开启）
+	RegisterLimitEnabled int `gorm:"default:0;not null;comment:注册限制开关，0=关闭，1=开启" json:"register_limit_enabled"`
+	// RegisterLimitTime：限制时间（0=每天，1=永久）
+	RegisterLimitTime int `gorm:"default:1;not null;comment:注册限制时间，0=每天，1=永久" json:"register_limit_time"`
+	// RegisterCount：注册次数
+	RegisterCount int `gorm:"default:1;not null;comment:注册次数" json:"register_count"`
+
+	// 领取试用相关字段
+	// TrialEnabled：领取试用开关（0=关闭，1=开启）
+	TrialEnabled int `gorm:"default:0;not null;comment:领取试用开关，0=关闭，1=开启" json:"trial_enabled"`
+	// TrialLimitTime：试用限制时间（0=每天，1=永久）
+	TrialLimitTime int `gorm:"default:1;not null;comment:试用限制时间，0=每天，1=永久" json:"trial_limit_time"`
+	// TrialDuration：试用时间（单位：分钟）
+	TrialDuration int `gorm:"default:0;not null;comment:试用时间，单位分钟" json:"trial_duration"`
 
 	// CreatedAt/UpdatedAt：时间字段，返回为 created_at/updated_at，便于前端展示
 	CreatedAt time.Time `gorm:"comment:创建时间" json:"created_at"`

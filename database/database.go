@@ -78,7 +78,7 @@ func GetDB() (*gorm.DB, error) {
 func initSQLite() error {
 	path := viper.GetString("database.sqlite.path")
 	if path == "" {
-		path = "./recharge.db"
+		path = "./database.db"
 	}
 	dsn := fmt.Sprintf("file:%s?cache=shared&_busy_timeout=5000&_fk=1", path)
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})

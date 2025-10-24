@@ -136,7 +136,7 @@ func setDefaults(config *AppConfig) {
 		config.Database.MySQL.MaxOpenConns = 100
 	}
 	if config.Database.SQLite.Path == "" {
-		config.Database.SQLite.Path = "./recharge.db"
+		config.Database.SQLite.Path = "./database.db"
 	}
 
 	// Redis默认值

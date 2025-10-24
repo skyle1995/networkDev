@@ -67,6 +67,8 @@ func RegisterAdminRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/admin/api/apps/update_multi_config", adminctl.AdminAuthRequired(adminctl.AppUpdateMultiConfigHandler))
 	mux.HandleFunc("/admin/api/apps/get_bind_config", adminctl.AdminAuthRequired(adminctl.AppGetBindConfigHandler))
 	mux.HandleFunc("/admin/api/apps/update_bind_config", adminctl.AdminAuthRequired(adminctl.AppUpdateBindConfigHandler))
+	mux.HandleFunc("/admin/api/apps/get_register_config", adminctl.AdminAuthRequired(adminctl.AppGetRegisterConfigHandler))
+	mux.HandleFunc("/admin/api/apps/update_register_config", adminctl.AdminAuthRequired(adminctl.AppUpdateRegisterConfigHandler))
 
 
 	// 系统信息API（用于仪表盘定时刷新）

@@ -1,9 +1,10 @@
 package admin
 
 import (
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
-	"math/rand"
+	"math/big"
 	"net/http"
 	"strings"
 	"time"
@@ -14,6 +15,15 @@ import (
 // 全局验证码存储器
 var store = base64Captcha.DefaultMemStore
 
+// secureRandomInt 生成安全的随机整数，范围 [0, max)
+func secureRandomInt(max int) (int, error) {
+	n, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
+	if err != nil {
+		return 0, err
+	}
+	return int(n.Int64()), nil
+}
+
 // CaptchaHandler 生成验证码图片
 // GET /admin/captcha - 返回验证码图片
 func CaptchaHandler(w http.ResponseWriter, r *http.Request) {
@@ -23,8 +33,13 @@ func CaptchaHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 随机生成4-6位长度
-	// Go 1.20+ 无需手动设置随机种子，使用默认全局随机源即可
-	captchaLength := 4 + rand.Intn(3) // 4-6位随机长度
+	// 使用crypto/rand生成安全的随机数
+	randomNum, err := secureRandomInt(3)
+	if err != nil {
+		http.Error(w, "生成随机数失败", http.StatusInternalServerError)
+		return
+	}
+	captchaLength := 4 + randomNum // 4-6位随机长度
 
 	// 配置验证码参数 - 使用字母数字混合
 	driver := base64Captcha.DriverString{
