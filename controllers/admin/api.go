@@ -1,6 +1,8 @@
 package admin
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"networkDev/database"
@@ -9,8 +11,6 @@ import (
 	"networkDev/utils/encrypt"
 	"strconv"
 	"strings"
-	"crypto/rand"
-	"encoding/hex"
 
 	"github.com/sirupsen/logrus"
 )
@@ -281,8 +281,8 @@ func APIGenerateKeysHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Side      string `json:"side"`           // submit | return
-		Algorithm int    `json:"algorithm"`      // 与 models.Algorithm* 对应
+		Side      string `json:"side"`      // submit | return
+		Algorithm int    `json:"algorithm"` // 与 models.Algorithm* 对应
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
@@ -323,7 +323,7 @@ func APIGenerateKeysHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "生成RSA密钥失败", http.StatusInternalServerError)
 			return
 		}
-		
+
 		// 转换为PEM格式
 		publicKeyPEM, err := encrypt.PublicKeyToPEM(publicKey)
 		if err != nil {
@@ -331,14 +331,14 @@ func APIGenerateKeysHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "转换公钥格式失败", http.StatusInternalServerError)
 			return
 		}
-		
+
 		privateKeyPEM, err := encrypt.PrivateKeyToPEM(privateKey)
 		if err != nil {
 			logrus.WithError(err).Error("Failed to convert private key to PEM")
 			http.Error(w, "转换私钥格式失败", http.StatusInternalServerError)
 			return
 		}
-		
+
 		result["public_key"] = publicKeyPEM
 		result["private_key"] = privateKeyPEM
 	case models.AlgorithmRSADynamic:
@@ -349,7 +349,7 @@ func APIGenerateKeysHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "生成RSA动态密钥失败", http.StatusInternalServerError)
 			return
 		}
-		
+
 		result["public_key"] = publicKeyPEM
 		result["private_key"] = privateKeyPEM
 	case models.AlgorithmEasy:
@@ -377,62 +377,62 @@ func APIGenerateKeysHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func APIResetKeyHandler(w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodPost {
-        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-        return
-    }
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
-    var req struct {
-        ID uint `json:"id"`
-    }
+	var req struct {
+		ID uint `json:"id"`
+	}
 
-    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-        http.Error(w, "Invalid JSON", http.StatusBadRequest)
-        return
-    }
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
 
-    if req.ID == 0 {
-        http.Error(w, "接口ID不能为空", http.StatusBadRequest)
-        return
-    }
+	if req.ID == 0 {
+		http.Error(w, "接口ID不能为空", http.StatusBadRequest)
+		return
+	}
 
-    db, err := database.GetDB()
-    if err != nil {
-        logrus.WithError(err).Error("Failed to get database connection")
-        http.Error(w, "Internal server error", http.StatusInternalServerError)
-        return
-    }
+	db, err := database.GetDB()
+	if err != nil {
+		logrus.WithError(err).Error("Failed to get database connection")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 
-    var api models.API
-    if err := db.First(&api, req.ID).Error; err != nil {
-        http.Error(w, "接口不存在", http.StatusNotFound)
-        return
-    }
+	var api models.API
+	if err := db.First(&api, req.ID).Error; err != nil {
+		http.Error(w, "接口不存在", http.StatusNotFound)
+		return
+	}
 
-    // 生成新的16位大写十六进制密钥
-    bytes := make([]byte, 8)
-    if _, err := rand.Read(bytes); err != nil {
-        logrus.WithError(err).Error("Failed to generate random API key")
-        http.Error(w, "生成密钥失败", http.StatusInternalServerError)
-        return
-    }
-    newKey := strings.ToUpper(hex.EncodeToString(bytes))
+	// 生成新的16位大写十六进制密钥
+	bytes := make([]byte, 8)
+	if _, err := rand.Read(bytes); err != nil {
+		logrus.WithError(err).Error("Failed to generate random API key")
+		http.Error(w, "生成密钥失败", http.StatusInternalServerError)
+		return
+	}
+	newKey := strings.ToUpper(hex.EncodeToString(bytes))
 
-    if err := db.Model(&api).Update("api_key", newKey).Error; err != nil {
-        logrus.WithError(err).Error("Failed to update API key")
-        http.Error(w, "更新密钥失败", http.StatusInternalServerError)
-        return
-    }
+	if err := db.Model(&api).Update("api_key", newKey).Error; err != nil {
+		logrus.WithError(err).Error("Failed to update API key")
+		http.Error(w, "更新密钥失败", http.StatusInternalServerError)
+		return
+	}
 
-    response := map[string]interface{}{
-        "success": true,
-        "message": "接口密钥重置成功",
-        "data": map[string]interface{}{
-            "id":      api.ID,
-            "api_key": newKey,
-        },
-    }
+	response := map[string]interface{}{
+		"success": true,
+		"message": "接口密钥重置成功",
+		"data": map[string]interface{}{
+			"id":      api.ID,
+			"api_key": newKey,
+		},
+	}
 
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(response)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
