@@ -88,6 +88,76 @@ func AppsListHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+// AppGetAppDataHandler 获取应用数据处理器
+func AppGetAppDataHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// 获取UUID参数
+	uuid := r.URL.Query().Get("uuid")
+	if uuid == "" {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "应用UUID不能为空",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 获取数据库连接
+	db, err := database.GetDB()
+	if err != nil {
+		logrus.WithError(err).Error("Failed to get database connection")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "数据库连接失败",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 查找应用
+	var app models.App
+	if err := db.Where("uuid = ?", uuid).First(&app).Error; err != nil {
+		logrus.WithError(err).Error("Failed to find app")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "应用不存在",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 解码base64应用数据内容
+	var appData string
+	if app.AppData != "" {
+		decodedBytes, err := base64.StdEncoding.DecodeString(app.AppData)
+		if err != nil {
+			logrus.WithError(err).Error("Failed to decode app data")
+			// 如果解码失败，返回空字符串
+			appData = ""
+		} else {
+			appData = string(decodedBytes)
+		}
+	}
+
+	response := map[string]interface{}{
+		"code": 0,
+		"msg":  "获取成功",
+		"data": map[string]interface{}{
+			"app_data": appData,
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
 // AppGetAnnouncementHandler 获取应用程序公告处理器
 func AppGetAnnouncementHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -294,11 +364,72 @@ func AppCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.Create(&app).Error; err != nil {
+	// 开始事务
+	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// 创建应用
+	if err := tx.Create(&app).Error; err != nil {
+		tx.Rollback()
 		logrus.WithError(err).Error("Failed to create app")
 		http.Error(w, "创建应用失败", http.StatusInternalServerError)
 		return
 	}
+
+	// 为应用创建所有默认接口
+	defaultAPITypes := []int{
+		models.APITypeGetBulletin,     // 获取程序公告
+		models.APITypeGetUpdateUrl,    // 获取更新地址
+		models.APITypeCheckAppVersion, // 检测最新版本
+		models.APITypeGetCardInfo,     // 获取卡密信息
+		models.APITypeSingleLogin,     // 卡密登录
+		models.APITypeUserLogin,       // 用户登录
+		models.APITypeUserRegin,       // 用户注册
+		models.APITypeUserRecharge,    // 用户充值
+		models.APITypeCardRegin,       // 卡密注册
+		models.APITypeLogOut,          // 退出登录
+		models.APITypeGetExpired,      // 获取到期时间
+		models.APITypeCheckUserStatus, // 检测账号状态
+		models.APITypeGetAppData,      // 获取程序数据
+		models.APITypeGetVariable,     // 获取变量数据
+		models.APITypeUpdatePwd,       // 修改账号密码
+		models.APITypeMacChangeBind,   // 机器码转绑
+		models.APITypeIPChangeBind,    // IP转绑
+		models.APITypeDisableUser,     // 封停用户
+		models.APITypeBlackUser,       // 添加黑名单
+		models.APITypeUserDeductedTime, // 扣除时间
+	}
+
+	// 批量创建默认接口
+	for _, apiType := range defaultAPITypes {
+		api := models.API{
+			APIType:         apiType,
+			AppUUID:         app.UUID,
+			Status:          1, // 默认启用
+			SubmitAlgorithm: models.AlgorithmNone, // 默认不加密
+			ReturnAlgorithm: models.AlgorithmNone, // 默认不加密
+		}
+
+		if err := tx.Create(&api).Error; err != nil {
+			tx.Rollback()
+			logrus.WithError(err).WithField("api_type", apiType).Error("Failed to create default API")
+			http.Error(w, "创建默认接口失败", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// 提交事务
+	if err := tx.Commit().Error; err != nil {
+		logrus.WithError(err).Error("Failed to commit transaction")
+		http.Error(w, "提交事务失败", http.StatusInternalServerError)
+		return
+	}
+
+	logrus.WithField("app_uuid", app.UUID).Info("Successfully created app with default APIs")
 
 	response := map[string]interface{}{
 		"code": 0,
@@ -408,12 +539,50 @@ func AppDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 开始事务
+	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// 首先获取应用信息以获取UUID
+	var app models.App
+	if err := tx.First(&app, req.ID).Error; err != nil {
+		tx.Rollback()
+		logrus.WithError(err).Error("Failed to find app")
+		http.Error(w, "应用不存在", http.StatusNotFound)
+		return
+	}
+
+	// 删除该应用的所有相关接口
+	if err := tx.Where("app_uuid = ?", app.UUID).Delete(&models.API{}).Error; err != nil {
+		tx.Rollback()
+		logrus.WithError(err).Error("Failed to delete related APIs")
+		http.Error(w, "删除相关接口失败", http.StatusInternalServerError)
+		return
+	}
+
 	// 删除应用
-	if err := db.Delete(&models.App{}, req.ID).Error; err != nil {
+	if err := tx.Delete(&models.App{}, req.ID).Error; err != nil {
+		tx.Rollback()
 		logrus.WithError(err).Error("Failed to delete app")
 		http.Error(w, "删除应用失败", http.StatusInternalServerError)
 		return
 	}
+
+	// 提交事务
+	if err := tx.Commit().Error; err != nil {
+		logrus.WithError(err).Error("Failed to commit transaction")
+		http.Error(w, "提交事务失败", http.StatusInternalServerError)
+		return
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"app_id":   req.ID,
+		"app_uuid": app.UUID,
+	}).Info("Successfully deleted app and related APIs")
 
 	response := map[string]interface{}{
 		"code": 0,
@@ -452,12 +621,58 @@ func AppsBatchDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 批量删除
-	if err := db.Delete(&models.App{}, req.IDs).Error; err != nil {
+	// 开始事务
+	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// 首先获取要删除的应用的UUID列表
+	var apps []models.App
+	if err := tx.Where("id IN ?", req.IDs).Find(&apps).Error; err != nil {
+		tx.Rollback()
+		logrus.WithError(err).Error("Failed to find apps")
+		http.Error(w, "查找应用失败", http.StatusInternalServerError)
+		return
+	}
+
+	// 提取UUID列表
+	var appUUIDs []string
+	for _, app := range apps {
+		appUUIDs = append(appUUIDs, app.UUID)
+	}
+
+	// 删除这些应用的所有相关接口
+	if len(appUUIDs) > 0 {
+		if err := tx.Where("app_uuid IN ?", appUUIDs).Delete(&models.API{}).Error; err != nil {
+			tx.Rollback()
+			logrus.WithError(err).Error("Failed to delete related APIs")
+			http.Error(w, "删除相关接口失败", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// 批量删除应用
+	if err := tx.Delete(&models.App{}, req.IDs).Error; err != nil {
+		tx.Rollback()
 		logrus.WithError(err).Error("Failed to batch delete apps")
 		http.Error(w, "批量删除失败", http.StatusInternalServerError)
 		return
 	}
+
+	// 提交事务
+	if err := tx.Commit().Error; err != nil {
+		logrus.WithError(err).Error("Failed to commit transaction")
+		http.Error(w, "提交事务失败", http.StatusInternalServerError)
+		return
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"app_ids":   req.IDs,
+		"app_uuids": appUUIDs,
+	}).Info("Successfully batch deleted apps and related APIs")
 
 	response := map[string]interface{}{
 		"code": 0,
@@ -517,6 +732,108 @@ func AppsBatchUpdateStatusHandler(w http.ResponseWriter, r *http.Request) {
 	response := map[string]interface{}{
 		"code": 0,
 		"msg":  "批量" + statusText + "成功",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// AppUpdateAppDataHandler 更新应用数据处理器
+func AppUpdateAppDataHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// 解析请求体
+	var req struct {
+		UUID    string `json:"uuid"`
+		AppData string `json:"app_data"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		logrus.WithError(err).Error("Failed to decode request body")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "请求参数格式错误",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 验证UUID
+	if req.UUID == "" {
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "应用UUID不能为空",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 验证UUID格式
+	if _, err := uuid.Parse(req.UUID); err != nil {
+		logrus.WithError(err).Error("Invalid UUID format")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "无效的UUID格式",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 获取数据库连接
+	db, err := database.GetDB()
+	if err != nil {
+		logrus.WithError(err).Error("Failed to get database connection")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "数据库连接失败",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 查找应用
+	var app models.App
+	if err := db.Where("uuid = ?", req.UUID).First(&app).Error; err != nil {
+		logrus.WithError(err).Error("Failed to find app")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "应用不存在",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 对应用数据内容进行base64编码
+	encodedAppData := base64.StdEncoding.EncodeToString([]byte(req.AppData))
+
+	// 更新应用的数据内容
+	if err := db.Model(&app).Update("app_data", encodedAppData).Error; err != nil {
+		logrus.WithError(err).Error("Failed to update app data")
+		response := map[string]interface{}{
+			"code": 1,
+			"msg":  "更新应用数据失败",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"app_uuid": req.UUID,
+		"app_name": app.Name,
+	}).Info("App data updated successfully")
+
+	response := map[string]interface{}{
+		"code": 0,
+		"msg":  "应用数据更新成功",
 	}
 
 	w.Header().Set("Content-Type", "application/json")

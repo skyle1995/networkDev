@@ -43,7 +43,7 @@ func RegisterAdminRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/admin/user", adminctl.AdminAuthRequired(adminctl.UserFragmentHandler))
 	mux.HandleFunc("/admin/settings", adminctl.AdminAuthRequired(adminctl.SettingsFragmentHandler))
 	mux.HandleFunc("/admin/apps", adminctl.AdminAuthRequired(adminctl.AppsFragmentHandler))
-
+	mux.HandleFunc("/admin/apis", adminctl.AdminAuthRequired(adminctl.APIFragmentHandler))
 
 	// 个人资料API
 	mux.HandleFunc("/admin/api/user/profile", adminctl.AdminAuthRequired(adminctl.UserProfileQueryHandler))
@@ -61,6 +61,8 @@ func RegisterAdminRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/admin/api/apps/batch_delete", adminctl.AdminAuthRequired(adminctl.AppsBatchDeleteHandler))
 	mux.HandleFunc("/admin/api/apps/batch_update_status", adminctl.AdminAuthRequired(adminctl.AppsBatchUpdateStatusHandler))
 	mux.HandleFunc("/admin/api/apps/reset_secret", adminctl.AdminAuthRequired(adminctl.AppResetSecretHandler))
+	mux.HandleFunc("/admin/api/apps/get_app_data", adminctl.AdminAuthRequired(adminctl.AppGetAppDataHandler))
+	mux.HandleFunc("/admin/api/apps/update_app_data", adminctl.AdminAuthRequired(adminctl.AppUpdateAppDataHandler))
 	mux.HandleFunc("/admin/api/apps/get_announcement", adminctl.AdminAuthRequired(adminctl.AppGetAnnouncementHandler))
 	mux.HandleFunc("/admin/api/apps/update_announcement", adminctl.AdminAuthRequired(adminctl.AppUpdateAnnouncementHandler))
 	mux.HandleFunc("/admin/api/apps/get_multi_config", adminctl.AdminAuthRequired(adminctl.AppGetMultiConfigHandler))
@@ -70,6 +72,12 @@ func RegisterAdminRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/admin/api/apps/get_register_config", adminctl.AdminAuthRequired(adminctl.AppGetRegisterConfigHandler))
 	mux.HandleFunc("/admin/api/apps/update_register_config", adminctl.AdminAuthRequired(adminctl.AppUpdateRegisterConfigHandler))
 
+	// API接口管理API
+	mux.HandleFunc("/admin/api/apis/list", adminctl.AdminAuthRequired(adminctl.APIListHandler))
+	mux.HandleFunc("/admin/api/apis/update", adminctl.AdminAuthRequired(adminctl.APIUpdateHandler))
+	mux.HandleFunc("/admin/api/apis/apps", adminctl.AdminAuthRequired(adminctl.APIGetAppsHandler))
+	mux.HandleFunc("/admin/api/apis/reset_key", adminctl.AdminAuthRequired(adminctl.APIResetKeyHandler))
+	mux.HandleFunc("/admin/api/apis/generate_keys", adminctl.AdminAuthRequired(adminctl.APIGenerateKeysHandler))
 
 	// 系统信息API（用于仪表盘定时刷新）
 	mux.HandleFunc("/admin/api/system/info", adminctl.AdminAuthRequired(adminctl.SystemInfoHandler))

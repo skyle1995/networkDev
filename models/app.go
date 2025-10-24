@@ -39,6 +39,9 @@ type App struct {
 	// DownloadURL：下载地址
 	DownloadURL string `gorm:"size:500;comment:下载地址" json:"download_url"`
 
+	// AppData：应用数据（base64编码存储）
+	AppData string `gorm:"type:text;comment:应用数据，base64编码存储" json:"app_data"`
+
 	// Announcement：程序公告内容（base64编码存储）
 	Announcement string `gorm:"type:text;comment:程序公告内容，base64编码存储" json:"announcement"`
 

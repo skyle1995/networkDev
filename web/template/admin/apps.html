@@ -93,12 +93,7 @@
           <input type="text" name="download_url" placeholder="请输入下载地址" autocomplete="off" class="layui-input" />
         </div>
       </div>
-      <div class="layui-form-item">
-        <div class="layui-input-block">
-          <button type="submit" class="layui-btn" lay-submit lay-filter="appFormSubmit">提交</button>
-          <button type="button" class="layui-btn layui-btn-primary" id="btnCancelApp">取消</button>
-        </div>
-      </div>
+
     </form>
   </div>
 
@@ -420,10 +415,66 @@
           title: '新增应用',
           content: $('#appFormModal'),
           area: ['500px', '460px'],
-          btn: false,
+          btn: ['创建', '取消'],
+          yes: function(index, layero) {
+            // 手动触发表单提交验证
+            var formData = {};
+            $('#appForm').find('input, select, textarea').each(function() {
+              var $this = $(this);
+              var name = $this.attr('name');
+              if (name) {
+                if ($this.attr('type') === 'checkbox') {
+                  if ($this.attr('lay-skin') === 'switch') {
+                    formData[name] = $this.prop('checked') ? 1 : 0;
+                  } else {
+                    formData[name] = $this.prop('checked') ? $this.val() : '';
+                  }
+                } else if ($this.attr('type') === 'radio') {
+                  if ($this.prop('checked')) {
+                    formData[name] = $this.val();
+                  }
+                } else {
+                  formData[name] = $this.val();
+                }
+              }
+            });
+            
+            // 验证必填字段
+            if (!formData.name || formData.name.trim() === '') {
+              layer.msg('请输入应用名称', {icon: 2});
+              return;
+            }
+            
+            // 处理数据类型转换
+            formData.download_type = parseInt(formData.download_type) || 0;
+            
+            $.ajax({
+              url: '/admin/api/apps/create',
+              type: 'POST',
+              data: JSON.stringify(formData),
+              contentType: 'application/json',
+              success: function(res) {
+                if (res.code === 0) {
+                  layer.msg(res.msg, {icon: 1});
+                  layer.close(index);
+                  appsTable.reload();
+                } else {
+                  layer.msg(res.msg || '操作失败', {icon: 2});
+                }
+              },
+              error: function(xhr) {
+                layer.msg(xhr.responseText || '操作失败', {icon: 2});
+              }
+            });
+          },
+          btn2: function(index) {
+            layer.close(index);
+          },
+          success: function() {
+            form.render();
+          },
           shadeClose: false
         });
-        form.render();
       });
 
       // 监听更新方式切换（保留事件监听器以备将来扩展）
@@ -431,49 +482,7 @@
         // 下载地址字段现在始终显示，无需切换显示状态
       });
 
-      // 表单提交
-      form.on('submit(appFormSubmit)', function(data) {
-        const isEdit = data.field.id !== '';
-        const url = isEdit ? '/admin/api/apps/update' : '/admin/api/apps/create';
-        
-        // 转换字段类型为正确的数据类型
-        const formData = {
-          ...data.field,
-          status: data.field.status === 'on' ? 1 : 0, // switch开关处理
-          download_type: parseInt(data.field.download_type) || 0,
-          force_update: data.field.force_update === 'on' ? 1 : 0 // switch开关处理
-        };
-        
-        // 如果是编辑模式，确保id也是整数
-        if (isEdit) {
-          formData.id = parseInt(data.field.id);
-        }
-        
-        $.ajax({
-          url: url,
-          type: 'POST',
-          data: JSON.stringify(formData),
-          contentType: 'application/json',
-          success: function(res) {
-            if (res.code === 0) {
-              layer.msg(res.msg, {icon: 1});
-              layer.closeAll();
-              appsTable.reload();
-            } else {
-              layer.msg(res.msg || '操作失败', {icon: 2});
-            }
-          },
-          error: function(xhr) {
-            layer.msg(xhr.responseText || '操作失败', {icon: 2});
-          }
-        });
-        return false;
-      });
 
-      // 取消按钮
-      $('#btnCancelApp').on('click', function() {
-        layer.closeAll();
-      });
 
       // 表格工具栏事件
       table.on('tool(appsTableFilter)', function(obj) {
@@ -498,10 +507,67 @@
             title: '编辑应用',
             content: $('#appFormModal'),
             area: ['500px', '460px'],
-            btn: false,
+            btn: ['保存', '取消'],
+            yes: function(index, layero) {
+              // 手动触发表单提交验证
+              var formData = {};
+              $('#appForm').find('input, select, textarea').each(function() {
+                var $this = $(this);
+                var name = $this.attr('name');
+                if (name) {
+                  if ($this.attr('type') === 'checkbox') {
+                    if ($this.attr('lay-skin') === 'switch') {
+                      formData[name] = $this.prop('checked') ? 1 : 0;
+                    } else {
+                      formData[name] = $this.prop('checked') ? $this.val() : '';
+                    }
+                  } else if ($this.attr('type') === 'radio') {
+                    if ($this.prop('checked')) {
+                      formData[name] = $this.val();
+                    }
+                  } else {
+                    formData[name] = $this.val();
+                  }
+                }
+              });
+              
+              // 验证必填字段
+              if (!formData.name || formData.name.trim() === '') {
+                layer.msg('请输入应用名称', {icon: 2});
+                return;
+              }
+              
+              // 处理数据类型转换
+              formData.download_type = parseInt(formData.download_type) || 0;
+              formData.id = parseInt(formData.id);
+              
+              $.ajax({
+                url: '/admin/api/apps/update',
+                type: 'POST',
+                data: JSON.stringify(formData),
+                contentType: 'application/json',
+                success: function(res) {
+                  if (res.code === 0) {
+                    layer.msg(res.msg, {icon: 1});
+                    layer.close(index);
+                    appsTable.reload();
+                  } else {
+                    layer.msg(res.msg || '操作失败', {icon: 2});
+                  }
+                },
+                error: function(xhr) {
+                  layer.msg(xhr.responseText || '操作失败', {icon: 2});
+                }
+              });
+            },
+            btn2: function(index) {
+              layer.close(index);
+            },
+            success: function() {
+              form.render();
+            },
             shadeClose: false
           });
-          form.render();
           
         } else if (obj.event === 'del') {
           // 删除
@@ -532,6 +598,10 @@
             show: true, // 外部事件触发即显示
             data: [
               {
+                title: '应用数据',
+                id: 'app_data'
+              },
+              {
                 title: '程序公告',
                 id: 'announcement'
               },
@@ -553,7 +623,67 @@
               }
             ],
             click: function(menudata, othis) {
-              if (menudata.id === 'announcement') {
+              if (menudata.id === 'app_data') {
+                // 应用数据
+                // 先获取当前应用数据内容
+                $.ajax({
+                  url: '/admin/api/apps/get_app_data?uuid=' + obj.data.uuid,
+                  type: 'GET',
+                  success: function(res) {
+                    var currentAppData = '';
+                    if (res.code === 0 && res.data && res.data.app_data) {
+                      currentAppData = res.data.app_data;
+                    }
+                    
+                    // 显示编辑弹窗
+                    layer.open({
+                      type: 1,
+                      title: '编辑应用数据 - ' + obj.data.name,
+                      area: ['600px', '400px'],
+                      content: '<div style="padding: 20px;">' +
+                               '<textarea id="appDataEditor" class="layui-textarea" placeholder="请输入应用数据内容..." style="height: 250px;">' + 
+                               currentAppData + 
+                               '</textarea>' +
+                               '</div>',
+                      btn: ['保存', '取消'],
+                      yes: function(index, layero) {
+                        var appDataContent = $('#appDataEditor').val();
+                        
+                        // 发送更新请求
+                        $.ajax({
+                          url: '/admin/api/apps/update_app_data',
+                          type: 'POST',
+                          contentType: 'application/json',
+                          data: JSON.stringify({
+                            uuid: obj.data.uuid,
+                            app_data: appDataContent
+                          }),
+                          success: function(res) {
+                            if (res.code === 0) {
+                              layer.msg('应用数据更新成功！', {
+                                icon: 1,
+                                time: 2000
+                              });
+                              layer.close(index);
+                            } else {
+                              layer.msg(res.msg || '更新应用数据失败', {icon: 2});
+                            }
+                          },
+                          error: function() {
+                            layer.msg('网络错误，请稍后重试', {icon: 2});
+                          }
+                        });
+                      },
+                      btn2: function(index) {
+                        layer.close(index);
+                      }
+                    });
+                  },
+                  error: function() {
+                    layer.msg('获取应用数据失败，请稍后重试', {icon: 2});
+                  }
+                });
+              } else if (menudata.id === 'announcement') {
                 // 程序公告
                 // 先获取当前公告内容
                 $.ajax({
