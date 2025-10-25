@@ -26,8 +26,33 @@ func LoginPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 获取或生成CSRF令牌
+	var token string
+	if existingToken := utils.GetCSRFTokenFromCookie(r); existingToken != "" {
+		// 重用现有的Cookie令牌
+		token = existingToken
+	} else {
+		// 生成新的CSRF令牌并设置到Cookie
+		newToken, err := utils.GenerateCSRFToken()
+		if err != nil {
+			http.Error(w, "生成CSRF令牌失败", http.StatusInternalServerError)
+			return
+		}
+		token = newToken
+		utils.SetCSRFToken(w, token)
+	}
+
+	// 准备模板数据
+	extraData := map[string]interface{}{
+		"Title": "管理员登录",
+	}
 	data := utils.GetDefaultTemplateData()
-	data["Title"] = "管理员登录"
+	data["CSRFToken"] = token
+	
+	// 合并额外数据
+	for key, value := range extraData {
+		data[key] = value
+	}
 
 	utils.RenderTemplate(w, "login.html", data)
 }
@@ -97,15 +122,8 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 设置JWT Cookie（HttpOnly，安全）
-	cookie := &http.Cookie{
-		Name:     "admin_session",
-		Value:    token,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false,        // 生产环境应设置为true（HTTPS）
-		MaxAge:   24 * 60 * 60, // 24小时
-	}
+	// 设置JWT Cookie（使用安全配置）
+	cookie := utils.CreateSecureCookie("admin_session", token, utils.GetDefaultCookieMaxAge())
 	http.SetCookie(w, cookie)
 
 	utils.JsonResponse(w, http.StatusOK, true, "登录成功", map[string]interface{}{
@@ -132,15 +150,7 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 // - 统一的Cookie清理函数，确保一致性
 // - 在JWT校验失败时自动调用，提升安全性和用户体验
 func clearInvalidJWTCookie(w http.ResponseWriter) {
-	cookie := &http.Cookie{
-		Name:     "admin_session",
-		Value:    "",
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false,           // 生产环境应设置为true
-		MaxAge:   -1,              // 立即失效
-		Expires:  time.Unix(0, 0), // 确保过期
-	}
+	cookie := utils.CreateExpiredCookie("admin_session")
 	http.SetCookie(w, cookie)
 }
 
@@ -434,15 +444,8 @@ func GetCurrentAdminUserWithRefresh(w http.ResponseWriter, r *http.Request) (*JW
 		}
 		newToken, err := generateJWTToken(user)
 		if err == nil {
-			// 更新Cookie
-			newCookie := &http.Cookie{
-				Name:     "admin_session",
-				Value:    newToken,
-				Path:     "/",
-				HttpOnly: true,
-				Secure:   false,        // 生产环境应设置为true（HTTPS）
-				MaxAge:   24 * 60 * 60, // 24小时
-			}
+			// 更新Cookie（使用安全配置）
+			newCookie := utils.CreateSecureCookie("admin_session", newToken, utils.GetDefaultCookieMaxAge())
 			http.SetCookie(w, newCookie)
 			refreshed = true
 

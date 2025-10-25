@@ -3,7 +3,8 @@
   <h2>变量管理</h2>
   <div class="layui-btn-container" style="margin:12px 0">
     <button class="layui-btn" id="btnAddVariable"><i class="layui-icon layui-icon-add-1"></i> 新增变量</button>
-    <button class="layui-btn layui-btn-danger" id="btnBatchDeleteVariables"><i class="layui-icon layui-icon-delete"></i> 批量删除</button>
+    <button class="layui-btn layui-btn-danger" id="btnBatchDeleteVariables"><i class="layui-icon layui-icon-delete"></i>
+      批量删除</button>
   </div>
 
   <div class="layui-card" style="margin-top:12px">
@@ -62,7 +63,8 @@
       <div class="layui-form-item">
         <label class="layui-form-label">变量别名</label>
         <div class="layui-input-block">
-          <input type="text" name="alias" lay-verify="required|alias" placeholder="请输入变量别名（英文开头，只能包含数字和英文字母）" autocomplete="off" class="layui-input" />
+          <input type="text" name="alias" lay-verify="required|alias" placeholder="请输入变量别名（英文开头，只能包含数字和英文字母）"
+            autocomplete="off" class="layui-input" />
         </div>
       </div>
       <div class="layui-form-item">
@@ -90,47 +92,47 @@
       }
     }
 
-    waitForLayui(function() {
-      layui.use(['table', 'form', 'layer', 'element'], function() {
-      const table = layui.table;
-      const form = layui.form;
-      const layer = layui.layer;
-      const $ = layui.$;
+    waitForLayui(function () {
+      layui.use(['table', 'form', 'layer', 'element'], function () {
+        const table = layui.table;
+        const form = layui.form;
+        const layer = layui.layer;
+        const $ = layui.$;
 
-      // 自定义验证规则
-      form.verify({
-        alias: function(value) {
-          if (!value) return '别名不能为空';
-          // 检查是否以英文字母开头，且只包含数字和英文字母
-          if (!/^[a-zA-Z][a-zA-Z0-9]*$/.test(value)) {
-            return '别名必须以英文字母开头，只能包含数字和英文字母';
+        // 自定义验证规则
+        form.verify({
+          alias: function (value) {
+            if (!value) return '别名不能为空';
+            // 检查是否以英文字母开头，且只包含数字和英文字母
+            if (!/^[a-zA-Z][a-zA-Z0-9]*$/.test(value)) {
+              return '别名必须以英文字母开头，只能包含数字和英文字母';
+            }
           }
-        }
-      });
+        });
 
-      // 格式化时间函数
-      function formatDateTime(dateStr) {
-        if (!dateStr) return '-';
-        return new Date(dateStr).toLocaleString();
-      }
+        // 格式化时间函数
+        function formatDateTime(dateStr) {
+          if (!dateStr) return '-';
+          return new Date(dateStr).toLocaleString();
+        }
 
         // 加载应用列表到下拉框
         function loadApps() {
           $.ajax({
             url: '/admin/variable/apps',
             type: 'GET',
-            success: function(res) {
+            success: function (res) {
               if (res.code === 0 && res.data) {
                 let options = '<option value="">请选择应用</option>';
-                res.data.forEach(function(app) {
+                res.data.forEach(function (app) {
                   options += '<option value="' + app.uuid + '">' + app.name + '</option>';
                 });
                 $('select[name="app_uuid"]').html(options);
                 form.render('select');
               }
             },
-            error: function() {
-              layer.msg('加载应用列表失败', {icon: 2});
+            error: function () {
+              layer.msg('加载应用列表失败', { icon: 2 });
             }
           });
         }
@@ -143,7 +145,7 @@
           elem: '#variablesTable',
           id: 'variablesTable',
           url: '/admin/variable/list',
-          parseData: function(res) {
+          parseData: function (res) {
             return {
               code: res.code,
               msg: res.msg || '',
@@ -160,20 +162,20 @@
           limit: 20,
           limits: [10, 20, 50, 100],
           loading: true,
-          done: function(res, curr, count) {
+          done: function (res, curr, count) {
             // 表格渲染完成后的回调
           },
           cols: [[
-            {type: 'checkbox', width: 50},
-            {field: 'id', title: 'ID', width: 80, sort: true},
-            {field: 'app_name', title: '应用名称', minWidth: 120},
-            {field: 'number', title: '变量编号', width: 180},
-            {field: 'alias', title: '变量别名', minWidth: 150},
+            { type: 'checkbox', width: 50 },
+            { field: 'id', title: 'ID', width: 80, sort: true },
+            { field: 'app_name', title: '应用名称', minWidth: 120 },
+            { field: 'number', title: '变量编号', width: 180 },
+            { field: 'alias', title: '变量别名', minWidth: 150 },
             {
-              field: 'data', 
-              title: '变量数据', 
+              field: 'data',
+              title: '变量数据',
               minWidth: 200,
-              templet: function(d) {
+              templet: function (d) {
                 // 限制显示长度，避免内容过长影响布局
                 if (d.data && d.data.length > 50) {
                   return '<span title="' + d.data + '">' + d.data.substring(0, 50) + '...</span>';
@@ -182,10 +184,10 @@
               }
             },
             {
-              field: 'remark', 
-              title: '备注', 
+              field: 'remark',
+              title: '备注',
               minWidth: 150,
-              templet: function(d) {
+              templet: function (d) {
                 // 限制显示长度，避免内容过长影响布局
                 if (d.remark && d.remark.length > 30) {
                   return '<span title="' + d.remark + '">' + d.remark.substring(0, 30) + '...</span>';
@@ -194,32 +196,32 @@
               }
             },
             {
-              field: 'created_at', 
-              title: '创建时间', 
+              field: 'created_at',
+              title: '创建时间',
               width: 180,
-              templet: function(d) {
+              templet: function (d) {
                 return formatDateTime(d.created_at);
               }
             },
-            {title: '操作', width: 180, align: 'center', toolbar: '#tpl-variables-ops', fixed: 'right'}
+            { title: '操作', width: 180, align: 'center', toolbar: '#tpl-variables-ops', fixed: 'right' }
           ]]
         });
 
         // 监听应用选择变化
-         form.on('select(appSelect)', function(data) {
-           variablesTable.reload({
-             where: {
-               app_uuid: data.value,
-               search: $('input[name="search"]').val()
-             },
-             page: {
-               curr: 1
-             }
-           });
-         });
+        form.on('select(appSelect)', function (data) {
+          variablesTable.reload({
+            where: {
+              app_uuid: data.value,
+              search: $('input[name="search"]').val()
+            },
+            page: {
+              curr: 1
+            }
+          });
+        });
 
         // 搜索功能
-        $('#btnSearchVariables').on('click', function() {
+        $('#btnSearchVariables').on('click', function () {
           variablesTable.reload({
             where: {
               app_uuid: $('select[name="app_uuid"]').val(),
@@ -232,7 +234,7 @@
         });
 
         // 重置搜索
-        $('#btnResetVariables').on('click', function() {
+        $('#btnResetVariables').on('click', function () {
           $('#variableFilterForm')[0].reset();
           form.render();
           variablesTable.reload({
@@ -244,72 +246,72 @@
         });
 
         // 新增变量
-        $('#btnAddVariable').on('click', function() {
+        $('#btnAddVariable').on('click', function () {
           console.log('新增变量按钮被点击');
           $('#variableForm')[0].reset();
           $('input[name="id"]').val('');
-          
+
           // 重新加载应用列表到表单中
           loadApps();
-          
+
           layer.open({
             type: 1,
             title: '新增变量',
             content: $('#variableFormLayer'),
             area: ['500px', '460px'],
             btn: ['创建', '取消'],
-            yes: function(index, layero) {
+            yes: function (index, layero) {
               // 手动收集表单数据
               var formData = {};
-              $('#variableForm').find('input, select, textarea').each(function() {
+              $('#variableForm').find('input, select, textarea').each(function () {
                 var $this = $(this);
                 var name = $this.attr('name');
                 if (name && name !== 'id') {
                   formData[name] = $this.val();
                 }
               });
-              
+
               console.log('新增变量 - 收集到的表单数据:', formData);
-              
+
               // 验证必填字段
               if (!formData.app_uuid || formData.app_uuid.trim() === '') {
-                layer.msg('应用UUID不能为空', {icon: 2});
+                layer.msg('应用UUID不能为空', { icon: 2 });
                 return;
               }
               if (!formData.alias || formData.alias.trim() === '') {
-                layer.msg('请输入变量别名', {icon: 2});
+                layer.msg('请输入变量别名', { icon: 2 });
                 return;
               }
               if (!formData.data || formData.data.trim() === '') {
-                layer.msg('请输入变量数据', {icon: 2});
+                layer.msg('请输入变量数据', { icon: 2 });
                 return;
               }
-              
+
               console.log('新增变量 - 发送的JSON数据:', JSON.stringify(formData));
-              
+
               $.ajax({
                 url: '/admin/variable/create',
                 type: 'POST',
                 data: JSON.stringify(formData),
                 contentType: 'application/json',
-                success: function(res) {
+                success: function (res) {
                   if (res.code === 0) {
-                    layer.msg(res.msg, {icon: 1});
+                    layer.msg(res.msg, { icon: 1 });
                     layer.close(index);
                     variablesTable.reload();
                   } else {
-                    layer.msg(res.msg || '操作失败', {icon: 2});
+                    layer.msg(res.msg || '操作失败', { icon: 2 });
                   }
                 },
-                error: function(xhr) {
-                  layer.msg(xhr.responseText || '操作失败', {icon: 2});
+                error: function (xhr) {
+                  layer.msg(xhr.responseText || '操作失败', { icon: 2 });
                 }
               });
             },
-            btn2: function(index) {
+            btn2: function (index) {
               layer.close(index);
             },
-            success: function() {
+            success: function () {
               form.render();
             },
             shadeClose: false
@@ -317,32 +319,32 @@
         });
 
         // 批量删除
-        $('#btnBatchDeleteVariables').on('click', function() {
+        $('#btnBatchDeleteVariables').on('click', function () {
           const checkStatus = table.checkStatus('variablesTable');
           const data = checkStatus.data;
-          
+
           if (data.length === 0) {
-            layer.msg('请选择要删除的变量', {icon: 2});
+            layer.msg('请选择要删除的变量', { icon: 2 });
             return;
           }
-          
-          layer.confirm('确定删除选中的 ' + data.length + ' 个变量吗？', {icon: 3, title: '提示'}, function(index) {
+
+          layer.confirm('确定删除选中的 ' + data.length + ' 个变量吗？', { icon: 3, title: '提示' }, function (index) {
             const ids = data.map(item => item.id);
             $.ajax({
               url: '/admin/variable/batch_delete',
               type: 'POST',
-              data: JSON.stringify({ids: ids}),
+              data: JSON.stringify({ ids: ids }),
               contentType: 'application/json',
-              success: function(res) {
+              success: function (res) {
                 if (res.code === 0) {
-                  layer.msg(res.msg, {icon: 1});
+                  layer.msg(res.msg, { icon: 1 });
                   variablesTable.reload();
                 } else {
-                  layer.msg(res.msg || '批量删除失败', {icon: 2});
+                  layer.msg(res.msg || '批量删除失败', { icon: 2 });
                 }
               },
-              error: function(xhr) {
-                layer.msg(xhr.responseText || '批量删除失败', {icon: 2});
+              error: function (xhr) {
+                layer.msg(xhr.responseText || '批量删除失败', { icon: 2 });
               }
             });
             layer.close(index);
@@ -350,107 +352,107 @@
         });
 
         // 表格工具栏事件
-        table.on('tool(variablesTableFilter)', function(obj) {
+        table.on('tool(variablesTableFilter)', function (obj) {
           const data = obj.data;
-          
+
           if (obj.event === 'edit') {
             // 编辑
             console.log('编辑按钮被点击', data);
             $('#variableForm')[0].reset();
             $('input[name="uuid"]').val(data.uuid);
-            
+
             // 重新加载应用列表，然后设置选中值
             loadApps();
-            setTimeout(function() {
+            setTimeout(function () {
               $('select[name="app_uuid"]').val(data.app_uuid);
               form.render('select');
             }, 100);
-            
+
             $('input[name="alias"]').val(data.alias);
             $('textarea[name="data"]').val(data.data);
             $('textarea[name="remark"]').val(data.remark);
-            
+
             layer.open({
               type: 1,
               title: '编辑变量',
               content: $('#variableFormLayer'),
               area: ['500px', '460px'],
               btn: ['保存', '取消'],
-              yes: function(index, layero) {
+              yes: function (index, layero) {
                 // 手动收集表单数据
                 var formData = {};
-                $('#variableForm').find('input, select, textarea').each(function() {
+                $('#variableForm').find('input, select, textarea').each(function () {
                   var $this = $(this);
                   var name = $this.attr('name');
                   if (name && name !== 'id') {
                     formData[name] = $this.val();
                   }
                 });
-                
+
                 console.log('编辑变量 - 收集到的表单数据:', formData);
-                
+
                 // 验证必填字段
                 if (!formData.app_uuid || formData.app_uuid.trim() === '') {
-                  layer.msg('应用UUID不能为空', {icon: 2});
+                  layer.msg('应用UUID不能为空', { icon: 2 });
                   return;
                 }
                 if (!formData.alias || formData.alias.trim() === '') {
-                  layer.msg('请输入变量别名', {icon: 2});
+                  layer.msg('请输入变量别名', { icon: 2 });
                   return;
                 }
                 if (!formData.data || formData.data.trim() === '') {
-                  layer.msg('请输入变量数据', {icon: 2});
+                  layer.msg('请输入变量数据', { icon: 2 });
                   return;
                 }
-                
+
                 console.log('编辑变量 - 发送的JSON数据:', JSON.stringify(formData));
-                
+
                 $.ajax({
                   url: '/admin/variable/update',
                   type: 'POST',
                   data: JSON.stringify(formData),
                   contentType: 'application/json',
-                  success: function(res) {
+                  success: function (res) {
                     if (res.code === 0) {
-                      layer.msg(res.msg, {icon: 1});
+                      layer.msg(res.msg, { icon: 1 });
                       layer.close(index);
                       variablesTable.reload();
                     } else {
-                      layer.msg(res.msg || '操作失败', {icon: 2});
+                      layer.msg(res.msg || '操作失败', { icon: 2 });
                     }
                   },
-                  error: function(xhr) {
-                    layer.msg(xhr.responseText || '操作失败', {icon: 2});
+                  error: function (xhr) {
+                    layer.msg(xhr.responseText || '操作失败', { icon: 2 });
                   }
                 });
               },
-              btn2: function(index) {
+              btn2: function (index) {
                 layer.close(index);
               },
-              success: function() {
+              success: function () {
                 form.render();
               },
               shadeClose: false
             });
-            
+
           } else if (obj.event === 'del') {
             // 删除
-            layer.confirm('确定删除该变量吗？', {icon: 3, title: '提示'}, function(index) {
+            layer.confirm('确定删除该变量吗？', { icon: 3, title: '提示' }, function (index) {
               $.ajax({
                 url: '/admin/variable/delete',
                 type: 'POST',
-                data: JSON.stringify({id: data.id}),
+                data: JSON.stringify({ id: data.id }),
                 contentType: 'application/json',
-                success: function(res) {
+                success: function (res) {
                   if (res.code === 0) {
-                    layer.msg(res.msg, {icon: 1});
+                    layer.msg(res.msg, { icon: 1 });
                     variablesTable.reload();
                   } else {
-                    layer.msg(res.msg || '删除失败', {icon: 2});
+                    layer.msg(res.msg || '删除失败', { icon: 2 });
                   }
                 },
-                error: function(xhr) {
-                  layer.msg(xhr.responseText || '删除失败', {icon: 2});
+                error: function (xhr) {
+                  layer.msg(xhr.responseText || '删除失败', { icon: 2 });
                 }
               });
               layer.close(index);

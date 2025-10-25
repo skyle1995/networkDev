@@ -291,7 +291,8 @@ func DecryptStringWithSalt(enc, salt string) (string, error) {
 }
 
 // HashPasswordWithSalt 使用盐值对密码进行哈希处理
-// 将密码和盐值组合后使用bcrypt进行哈希
+// 将密码和盐值组合后先用SHA256处理，再使用bcrypt进行哈希
+// 这样可以避免bcrypt的72字节限制问题
 // password: 原始密码
 // salt: 密码盐值
 // 返回: bcrypt哈希值和错误信息
@@ -299,8 +300,12 @@ func HashPasswordWithSalt(password, salt string) (string, error) {
 	// 将密码和盐值组合
 	combined := password + salt
 
+	// 先使用SHA256处理组合后的字符串，确保长度固定且不超过bcrypt限制
+	hash := sha256.Sum256([]byte(combined))
+	sha256Hash := fmt.Sprintf("%x", hash) // 64字节的十六进制字符串
+
 	// 使用bcrypt进行哈希（成本因子10，平衡安全性和性能）
-	hashed, err := bcrypt.GenerateFromPassword([]byte(combined), 10)
+	hashed, err := bcrypt.GenerateFromPassword([]byte(sha256Hash), 10)
 	if err != nil {
 		return "", err
 	}
@@ -317,8 +322,12 @@ func VerifyPasswordWithSalt(password, salt, hashedPassword string) bool {
 	// 将密码和盐值组合
 	combined := password + salt
 
+	// 先使用SHA256处理组合后的字符串，与哈希生成逻辑保持一致
+	hash := sha256.Sum256([]byte(combined))
+	sha256Hash := fmt.Sprintf("%x", hash) // 64字节的十六进制字符串
+
 	// 使用bcrypt验证
-	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(combined))
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(sha256Hash))
 	return err == nil
 }
 

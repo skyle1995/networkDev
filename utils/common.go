@@ -55,6 +55,25 @@ func GetDefaultTemplateData() map[string]interface{} {
 	}
 }
 
+// GetTemplateDataWithCSRF 获取包含CSRF令牌的模板数据
+// 合并默认数据和CSRF令牌，用于需要CSRF保护的页面
+func GetTemplateDataWithCSRF(r *http.Request, additionalData map[string]interface{}) map[string]interface{} {
+	// 获取默认模板数据
+	data := GetDefaultTemplateData()
+	
+	// 添加CSRF令牌
+	data["CSRFToken"] = GetCSRFTokenForTemplate(r)
+	
+	// 合并额外数据
+	if additionalData != nil {
+		for key, value := range additionalData {
+			data[key] = value
+		}
+	}
+	
+	return data
+}
+
 // GetClientIP 获取客户端IP地址
 // 优先从 X-Forwarded-For 和 X-Real-IP 头部获取，否则使用 RemoteAddr
 func GetClientIP(r *http.Request) string {

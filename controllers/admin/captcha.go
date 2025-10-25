@@ -7,7 +7,8 @@ import (
 	"math/big"
 	"net/http"
 	"strings"
-	"time"
+
+	"networkDev/utils"
 
 	"github.com/mojocn/base64Captcha"
 )
@@ -62,15 +63,7 @@ func CaptchaHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 将验证码ID存储到session中（这里简化处理，实际项目中应该使用更安全的方式）
 	// 设置cookie来存储验证码ID
-	cookie := &http.Cookie{
-		Name:     "captcha_id",
-		Value:    id,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false, // 生产环境应设置为true
-		MaxAge:   300,   // 5分钟过期
-		Expires:  time.Now().Add(5 * time.Minute),
-	}
+	cookie := utils.CreateSecureCookie("captcha_id", id, 300) // 5分钟过期
 	http.SetCookie(w, cookie)
 
 	// 解码base64图片数据并返回

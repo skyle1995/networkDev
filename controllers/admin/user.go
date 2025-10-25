@@ -160,15 +160,8 @@ func UserPasswordUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 更新Cookie
-	cookie := &http.Cookie{
-		Name:     "admin_session",
-		Value:    newToken,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false,        // 生产环境应设置为true（HTTPS）
-		MaxAge:   24 * 60 * 60, // 24小时
-	}
+	// 更新Cookie（使用安全配置）
+	cookie := utils.CreateSecureCookie("admin_session", newToken, utils.GetDefaultCookieMaxAge())
 	http.SetCookie(w, cookie)
 
 	// 密码修改成功，已重新生成JWT令牌
@@ -260,20 +253,14 @@ func UserProfileUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 重新签发JWT并写入Cookie
-	newUser := models.User{UUID: claims.UserUUID, Username: username, Role: claims.Role}
-	token, err := generateJWTToken(newUser)
+	// 使用完整的用户信息（包含密码）来生成JWT令牌
+	user.Username = username // 更新用户名
+	token, err := generateJWTToken(user)
 	if err != nil {
 		utils.JsonResponse(w, http.StatusInternalServerError, false, "生成新令牌失败", nil)
 		return
 	}
-	cookie := &http.Cookie{
-		Name:     "admin_session",
-		Value:    token,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false,
-		MaxAge:   24 * 60 * 60,
-	}
+	cookie := utils.CreateSecureCookie("admin_session", token, utils.GetDefaultCookieMaxAge())
 	http.SetCookie(w, cookie)
 
 	utils.JsonResponse(w, http.StatusOK, true, "保存成功", map[string]interface{}{

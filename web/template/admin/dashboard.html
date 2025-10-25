@@ -38,59 +38,54 @@
     </div>
   </div>
 </section>
-
-
-
 <script>
-// 仪表盘统计脚本（采用箭头函数与中文注释）
-layui.use(['layer', 'util'], function(){
-  const layer = layui.layer;
-  const util = layui.util;
-  const $ = layui.$;
+  // 仪表盘统计脚本（采用箭头函数与中文注释）
+  layui.use(['layer', 'util'], function () {
+    const layer = layui.layer;
+    const util = layui.util;
+    const $ = layui.$;
 
-  // 全局引用：ECharts CDN 地址
-  const echartsCdn = 'https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js';
+    // 全局引用：ECharts CDN 地址
+    const echartsCdn = 'https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js';
 
-  // 工具函数：加载 ECharts 库（若已加载则直接回调）
-  // 功能：通过全局的 loadScript 方法按需加载图表库，避免重复加载
-  const ensureECharts = (cb) => {
-    if (window.echarts) { cb && cb(); return; }
-    if (typeof loadScript === 'function') {
-      loadScript(echartsCdn, () => cb && cb());
-    } else {
-      // 兜底：直接插入 <script>
-      const s = document.createElement('script');
-      s.src = echartsCdn;
-      s.onload = () => cb && cb();
-      document.head.appendChild(s);
-    }
-  };
-
-
-
-  // 函数：刷新基本信息和运行状态
-  // 说明：请求后台获取最新的系统信息并更新页面显示
-  const refreshSystemInfo = () => {
-    $.get('/admin/api/system/info', (res) => {
-      if (res && res.code === 0 && res.data) {
-        const data = res.data;
-        // 更新运行时长
-        if (data.uptime) {
-          $('.system-info-item').each(function() {
-            const label = $(this).find('.system-info-label').text();
-            if (label === '运行时长') {
-              $(this).find('.system-info-value').text(data.uptime);
-            }
-          });
-        }
+    // 工具函数：加载 ECharts 库（若已加载则直接回调）
+    // 功能：通过全局的 loadScript 方法按需加载图表库，避免重复加载
+    const ensureECharts = (cb) => {
+      if (window.echarts) { cb && cb(); return; }
+      if (typeof loadScript === 'function') {
+        loadScript(echartsCdn, () => cb && cb());
+      } else {
+        // 兜底：直接插入 <script>
+        const s = document.createElement('script');
+        s.src = echartsCdn;
+        s.onload = () => cb && cb();
+        document.head.appendChild(s);
       }
-    }).fail(() => {
-      console.log('获取系统信息失败');
-    });
-  };
+    };
 
-  // 立即刷新一次系统信息
-  refreshSystemInfo();
-});
+    // 函数：刷新基本信息和运行状态
+    // 说明：请求后台获取最新的系统信息并更新页面显示
+    const refreshSystemInfo = () => {
+      $.get('/admin/api/system/info', (res) => {
+        if (res && res.code === 0 && res.data) {
+          const data = res.data;
+          // 更新运行时长
+          if (data.uptime) {
+            $('.system-info-item').each(function () {
+              const label = $(this).find('.system-info-label').text();
+              if (label === '运行时长') {
+                $(this).find('.system-info-value').text(data.uptime);
+              }
+            });
+          }
+        }
+      }).fail(() => {
+        console.log('获取系统信息失败');
+      });
+    };
+
+    // 立即刷新一次系统信息
+    refreshSystemInfo();
+  });
 </script>
 {{ end }}

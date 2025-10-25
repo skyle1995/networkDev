@@ -1,10 +1,8 @@
 {{ define "apis.html" }}
 <section>
-  <h2>接口管理</h2>
-
-
+  <h2>接口管理</h2>d
   <div class="layui-card" style="margin-top:12px">
-    <div class="layui-card-header">筛选</div>
+    <div class="layui-card-header">筛选</div>d
     <div class="layui-card-body">
       <form class="layui-form layui-form-pane" id="apiFilterForm" lay-filter="apiFilterForm">
         <div class="layui-form-item">
@@ -12,7 +10,7 @@
             <label class="layui-form-label">应用</label>
             <div class="layui-input-inline">
               <select name="app_uuid" lay-filter="appSelect" lay-search="">
-                <option value="">请选择应用</option>
+                <option value="">请选择应用</option>e
               </select>
             </div>
           </div>
@@ -73,14 +71,18 @@
         <label class="layui-form-label" style="cursor: pointer;" data-tips="submit-keys">提交密钥</label>
         <div class="layui-input-block">
           <div id="submit-rc4" style="display:none">
-            <input type="text" name="submit_private_key" placeholder="RC4密钥（16位十六进制，大写）" autocomplete="off" class="layui-input" readonly />
+            <input type="text" name="submit_private_key" placeholder="RC4密钥（16位十六进制，大写）" autocomplete="off"
+              class="layui-input" readonly />
           </div>
           <div id="submit-rsa" style="display:none">
-            <textarea name="submit_public_key" placeholder="RSA 公钥（PEM 明文）" class="layui-textarea" rows="4" readonly></textarea>
-            <textarea name="submit_private_key" placeholder="RSA 私钥（PEM 明文）" class="layui-textarea" rows="6" style="margin-top:8px;" readonly></textarea>
+            <textarea name="submit_public_key" placeholder="RSA 公钥（PEM 明文）" class="layui-textarea" rows="4"
+              readonly></textarea>
+            <textarea name="submit_private_key" placeholder="RSA 私钥（PEM 明文）" class="layui-textarea" rows="6"
+              style="margin-top:8px;" readonly></textarea>
           </div>
           <div id="submit-easy" style="display:none">
-            <input type="text" name="submit_private_key" placeholder="易加密密钥（15-30位整数数组，逗号分隔）" autocomplete="off" class="layui-input" readonly />
+            <input type="text" name="submit_private_key" placeholder="易加密密钥（15-30位整数数组，逗号分隔）" autocomplete="off"
+              class="layui-input" readonly />
           </div>
           <div style="margin-top:8px;">
             <button type="button" class="layui-btn layui-btn-sm" id="btnGenSubmitKeys">重新生成</button>
@@ -105,14 +107,18 @@
         <label class="layui-form-label" style="cursor: pointer;" data-tips="return-keys">返回密钥</label>
         <div class="layui-input-block">
           <div id="return-rc4" style="display:none">
-            <input type="text" name="return_private_key" placeholder="RC4密钥（16位十六进制，大写）" autocomplete="off" class="layui-input" readonly />
+            <input type="text" name="return_private_key" placeholder="RC4密钥（16位十六进制，大写）" autocomplete="off"
+              class="layui-input" readonly />
           </div>
           <div id="return-rsa" style="display:none">
-            <textarea name="return_public_key" placeholder="RSA 公钥（PEM 明文）" class="layui-textarea" rows="4" readonly></textarea>
-            <textarea name="return_private_key" placeholder="RSA 私钥（PEM 明文）" class="layui-textarea" rows="6" style="margin-top:8px;" readonly></textarea>
+            <textarea name="return_public_key" placeholder="RSA 公钥（PEM 明文）" class="layui-textarea" rows="4"
+              readonly></textarea>
+            <textarea name="return_private_key" placeholder="RSA 私钥（PEM 明文）" class="layui-textarea" rows="6"
+              style="margin-top:8px;" readonly></textarea>
           </div>
           <div id="return-easy" style="display:none">
-            <input type="text" name="return_private_key" placeholder="易加密密钥（15-30位整数数组，逗号分隔）" autocomplete="off" class="layui-input" readonly />
+            <input type="text" name="return_private_key" placeholder="易加密密钥（15-30位整数数组，逗号分隔）" autocomplete="off"
+              class="layui-input" readonly />
           </div>
           <div style="margin-top:8px;">
             <button type="button" class="layui-btn layui-btn-sm" id="btnGenReturnKeys">重新生成</button>
@@ -133,494 +139,494 @@
 </section>
 
 <script>
-layui.use(['table', 'form', 'layer', 'dropdown'], function() {
-  const $ = layui.$;
-  var table = layui.table;
-  var form = layui.form;
-  var layer = layui.layer;
-  var dropdown = layui.dropdown;
-  // 格式化时间函数
-  function formatDateTime(dateStr) {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString();
-  }
-
-  // 当前选中的应用UUID
-  var currentAppUUID = '';
-
-  // 复制到剪贴板函数
-  window.copyToClipboard = function(text) {
-    if (navigator.clipboard && window.isSecureContext) {
-      // 使用现代 Clipboard API
-      navigator.clipboard.writeText(text).then(function() {
-        layer.msg('接口地址已复制到剪贴板', {icon: 1, time: 2000});
-      }).catch(function(err) {
-        console.error('复制失败:', err);
-        fallbackCopyTextToClipboard(text);
-      });
-    } else {
-      // 降级方案
-      fallbackCopyTextToClipboard(text);
+  layui.use(['table', 'form', 'layer', 'dropdown'], function () {
+    const $ = layui.$;
+    var table = layui.table;
+    var form = layui.form;
+    var layer = layui.layer;
+    var dropdown = layui.dropdown;
+    // 格式化时间函数
+    function formatDateTime(dateStr) {
+      if (!dateStr) return '-';
+      return new Date(dateStr).toLocaleString();
     }
-  };
 
-  // 降级复制方案
-  function fallbackCopyTextToClipboard(text) {
-    var textArea = document.createElement("textarea");
-    textArea.value = text;
-    textArea.style.top = "0";
-    textArea.style.left = "0";
-    textArea.style.position = "fixed";
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-    try {
-      var successful = document.execCommand('copy');
-      if (successful) {
-        layer.msg('接口地址已复制到剪贴板', {icon: 1, time: 2000});
+    // 当前选中的应用UUID
+    var currentAppUUID = '';
+
+    // 复制到剪贴板函数
+    window.copyToClipboard = function (text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        // 使用现代 Clipboard API
+        navigator.clipboard.writeText(text).then(function () {
+          layer.msg('接口地址已复制到剪贴板', { icon: 1, time: 2000 });
+        }).catch(function (err) {
+          console.error('复制失败:', err);
+          fallbackCopyTextToClipboard(text);
+        });
       } else {
-        layer.msg('复制失败，请手动复制', {icon: 2, time: 3000});
+        // 降级方案
+        fallbackCopyTextToClipboard(text);
       }
-    } catch (err) {
-      console.error('复制失败:', err);
-      layer.msg('复制失败，请手动复制', {icon: 2, time: 3000});
-    }
-    document.body.removeChild(textArea);
-  }
+    };
 
-  // 初始化接口表格
-  var apisTable = table.render({
-    elem: '#apisTable',
-    url: '/admin/api/apis/list',
-    parseData: function(res) {
-      return {
-        code: res.success ? 0 : 1,
-        msg: res.message || '',
-        count: res.data ? res.data.total : 0,
-        data: res.data ? res.data.apis : []
-      };
-    },
-    request: {
-      pageName: 'page',
-      limitName: 'limit'
-    },
-    method: 'GET',
-    page: true,
-    limit: 20,
-    limits: [10, 20, 50, 100],
-    loading: true,
-    done: function(res, curr, count) {
-      // 表格渲染完成后的回调
-    },
-    cols: [[
-      { field: 'id', title: 'ID', width: 80, sort: true },
-      { field: 'app_name', title: '应用名称', minWidth: 150 },
-      { field: 'uuid', title: 'UUID', minWidth: 335 },
-      { field: 'api_type_name', title: '接口类型', minWidth: 120 },
-      { 
-        field: 'status_name', 
-        title: '状态', 
-        width: 80,
-        templet: (d) => {
-          if (d.status === 1) return '<span style="color: #5FB878;">启用</span>';
-          return '<span style="color: #FF5722;">禁用</span>';
-        }
-      },
-      { 
-        field: 'submit_algorithm', 
-        title: '提交算法', 
-        width: 120,
-        templet: (d) => {
-          const algorithm = d.algorithm_names ? d.algorithm_names.submit : '-';
-          if (algorithm && algorithm.length > 10) {
-            return '<span title="' + algorithm + '">' + algorithm.substring(0, 10) + '...</span>';
-          }
-          return algorithm;
-        }
-      },
-      { 
-        field: 'return_algorithm', 
-        title: '返回算法', 
-        width: 120,
-        templet: (d) => {
-          const algorithm = d.algorithm_names ? d.algorithm_names.return : '-';
-          if (algorithm && algorithm.length > 10) {
-            return '<span title="' + algorithm + '">' + algorithm.substring(0, 10) + '...</span>';
-          }
-          return algorithm;
-        }
-      },
-      { 
-        field: 'created_at', 
-        title: '创建时间', 
-        width: 160,
-        templet: (d) => formatDateTime(d.created_at)
-      },
-      { 
-        field: 'updated_at', 
-        title: '修改时间', 
-        width: 160,
-        templet: (d) => formatDateTime(d.updated_at)
-      },
-      { fixed: 'right', title: '操作', toolbar: '#tpl-apis-ops', width: 100, align: 'center' }
-    ]]
-  });
-
-  // 加载应用列表到筛选器
-  function loadApps() {
-    $.ajax({
-      url: '/admin/api/apis/apps',
-      type: 'GET',
-      success: function(res) {
-        if (res.success && res.data) {
-          var filterSelect = $('select[name="app_uuid"]').eq(0);
-          // 清空现有选项（保留默认选项）
-          filterSelect.find('option:not(:first)').remove();
-          // 添加应用选项（不默认选中，保持“请选择应用”以显示全部接口）
-          res.data.forEach(function(app) {
-            var option = '<option value="' + app.uuid + '">' + app.name + '</option>';
-            filterSelect.append(option);
-          });
-          // 仅刷新下拉，不触发表格按应用过滤，默认显示全部接口
-          form.render('select');
-        }
-      },
-      error: function() {
-        layer.msg('加载应用列表失败', {icon: 2});
-      }
-    });
-  }
-
-  // 加载接口类型列表到筛选器
-  function loadAPITypes() {
-    $.ajax({
-      url: '/admin/api/apis/types',
-      type: 'GET',
-      success: function(res) {
-        if (res.success && res.data) {
-          var typeSelect = $('select[name="api_type"]').eq(0);
-          // 清空现有选项（保留默认选项）
-          typeSelect.find('option:not(:first)').remove();
-          // 添加接口类型选项
-          res.data.forEach(function(type) {
-            var option = '<option value="' + type.value + '">' + type.name + '</option>';
-            typeSelect.append(option);
-          });
-          // 刷新下拉
-          form.render('select');
-        }
-      },
-      error: function() {
-        layer.msg('加载接口类型列表失败', {icon: 2});
-      }
-    });
-  }
-
-  // 初始化加载应用列表和接口类型列表
-  loadApps();
-  loadAPITypes();
-
-  // 监听应用选择变化
-  form.on('select(appSelect)', function(data) {
-    currentAppUUID = data.value;
-    apisTable.reload({
-      where: {
-        app_uuid: currentAppUUID,
-        api_type: $('select[name="api_type"]').val()
-      },
-      page: {
-        curr: 1
-      }
-    });
-  });
-
-  // 监听接口类型选择变化
-  form.on('select(apiTypeSelect)', function(data) {
-    apisTable.reload({
-      where: {
-        app_uuid: $('select[name="app_uuid"]').val(),
-        api_type: data.value
-      },
-      page: {
-        curr: 1
-      }
-    });
-  });
-
-  // 重置筛选
-  $('#btnResetAPIs').on('click', function() {
-    $('#apiFilterForm')[0].reset();
-    form.render();
-    apisTable.reload({
-      where: {},
-      page: {
-        curr: 1
-      }
-    });
-  });
-
-  // 算法联动与一键生成
-  function refreshSubmitKeysUI(row) {
-    var algo = parseInt($('select[name="submit_algorithm"]').val());
-    if (algo === 0) {
-      $('#submitKeysContainer').hide();
-      $('#submit-rc4').hide();
-      $('#submit-rsa').hide();
-      $('#submit-easy').hide();
-      $('[name="submit_public_key"],[name="submit_private_key"]').val('');
-      return;
-    }
-    $('#submitKeysContainer').show();
-    if (algo === 1) { // RC4
-      $('#submit-rc4').show();
-      $('#submit-rsa').hide();
-      $('#submit-easy').hide();
-      if (row && row.submit_private_key) {
-        $('[name="submit_private_key"]').val(row.submit_private_key);
-      }
-    } else if (algo === 4) { // 易加密
-      $('#submit-rc4').hide();
-      $('#submit-rsa').hide();
-      $('#submit-easy').show();
-      if (row && row.submit_private_key) {
-        $('[name="submit_private_key"]').val(row.submit_private_key);
-      }
-    } else { // RSA & RSA动态
-      $('#submit-rc4').hide();
-      $('#submit-rsa').show();
-      $('#submit-easy').hide();
-      if (row && (row.submit_public_key || row.submit_private_key)) {
-        $('[name="submit_public_key"]').val(row.submit_public_key || '');
-        $('[name="submit_private_key"]').val(row.submit_private_key || '');
-      }
-    }
-  }
-  function refreshReturnKeysUI(row) {
-    var algo = parseInt($('select[name="return_algorithm"]').val());
-    if (algo === 0) {
-      $('#returnKeysContainer').hide();
-      $('#return-rc4').hide();
-      $('#return-rsa').hide();
-      $('#return-easy').hide();
-      $('[name="return_public_key"],[name="return_private_key"]').val('');
-      return;
-    }
-    $('#returnKeysContainer').show();
-    if (algo === 1) { // RC4
-      $('#return-rc4').show();
-      $('#return-rsa').hide();
-      $('#return-easy').hide();
-      if (row && row.return_private_key) {
-        $('[name="return_private_key"]').val(row.return_private_key);
-      }
-    } else if (algo === 4) { // 易加密
-      $('#return-rc4').hide();
-      $('#return-rsa').hide();
-      $('#return-easy').show();
-      if (row && row.return_private_key) {
-        $('[name="return_private_key"]').val(row.return_private_key);
-      }
-    } else { // RSA & RSA动态
-      $('#return-rc4').hide();
-      $('#return-rsa').show();
-      $('#return-easy').hide();
-      if (row && (row.return_public_key || row.return_private_key)) {
-        $('[name="return_public_key"]').val(row.return_public_key || '');
-        $('[name="return_private_key"]').val(row.return_private_key || '');
-      }
-    }
-  }
-
-  // 自动生成密钥函数
-  function autoGenerateKeys(side, algorithm) {
-    if (algorithm === 0) return; // 不加密不需要生成密钥
-    
-    var prefix = side === 'submit' ? 'submit' : 'return';
-    
-    // 先清空所有相关输入框
-    $('[name="' + prefix + '_public_key"]').val('');
-    $('[name="' + prefix + '_private_key"]').val('');
-    
-    $.ajax({
-      url: '/admin/api/apis/generate_keys',
-      type: 'POST',
-      contentType: 'application/json',
-      data: JSON.stringify({ side: side, algorithm: algorithm }),
-      success: function(res){
-        if (res.success && res.data) {
-          if (algorithm === 1) { // RC4
-            $('[name="' + prefix + '_private_key"]').val(res.data.private_key || '');
-          } else if (algorithm === 4) { // 易加密
-            $('[name="' + prefix + '_private_key"]').val(res.data.private_key || '');
-          } else { // RSA & RSA动态
-            $('[name="' + prefix + '_public_key"]').val(res.data.public_key || '');
-            $('[name="' + prefix + '_private_key"]').val(res.data.private_key || '');
-          }
-          layer.msg('已自动生成' + (side === 'submit' ? '提交' : '返回') + '密钥', {icon: 1, time: 1500});
+    // 降级复制方案
+    function fallbackCopyTextToClipboard(text) {
+      var textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.top = "0";
+      textArea.style.left = "0";
+      textArea.style.position = "fixed";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        var successful = document.execCommand('copy');
+        if (successful) {
+          layer.msg('接口地址已复制到剪贴板', { icon: 1, time: 2000 });
         } else {
-          layer.msg(res.message || '自动生成密钥失败', {icon: 2});
+          layer.msg('复制失败，请手动复制', { icon: 2, time: 3000 });
         }
-      },
-      error: function(){ 
-        layer.msg('自动生成密钥失败', {icon: 2}); 
+      } catch (err) {
+        console.error('复制失败:', err);
+        layer.msg('复制失败，请手动复制', { icon: 2, time: 3000 });
       }
-    });
-  }
+      document.body.removeChild(textArea);
+    }
 
-  form.on('select(submitAlgorithm)', function(data){ 
-    refreshSubmitKeysUI(); 
-    var algo = parseInt(data.value);
-    autoGenerateKeys('submit', algo);
-  });
-  form.on('select(returnAlgorithm)', function(data){ 
-    refreshReturnKeysUI(); 
-    var algo = parseInt(data.value);
-    autoGenerateKeys('return', algo);
-  });
-
-  $('#btnGenSubmitKeys').on('click', function(){
-    var algo = parseInt($('select[name="submit_algorithm"]').val());
-    if (algo === 0) { layer.msg('请选择加密算法', {icon: 0}); return; }
-    
-    // 先清空所有相关输入框
-    $('[name="submit_public_key"]').val('');
-    $('[name="submit_private_key"]').val('');
-    
-    $.ajax({
-      url: '/admin/api/apis/generate_keys',
-      type: 'POST',
-      contentType: 'application/json',
-      data: JSON.stringify({ side: 'submit', algorithm: algo }),
-      success: function(res){
-        if (res.success && res.data) {
-          if (algo === 1) { // RC4
-            $('[name="submit_private_key"]').val(res.data.private_key || '');
-          } else if (algo === 4) { // 易加密
-            $('[name="submit_private_key"]').val(res.data.private_key || '');
-          } else { // RSA
-            $('[name="submit_public_key"]').val(res.data.public_key || '');
-            $('[name="submit_private_key"]').val(res.data.private_key || '');
-          }
-        } else {
-          layer.msg(res.message || '生成失败', {icon: 2});
-        }
+    // 初始化接口表格
+    var apisTable = table.render({
+      elem: '#apisTable',
+      url: '/admin/api/apis/list',
+      parseData: function (res) {
+        return {
+          code: res.success ? 0 : 1,
+          msg: res.message || '',
+          count: res.data ? res.data.total : 0,
+          data: res.data ? res.data.apis : []
+        };
       },
-      error: function(){ layer.msg('生成失败', {icon: 2}); }
-    });
-  });
-  $('#btnGenReturnKeys').on('click', function(){
-    var algo = parseInt($('select[name="return_algorithm"]').val());
-    if (algo === 0) { layer.msg('请选择加密算法', {icon: 0}); return; }
-    
-    // 先清空所有相关输入框
-    $('[name="return_public_key"]').val('');
-    $('[name="return_private_key"]').val('');
-    
-    $.ajax({
-      url: '/admin/api/apis/generate_keys',
-      type: 'POST',
-      contentType: 'application/json',
-      data: JSON.stringify({ side: 'return', algorithm: algo }),
-      success: function(res){
-        if (res.success && res.data) {
-          if (algo === 1) { // RC4
-            $('[name="return_private_key"]').val(res.data.private_key || '');
-          } else if (algo === 4) { // 易加密
-            $('[name="return_private_key"]').val(res.data.private_key || '');
-          } else { // RSA
-            $('[name="return_public_key"]').val(res.data.public_key || '');
-            $('[name="return_private_key"]').val(res.data.private_key || '');
-          }
-        } else {
-          layer.msg(res.message || '生成失败', {icon: 2});
-        }
+      request: {
+        pageName: 'page',
+        limitName: 'limit'
       },
-      error: function(){ layer.msg('生成失败', {icon: 2}); }
+      method: 'GET',
+      page: true,
+      limit: 20,
+      limits: [10, 20, 50, 100],
+      loading: true,
+      done: function (res, curr, count) {
+        // 表格渲染完成后的回调
+      },
+      cols: [[
+        { field: 'id', title: 'ID', width: 80, sort: true },
+        { field: 'app_name', title: '应用名称', minWidth: 150 },
+        { field: 'uuid', title: 'UUID', minWidth: 335 },
+        { field: 'api_type_name', title: '接口类型', minWidth: 120 },
+        {
+          field: 'status_name',
+          title: '状态',
+          width: 80,
+          templet: (d) => {
+            if (d.status === 1) return '<span style="color: #5FB878;">启用</span>';
+            return '<span style="color: #FF5722;">禁用</span>';
+          }
+        },
+        {
+          field: 'submit_algorithm',
+          title: '提交算法',
+          width: 120,
+          templet: (d) => {
+            const algorithm = d.algorithm_names ? d.algorithm_names.submit : '-';
+            if (algorithm && algorithm.length > 10) {
+              return '<span title="' + algorithm + '">' + algorithm.substring(0, 10) + '...</span>';
+            }
+            return algorithm;
+          }
+        },
+        {
+          field: 'return_algorithm',
+          title: '返回算法',
+          width: 120,
+          templet: (d) => {
+            const algorithm = d.algorithm_names ? d.algorithm_names.return : '-';
+            if (algorithm && algorithm.length > 10) {
+              return '<span title="' + algorithm + '">' + algorithm.substring(0, 10) + '...</span>';
+            }
+            return algorithm;
+          }
+        },
+        {
+          field: 'created_at',
+          title: '创建时间',
+          width: 160,
+          templet: (d) => formatDateTime(d.created_at)
+        },
+        {
+          field: 'updated_at',
+          title: '修改时间',
+          width: 160,
+          templet: (d) => formatDateTime(d.updated_at)
+        },
+        { fixed: 'right', title: '操作', toolbar: '#tpl-apis-ops', width: 100, align: 'center' }
+      ]]
     });
-  });
+
+    // 加载应用列表到筛选器
+    function loadApps() {
+      $.ajax({
+        url: '/admin/api/apis/apps',
+        type: 'GET',
+        success: function (res) {
+          if (res.success && res.data) {
+            var filterSelect = $('select[name="app_uuid"]').eq(0);
+            // 清空现有选项（保留默认选项）
+            filterSelect.find('option:not(:first)').remove();
+            // 添加应用选项（不默认选中，保持“请选择应用”以显示全部接口）
+            res.data.forEach(function (app) {
+              var option = '<option value="' + app.uuid + '">' + app.name + '</option>';
+              filterSelect.append(option);
+            });
+            // 仅刷新下拉，不触发表格按应用过滤，默认显示全部接口
+            form.render('select');
+          }
+        },
+        error: function () {
+          layer.msg('加载应用列表失败', { icon: 2 });
+        }
+      });
+    }
+
+    // 加载接口类型列表到筛选器
+    function loadAPITypes() {
+      $.ajax({
+        url: '/admin/api/apis/types',
+        type: 'GET',
+        success: function (res) {
+          if (res.success && res.data) {
+            var typeSelect = $('select[name="api_type"]').eq(0);
+            // 清空现有选项（保留默认选项）
+            typeSelect.find('option:not(:first)').remove();
+            // 添加接口类型选项
+            res.data.forEach(function (type) {
+              var option = '<option value="' + type.value + '">' + type.name + '</option>';
+              typeSelect.append(option);
+            });
+            // 刷新下拉
+            form.render('select');
+          }
+        },
+        error: function () {
+          layer.msg('加载接口类型列表失败', { icon: 2 });
+        }
+      });
+    }
+
+    // 初始化加载应用列表和接口类型列表
+    loadApps();
+    loadAPITypes();
+
+    // 监听应用选择变化
+    form.on('select(appSelect)', function (data) {
+      currentAppUUID = data.value;
+      apisTable.reload({
+        where: {
+          app_uuid: currentAppUUID,
+          api_type: $('select[name="api_type"]').val()
+        },
+        page: {
+          curr: 1
+        }
+      });
+    });
+
+    // 监听接口类型选择变化
+    form.on('select(apiTypeSelect)', function (data) {
+      apisTable.reload({
+        where: {
+          app_uuid: $('select[name="app_uuid"]').val(),
+          api_type: data.value
+        },
+        page: {
+          curr: 1
+        }
+      });
+    });
+
+    // 重置筛选
+    $('#btnResetAPIs').on('click', function () {
+      $('#apiFilterForm')[0].reset();
+      form.render();
+      apisTable.reload({
+        where: {},
+        page: {
+          curr: 1
+        }
+      });
+    });
+
+    // 算法联动与一键生成
+    function refreshSubmitKeysUI(row) {
+      var algo = parseInt($('select[name="submit_algorithm"]').val());
+      if (algo === 0) {
+        $('#submitKeysContainer').hide();
+        $('#submit-rc4').hide();
+        $('#submit-rsa').hide();
+        $('#submit-easy').hide();
+        $('[name="submit_public_key"],[name="submit_private_key"]').val('');
+        return;
+      }
+      $('#submitKeysContainer').show();
+      if (algo === 1) { // RC4
+        $('#submit-rc4').show();
+        $('#submit-rsa').hide();
+        $('#submit-easy').hide();
+        if (row && row.submit_private_key) {
+          $('[name="submit_private_key"]').val(row.submit_private_key);
+        }
+      } else if (algo === 4) { // 易加密
+        $('#submit-rc4').hide();
+        $('#submit-rsa').hide();
+        $('#submit-easy').show();
+        if (row && row.submit_private_key) {
+          $('[name="submit_private_key"]').val(row.submit_private_key);
+        }
+      } else { // RSA & RSA动态
+        $('#submit-rc4').hide();
+        $('#submit-rsa').show();
+        $('#submit-easy').hide();
+        if (row && (row.submit_public_key || row.submit_private_key)) {
+          $('[name="submit_public_key"]').val(row.submit_public_key || '');
+          $('[name="submit_private_key"]').val(row.submit_private_key || '');
+        }
+      }
+    }
+    function refreshReturnKeysUI(row) {
+      var algo = parseInt($('select[name="return_algorithm"]').val());
+      if (algo === 0) {
+        $('#returnKeysContainer').hide();
+        $('#return-rc4').hide();
+        $('#return-rsa').hide();
+        $('#return-easy').hide();
+        $('[name="return_public_key"],[name="return_private_key"]').val('');
+        return;
+      }
+      $('#returnKeysContainer').show();
+      if (algo === 1) { // RC4
+        $('#return-rc4').show();
+        $('#return-rsa').hide();
+        $('#return-easy').hide();
+        if (row && row.return_private_key) {
+          $('[name="return_private_key"]').val(row.return_private_key);
+        }
+      } else if (algo === 4) { // 易加密
+        $('#return-rc4').hide();
+        $('#return-rsa').hide();
+        $('#return-easy').show();
+        if (row && row.return_private_key) {
+          $('[name="return_private_key"]').val(row.return_private_key);
+        }
+      } else { // RSA & RSA动态
+        $('#return-rc4').hide();
+        $('#return-rsa').show();
+        $('#return-easy').hide();
+        if (row && (row.return_public_key || row.return_private_key)) {
+          $('[name="return_public_key"]').val(row.return_public_key || '');
+          $('[name="return_private_key"]').val(row.return_private_key || '');
+        }
+      }
+    }
+
+    // 自动生成密钥函数
+    function autoGenerateKeys(side, algorithm) {
+      if (algorithm === 0) return; // 不加密不需要生成密钥
+
+      var prefix = side === 'submit' ? 'submit' : 'return';
+
+      // 先清空所有相关输入框
+      $('[name="' + prefix + '_public_key"]').val('');
+      $('[name="' + prefix + '_private_key"]').val('');
+
+      $.ajax({
+        url: '/admin/api/apis/generate_keys',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ side: side, algorithm: algorithm }),
+        success: function (res) {
+          if (res.success && res.data) {
+            if (algorithm === 1) { // RC4
+              $('[name="' + prefix + '_private_key"]').val(res.data.private_key || '');
+            } else if (algorithm === 4) { // 易加密
+              $('[name="' + prefix + '_private_key"]').val(res.data.private_key || '');
+            } else { // RSA & RSA动态
+              $('[name="' + prefix + '_public_key"]').val(res.data.public_key || '');
+              $('[name="' + prefix + '_private_key"]').val(res.data.private_key || '');
+            }
+            layer.msg('已自动生成' + (side === 'submit' ? '提交' : '返回') + '密钥', { icon: 1, time: 1500 });
+          } else {
+            layer.msg(res.message || '自动生成密钥失败', { icon: 2 });
+          }
+        },
+        error: function () {
+          layer.msg('自动生成密钥失败', { icon: 2 });
+        }
+      });
+    }
+
+    form.on('select(submitAlgorithm)', function (data) {
+      refreshSubmitKeysUI();
+      var algo = parseInt(data.value);
+      autoGenerateKeys('submit', algo);
+    });
+    form.on('select(returnAlgorithm)', function (data) {
+      refreshReturnKeysUI();
+      var algo = parseInt(data.value);
+      autoGenerateKeys('return', algo);
+    });
+
+    $('#btnGenSubmitKeys').on('click', function () {
+      var algo = parseInt($('select[name="submit_algorithm"]').val());
+      if (algo === 0) { layer.msg('请选择加密算法', { icon: 0 }); return; }
+
+      // 先清空所有相关输入框
+      $('[name="submit_public_key"]').val('');
+      $('[name="submit_private_key"]').val('');
+
+      $.ajax({
+        url: '/admin/api/apis/generate_keys',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ side: 'submit', algorithm: algo }),
+        success: function (res) {
+          if (res.success && res.data) {
+            if (algo === 1) { // RC4
+              $('[name="submit_private_key"]').val(res.data.private_key || '');
+            } else if (algo === 4) { // 易加密
+              $('[name="submit_private_key"]').val(res.data.private_key || '');
+            } else { // RSA
+              $('[name="submit_public_key"]').val(res.data.public_key || '');
+              $('[name="submit_private_key"]').val(res.data.private_key || '');
+            }
+          } else {
+            layer.msg(res.message || '生成失败', { icon: 2 });
+          }
+        },
+        error: function () { layer.msg('生成失败', { icon: 2 }); }
+      });
+    });
+    $('#btnGenReturnKeys').on('click', function () {
+      var algo = parseInt($('select[name="return_algorithm"]').val());
+      if (algo === 0) { layer.msg('请选择加密算法', { icon: 0 }); return; }
+
+      // 先清空所有相关输入框
+      $('[name="return_public_key"]').val('');
+      $('[name="return_private_key"]').val('');
+
+      $.ajax({
+        url: '/admin/api/apis/generate_keys',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ side: 'return', algorithm: algo }),
+        success: function (res) {
+          if (res.success && res.data) {
+            if (algo === 1) { // RC4
+              $('[name="return_private_key"]').val(res.data.private_key || '');
+            } else if (algo === 4) { // 易加密
+              $('[name="return_private_key"]').val(res.data.private_key || '');
+            } else { // RSA
+              $('[name="return_public_key"]').val(res.data.public_key || '');
+              $('[name="return_private_key"]').val(res.data.private_key || '');
+            }
+          } else {
+            layer.msg(res.message || '生成失败', { icon: 2 });
+          }
+        },
+        error: function () { layer.msg('生成失败', { icon: 2 }); }
+      });
+    });
 
 
 
-  // 监听表格工具条
-  table.on('tool(apisTableFilter)', function(obj) {
-    var data = obj.data;
-    
-    if (obj.event === 'edit') {
-      // 编辑接口
-      $('#apiForm')[0].reset();
-      $('input[name="uuid"]').val(data.uuid);
-      $('select[name="submit_algorithm"]').val(data.submit_algorithm);
-      $('select[name="return_algorithm"]').val(data.return_algorithm);
-      $('input[name="status"]').prop('checked', data.status === 1);
+    // 监听表格工具条
+    table.on('tool(apisTableFilter)', function (obj) {
+      var data = obj.data;
 
-      // 根据现有算法与密钥填充/显示输入区
-      refreshSubmitKeysUI(data);
-      refreshReturnKeysUI(data);
-      
-      layer.open({
-        type: 1,
-        title: '编辑接口',
-        content: $('#apiFormModal'),
-        area: ['500px', '520px'],
-        btn: ['保存', '取消'],
-        yes: function(index, layero) {
-          // 手动收集表单数据
-          var formData = {};
-          $('#apiForm').find('input, select, textarea').each(function() {
-            var $this = $(this);
-            var name = $this.attr('name');
-            if (name) {
-              if ($this.attr('type') === 'checkbox') {
-                if ($this.attr('lay-skin') === 'switch') {
-                  formData[name] = $this.prop('checked') ? 1 : 0;
+      if (obj.event === 'edit') {
+        // 编辑接口
+        $('#apiForm')[0].reset();
+        $('input[name="uuid"]').val(data.uuid);
+        $('select[name="submit_algorithm"]').val(data.submit_algorithm);
+        $('select[name="return_algorithm"]').val(data.return_algorithm);
+        $('input[name="status"]').prop('checked', data.status === 1);
+
+        // 根据现有算法与密钥填充/显示输入区
+        refreshSubmitKeysUI(data);
+        refreshReturnKeysUI(data);
+
+        layer.open({
+          type: 1,
+          title: '编辑接口',
+          content: $('#apiFormModal'),
+          area: ['500px', '520px'],
+          btn: ['保存', '取消'],
+          yes: function (index, layero) {
+            // 手动收集表单数据
+            var formData = {};
+            $('#apiForm').find('input, select, textarea').each(function () {
+              var $this = $(this);
+              var name = $this.attr('name');
+              if (name) {
+                if ($this.attr('type') === 'checkbox') {
+                  if ($this.attr('lay-skin') === 'switch') {
+                    formData[name] = $this.prop('checked') ? 1 : 0;
+                  } else {
+                    formData[name] = $this.prop('checked') ? $this.val() : '';
+                  }
+                } else if ($this.attr('type') === 'radio') {
+                  if ($this.prop('checked')) {
+                    formData[name] = $this.val();
+                  }
                 } else {
-                  formData[name] = $this.prop('checked') ? $this.val() : '';
-                }
-              } else if ($this.attr('type') === 'radio') {
-                if ($this.prop('checked')) {
                   formData[name] = $this.val();
                 }
-              } else {
-                formData[name] = $this.val();
               }
-            }
-          });
-          
-          // 转换数值类型
-          formData.submit_algorithm = parseInt(formData.submit_algorithm);
-          formData.return_algorithm = parseInt(formData.return_algorithm);
+            });
 
-          $.ajax({
-            url: '/admin/api/apis/update',
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(formData),
-            success: function(res) {
-              if (res.success) {
-                layer.msg('接口更新成功', {icon: 1});
-                layer.close(index);
-                apisTable.reload();
-              } else {
-                layer.msg(res.message || '更新失败', {icon: 2});
+            // 转换数值类型
+            formData.submit_algorithm = parseInt(formData.submit_algorithm);
+            formData.return_algorithm = parseInt(formData.return_algorithm);
+
+            $.ajax({
+              url: '/admin/api/apis/update',
+              type: 'POST',
+              contentType: 'application/json',
+              data: JSON.stringify(formData),
+              success: function (res) {
+                if (res.success) {
+                  layer.msg('接口更新成功', { icon: 1 });
+                  layer.close(index);
+                  apisTable.reload();
+                } else {
+                  layer.msg(res.message || '更新失败', { icon: 2 });
+                }
+              },
+              error: function () {
+                layer.msg('网络错误，请稍后重试', { icon: 2 });
               }
-            },
-            error: function() {
-              layer.msg('网络错误，请稍后重试', {icon: 2});
-            }
-          });
-        },
-        btn2: function(index) {
-          layer.close(index);
-        },
-        success: function() {
-          form.render();
-        },
-        shadeClose: false
-      });
-    }
+            });
+          },
+          btn2: function (index) {
+            layer.close(index);
+          },
+          success: function () {
+            form.render();
+          },
+          shadeClose: false
+        });
+      }
+    });
+
   });
-
-});
 </script>
 
 {{ end }}

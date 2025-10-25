@@ -1,7 +1,6 @@
 {{ define "settings.html" }}
 <section>
   <h2>系统设置</h2>
-  
   <!-- 基本信息设置 -->
   <div class="layui-card" style="margin-top: 16px;">
     <div class="layui-card-header">基本信息设置</div>
@@ -34,7 +33,7 @@
       </form>
     </div>
   </div>
-  
+
   <!-- 系统配置设置 -->
   <div class="layui-card" style="margin-top: 16px;">
     <div class="layui-card-header">系统配置</div>
@@ -61,7 +60,8 @@
           <label class="layui-form-label" style="cursor: pointer;" data-tips="session-timeout">会话超时</label>
           <div class="layui-input-block">
             <div style="display: flex; align-items: center; gap: 10px;">
-              <input type="number" name="session_timeout" placeholder="3600" min="300" max="86400" class="layui-input" style="width: 120px;" />
+              <input type="number" name="session_timeout" placeholder="3600" min="300" max="86400" class="layui-input"
+                style="width: 120px;" />
               <span class="layui-form-mid">秒（300-86400秒）</span>
             </div>
           </div>
@@ -70,7 +70,7 @@
       </form>
     </div>
   </div>
-  
+
   <!-- 页脚与备案信息 -->
   <div class="layui-card" style="margin-top: 16px;">
     <div class="layui-card-header">页脚与备案</div>
@@ -103,13 +103,14 @@
         <div class="layui-form-item">
           <label class="layui-form-label" style="cursor: pointer;" data-tips="psb-record-link">备案链接</label>
           <div class="layui-input-block">
-            <input type="url" name="psb_record_link" placeholder="http://www.beian.gov.cn/portal/registerSystemInfo" class="layui-input" />
+            <input type="url" name="psb_record_link" placeholder="http://www.beian.gov.cn/portal/registerSystemInfo"
+              class="layui-input" />
           </div>
         </div>
       </form>
     </div>
   </div>
-  
+
   <!-- 操作按钮 -->
   <div class="layui-form-item" style="margin-top: 24px;">
     <div class="layui-input-block">
@@ -129,159 +130,159 @@
     }
   }
 
-  waitForLayui(function() {
-    layui.use(['jquery', 'form', 'layer', 'util'], function() {
+  waitForLayui(function () {
+    layui.use(['jquery', 'form', 'layer', 'util'], function () {
       const { $, form, layer, util } = layui;
 
-    // 缓存上次加载的设置值，用于“重置”恢复
-    let originalSettings = {};
+      // 缓存上次加载的设置值，用于“重置”恢复
+      let originalSettings = {};
 
-    /**
-     * 加载后台所有设置并回填到三个表单
-     * - 从 /admin/api/settings 获取 name:value 映射
-     * - 处理开关型字段（maintenance_mode）
-     * - 渲染 layui 组件
-     */
-    const loadSettings = async () => {
-      try {
-        const res = await fetch('/admin/api/settings', {
-          method: 'GET',
-          headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        });
-        const data = await res.json();
-        if (data.code !== 0) {
-          layer.msg(data.msg || '加载设置失败', { icon: 2 });
-          return;
-        }
-        originalSettings = data.data || {};
-        fillForms(originalSettings);
-      } catch (err) {
-        console.error('获取设置失败:', err);
-        layer.msg('网络错误，无法加载设置', { icon: 2 });
-      }
-    };
-
-    /**
-     * 将 settings 数据回填到各表单控件
-     * - 文本/文本域/下拉：直接赋值
-     * - 开关：根据 "1"/"0" 置为选中/未选中
-     */
-    const fillForms = (settings = {}) => {
-      // 基本信息
-      $('[name="site_title"]').val(settings.site_title || '');
-      $('[name="site_keywords"]').val(settings.site_keywords || '');
-      $('[name="site_description"]').val(settings.site_description || '');
-      $('[name="site_logo"]').val(settings.site_logo || '');
-
-      // 系统配置
-      const maintenanceChecked = (settings.maintenance_mode || '0') === '1';
-      $('[name="maintenance_mode"]').prop('checked', maintenanceChecked);
-      $('[name="default_user_role"]').val(settings.default_user_role || '1');
-      $('[name="session_timeout"]').val(settings.session_timeout || '3600');
-
-      // 页脚与备案
-      $('[name="footer_text"]').val(settings.footer_text || '');
-      $('[name="icp_record"]').val(settings.icp_record || '');
-      $('[name="icp_record_link"]').val(settings.icp_record_link || '');
-      $('[name="psb_record"]').val(settings.psb_record || '');
-      $('[name="psb_record_link"]').val(settings.psb_record_link || '');
-
-      // 渲染 layui 组件
-      form.render();
-    };
-
-    /**
-     * 收集某个表单下所有可用控件的值
-     * - 统一将 checkbox 转为 "1"/"0"
-     * - 其他控件转为字符串，避免后端类型不一致
-     */
-    const collectForm = (selector) => {
-      const obj = {};
-      const $form = $(selector);
-      $form.find('input, textarea, select').each(function() {
-        const $el = $(this);
-        const name = $el.attr('name');
-        if (!name) return; // 无 name 不纳入
-        const type = ($el.attr('type') || '').toLowerCase();
-        let value = '';
-        if (type === 'checkbox') {
-          value = $el.prop('checked') ? '1' : '0';
-        } else {
-          value = ($el.val() ?? '').toString();
-        }
-        obj[name] = value;
-      });
-      return obj;
-    };
-
-    /**
-     * 汇总三个表单的字段为一个扁平对象
-     */
-    const collectAllSettings = () => {
-      return {
-        ...collectForm('#basicForm'),
-        ...collectForm('#systemForm'),
-        ...collectForm('#footerForm'),
-      };
-    };
-
-    /**
-     * 处理“保存所有设置”点击
-     * - 二次确认后提交
-     * - 显示加载中，防重复提交
-     * - 成功后提示并刷新缓存的 originalSettings
-     */
-    const handleSaveAll = () => {
-      const payload = collectAllSettings();
-      layer.confirm('确认保存所有设置？', { icon: 3, title: '提示' }, (idx) => {
-        layer.close(idx);
-        const btn = $('#saveAllBtn');
-        btn.prop('disabled', true).addClass('layui-btn-disabled');
-        const loadIdx = layer.load(2, { content: '正在保存...' });
-
-        fetch('/admin/api/settings/update', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-          },
-          body: JSON.stringify(payload)
-        })
-          .then(resp => resp.json())
-          .then(res => {
-            if (res.code === 0) {
-              layer.msg(res.msg || '保存成功', { icon: 1, time: 1000 });
-              originalSettings = { ...payload };
-            } else {
-              layer.msg(res.msg || '保存失败', { icon: 2 });
-            }
-          })
-          .catch(err => {
-            console.error('保存设置失败:', err);
-            layer.msg('网络错误，保存失败', { icon: 2 });
-          })
-          .finally(() => {
-            layer.close(loadIdx);
-            btn.prop('disabled', false).removeClass('layui-btn-disabled');
+      /**
+       * 加载后台所有设置并回填到三个表单
+       * - 从 /admin/api/settings 获取 name:value 映射
+       * - 处理开关型字段（maintenance_mode）
+       * - 渲染 layui 组件
+       */
+      const loadSettings = async () => {
+        try {
+          const res = await fetch('/admin/api/settings', {
+            method: 'GET',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
           });
-      });
-    };
+          const data = await res.json();
+          if (data.code !== 0) {
+            layer.msg(data.msg || '加载设置失败', { icon: 2 });
+            return;
+          }
+          originalSettings = data.data || {};
+          fillForms(originalSettings);
+        } catch (err) {
+          console.error('获取设置失败:', err);
+          layer.msg('网络错误，无法加载设置', { icon: 2 });
+        }
+      };
 
-    /**
-     * 处理“重置”点击
-     * - 恢复为上次加载的 originalSettings
-     */
-    const handleReset = () => {
-      fillForms(originalSettings);
-      layer.msg('已恢复到上次加载的值', { icon: 1, time: 800 });
-    };
+      /**
+       * 将 settings 数据回填到各表单控件
+       * - 文本/文本域/下拉：直接赋值
+       * - 开关：根据 "1"/"0" 置为选中/未选中
+       */
+      const fillForms = (settings = {}) => {
+        // 基本信息
+        $('[name="site_title"]').val(settings.site_title || '');
+        $('[name="site_keywords"]').val(settings.site_keywords || '');
+        $('[name="site_description"]').val(settings.site_description || '');
+        $('[name="site_logo"]').val(settings.site_logo || '');
 
-    // 事件绑定
-    $('#saveAllBtn').off('click').on('click', handleSaveAll);
-    $('#resetBtn').off('click').on('click', handleReset);
+        // 系统配置
+        const maintenanceChecked = (settings.maintenance_mode || '0') === '1';
+        $('[name="maintenance_mode"]').prop('checked', maintenanceChecked);
+        $('[name="default_user_role"]').val(settings.default_user_role || '1');
+        $('[name="session_timeout"]').val(settings.session_timeout || '3600');
 
-    // 初始化：加载设置
-    loadSettings();
+        // 页脚与备案
+        $('[name="footer_text"]').val(settings.footer_text || '');
+        $('[name="icp_record"]').val(settings.icp_record || '');
+        $('[name="icp_record_link"]').val(settings.icp_record_link || '');
+        $('[name="psb_record"]').val(settings.psb_record || '');
+        $('[name="psb_record_link"]').val(settings.psb_record_link || '');
+
+        // 渲染 layui 组件
+        form.render();
+      };
+
+      /**
+       * 收集某个表单下所有可用控件的值
+       * - 统一将 checkbox 转为 "1"/"0"
+       * - 其他控件转为字符串，避免后端类型不一致
+       */
+      const collectForm = (selector) => {
+        const obj = {};
+        const $form = $(selector);
+        $form.find('input, textarea, select').each(function () {
+          const $el = $(this);
+          const name = $el.attr('name');
+          if (!name) return; // 无 name 不纳入
+          const type = ($el.attr('type') || '').toLowerCase();
+          let value = '';
+          if (type === 'checkbox') {
+            value = $el.prop('checked') ? '1' : '0';
+          } else {
+            value = ($el.val() ?? '').toString();
+          }
+          obj[name] = value;
+        });
+        return obj;
+      };
+
+      /**
+       * 汇总三个表单的字段为一个扁平对象
+       */
+      const collectAllSettings = () => {
+        return {
+          ...collectForm('#basicForm'),
+          ...collectForm('#systemForm'),
+          ...collectForm('#footerForm'),
+        };
+      };
+
+      /**
+       * 处理“保存所有设置”点击
+       * - 二次确认后提交
+       * - 显示加载中，防重复提交
+       * - 成功后提示并刷新缓存的 originalSettings
+       */
+      const handleSaveAll = () => {
+        const payload = collectAllSettings();
+        layer.confirm('确认保存所有设置？', { icon: 3, title: '提示' }, (idx) => {
+          layer.close(idx);
+          const btn = $('#saveAllBtn');
+          btn.prop('disabled', true).addClass('layui-btn-disabled');
+          const loadIdx = layer.load(2, { content: '正在保存...' });
+
+          fetch('/admin/api/settings/update', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(payload)
+          })
+            .then(resp => resp.json())
+            .then(res => {
+              if (res.code === 0) {
+                layer.msg(res.msg || '保存成功', { icon: 1, time: 1000 });
+                originalSettings = { ...payload };
+              } else {
+                layer.msg(res.msg || '保存失败', { icon: 2 });
+              }
+            })
+            .catch(err => {
+              console.error('保存设置失败:', err);
+              layer.msg('网络错误，保存失败', { icon: 2 });
+            })
+            .finally(() => {
+              layer.close(loadIdx);
+              btn.prop('disabled', false).removeClass('layui-btn-disabled');
+            });
+        });
+      };
+
+      /**
+       * 处理“重置”点击
+       * - 恢复为上次加载的 originalSettings
+       */
+      const handleReset = () => {
+        fillForms(originalSettings);
+        layer.msg('已恢复到上次加载的值', { icon: 1, time: 800 });
+      };
+
+      // 事件绑定
+      $('#saveAllBtn').off('click').on('click', handleSaveAll);
+      $('#resetBtn').off('click').on('click', handleReset);
+
+      // 初始化：加载设置
+      loadSettings();
     });
   });
 </script>

@@ -26,19 +26,45 @@ func AdminIndexHandler(w http.ResponseWriter, r *http.Request) {
 // AdminLayoutHandler 后台布局页渲染
 // - 渲染 layout.html，包含顶部导航、侧边栏与动态内容容器
 func AdminLayoutHandler(w http.ResponseWriter, r *http.Request) {
-	data := utils.GetDefaultTemplateData()
+	// 获取或生成CSRF令牌
+	var token string
+	if existingToken := utils.GetCSRFTokenFromCookie(r); existingToken != "" {
+		// 重用现有的Cookie令牌
+		token = existingToken
+	} else {
+		// 生成新的CSRF令牌并设置到Cookie
+		newToken, err := utils.GenerateCSRFToken()
+		if err != nil {
+			http.Error(w, "生成CSRF令牌失败", http.StatusInternalServerError)
+			return
+		}
+		token = newToken
+		utils.SetCSRFToken(w, token)
+	}
+
+	// 准备额外的模板数据
+	extraData := make(map[string]interface{})
 
 	// 从数据库读取站点标题
-	db, err := database.GetDB()
-	if err != nil {
-		data["Title"] = "凌动技术"
+	db, dbErr := database.GetDB()
+	if dbErr != nil {
+		extraData["Title"] = "凌动技术"
 	} else {
-		siteTitle, err := services.FindSettingByName("site_title", db)
-		if err != nil || siteTitle == nil {
-			data["Title"] = "凌动技术"
+		siteTitle, settingErr := services.FindSettingByName("site_title", db)
+		if settingErr != nil || siteTitle == nil {
+			extraData["Title"] = "凌动技术"
 		} else {
-			data["Title"] = siteTitle.Value
+			extraData["Title"] = siteTitle.Value
 		}
+	}
+
+	// 准备模板数据
+	data := utils.GetDefaultTemplateData()
+	data["CSRFToken"] = token
+	
+	// 合并额外数据
+	for key, value := range extraData {
+		data[key] = value
 	}
 
 	utils.RenderTemplate(w, "layout.html", data)

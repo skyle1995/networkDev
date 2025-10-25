@@ -6,6 +6,63 @@ const rootPath = (function (src) {
   return src.substring(0, src.lastIndexOf('/') + 1);
 })();
 
+// CSRF令牌管理
+const CSRFManager = {
+  // 缓存的CSRF令牌
+  token: null,
+  
+  // 获取CSRF令牌
+  async getToken() {
+    if (this.token) {
+      return this.token;
+    }
+    
+    try {
+      const response = await fetch('/admin/api/csrf-token', {
+        method: 'GET',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.code === 0 && data.data && data.data.csrf_token) {
+          this.token = data.data.csrf_token;
+          return this.token;
+        }
+      }
+    } catch (error) {
+      console.error('获取CSRF令牌失败:', error);
+    }
+    
+    return null;
+  },
+  
+  // 清除缓存的令牌
+  clearToken() {
+    this.token = null;
+  },
+  
+  // 为fetch请求添加CSRF令牌
+  async addCSRFHeader(headers = {}) {
+    const token = await this.getToken();
+    if (token) {
+      headers['X-CSRF-Token'] = token;
+    }
+    return headers;
+  }
+};
+
+// 增强的fetch函数，自动添加CSRF令牌
+window.fetchWithCSRF = async function(url, options = {}) {
+  const headers = await CSRFManager.addCSRFHeader(options.headers || {});
+  return fetch(url, {
+    ...options,
+    headers
+  });
+};
+
 const app = document.querySelector('#app')
 
 addLink({ href: layuicss }).then(() => {
@@ -150,7 +207,7 @@ loadScript(layuijs, function () {
         });
         
         // 调用登出接口
-        fetch('/admin/logout', {
+        fetchWithCSRF('/admin/logout', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

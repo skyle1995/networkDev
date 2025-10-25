@@ -37,6 +37,12 @@
   "security": {
     "jwt_secret": "your-jwt-secret-key",
     "encryption_key": "your-encryption-key",
-    "jwt_refresh_threshold_hours": 6
+    "jwt_refresh_threshold_hours": 6,
+    "cookie": {
+      "secure": false,
+      "same_site": "Lax",
+      "domain": "",
+      "max_age": 86400
+    }
   }
 }
