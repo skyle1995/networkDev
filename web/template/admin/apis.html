@@ -17,7 +17,7 @@
             </div>
           </div>
           <div class="layui-inline">
-            <label class="layui-form-label">接口类型</label>
+            <label class="layui-form-label">类型</label>
             <div class="layui-input-inline">
               <select name="api_type" lay-filter="apiTypeSelect">
                 <option value="">请选择接口类型</option>
@@ -54,7 +54,7 @@
   <!-- 隐藏的表单弹层内容：编辑接口 -->
   <div id="apiFormModal" style="display:none;padding:16px">
     <form class="layui-form layui-form-pane" id="apiForm">
-      <input type="hidden" name="id" />
+      <input type="hidden" name="uuid" />
       <!-- 关联应用与接口类型为固定项，移除编辑能力 -->
       <div class="layui-form-item">
         <label class="layui-form-label" style="cursor: pointer;" data-tips="submit-algorithm">提交算法</label>
@@ -209,11 +209,13 @@ layui.use(['table', 'form', 'layer', 'dropdown'], function() {
     limit: 20,
     limits: [10, 20, 50, 100],
     loading: true,
+    done: function(res, curr, count) {
+      // 表格渲染完成后的回调
+    },
     cols: [[
       { field: 'id', title: 'ID', width: 80, sort: true },
-      { field: 'app_name', title: '应用名称', mixWidth: 180 },
-      { field: 'api_type_name', title: '接口类型', mixWidth: 120 },
-
+      { field: 'app_name', title: '应用名称', minWidth: 150 },
+      { field: 'api_type_name', title: '接口类型', minWidth: 120 },
       { 
         field: 'status_name', 
         title: '状态', 
@@ -227,27 +229,39 @@ layui.use(['table', 'form', 'layer', 'dropdown'], function() {
         field: 'submit_algorithm', 
         title: '提交算法', 
         width: 120,
-        templet: (d) => d.algorithm_names ? d.algorithm_names.submit : '-'
+        templet: (d) => {
+          const algorithm = d.algorithm_names ? d.algorithm_names.submit : '-';
+          if (algorithm && algorithm.length > 10) {
+            return '<span title="' + algorithm + '">' + algorithm.substring(0, 10) + '...</span>';
+          }
+          return algorithm;
+        }
       },
       { 
         field: 'return_algorithm', 
         title: '返回算法', 
         width: 120,
-        templet: (d) => d.algorithm_names ? d.algorithm_names.return : '-'
+        templet: (d) => {
+          const algorithm = d.algorithm_names ? d.algorithm_names.return : '-';
+          if (algorithm && algorithm.length > 10) {
+            return '<span title="' + algorithm + '">' + algorithm.substring(0, 10) + '...</span>';
+          }
+          return algorithm;
+        }
       },
       { 
         field: 'created_at', 
         title: '创建时间', 
-        width: 180,
+        width: 160,
         templet: (d) => formatDateTime(d.created_at)
       },
       { 
         field: 'updated_at', 
         title: '修改时间', 
-        width: 180,
+        width: 160,
         templet: (d) => formatDateTime(d.updated_at)
       },
-      { fixed: 'right', title: '操作', toolbar: '#tpl-apis-ops', width: 70 }
+      { fixed: 'right', title: '操作', toolbar: '#tpl-apis-ops', width: 100, align: 'center' }
     ]]
   });
 
@@ -533,7 +547,7 @@ layui.use(['table', 'form', 'layer', 'dropdown'], function() {
     if (obj.event === 'edit') {
       // 编辑接口
       $('#apiForm')[0].reset();
-      $('input[name="id"]').val(data.id);
+      $('input[name="uuid"]').val(data.uuid);
       $('select[name="submit_algorithm"]').val(data.submit_algorithm);
       $('select[name="return_algorithm"]').val(data.return_algorithm);
       $('input[name="status"]').prop('checked', data.status === 1);
@@ -574,7 +588,6 @@ layui.use(['table', 'form', 'layer', 'dropdown'], function() {
           // 转换数值类型
           formData.submit_algorithm = parseInt(formData.submit_algorithm);
           formData.return_algorithm = parseInt(formData.return_algorithm);
-          formData.id = parseInt(formData.id);
 
           $.ajax({
             url: '/admin/api/apis/update',

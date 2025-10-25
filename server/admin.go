@@ -44,12 +44,17 @@ func RegisterAdminRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/admin/settings", adminctl.AdminAuthRequired(adminctl.SettingsFragmentHandler))
 	mux.HandleFunc("/admin/apps", adminctl.AdminAuthRequired(adminctl.AppsFragmentHandler))
 	mux.HandleFunc("/admin/apis", adminctl.AdminAuthRequired(adminctl.APIFragmentHandler))
+	mux.HandleFunc("/admin/variables", adminctl.AdminAuthRequired(adminctl.VariableFragmentHandler))
+
+	// 系统信息API（用于仪表盘定时刷新）
+	mux.HandleFunc("/admin/api/system/info", adminctl.AdminAuthRequired(adminctl.SystemInfoHandler))
 
 	// 个人资料API
 	mux.HandleFunc("/admin/api/user/profile", adminctl.AdminAuthRequired(adminctl.UserProfileQueryHandler))
 	mux.HandleFunc("/admin/api/user/profile/update", adminctl.AdminAuthRequired(adminctl.UserProfileUpdateHandler))
 	mux.HandleFunc("/admin/api/user/password", adminctl.AdminAuthRequired(adminctl.UserPasswordUpdateHandler))
-	// 设置API（需要管理员认证）
+
+	// 系统设置API
 	mux.HandleFunc("/admin/api/settings", adminctl.AdminAuthRequired(adminctl.SettingsQueryHandler))
 	mux.HandleFunc("/admin/api/settings/update", adminctl.AdminAuthRequired(adminctl.SettingsUpdateHandler))
 
@@ -79,6 +84,11 @@ func RegisterAdminRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/admin/api/apis/types", adminctl.AdminAuthRequired(adminctl.APIGetTypesHandler))
 	mux.HandleFunc("/admin/api/apis/generate_keys", adminctl.AdminAuthRequired(adminctl.APIGenerateKeysHandler))
 
-	// 系统信息API（用于仪表盘定时刷新）
-	mux.HandleFunc("/admin/api/system/info", adminctl.AdminAuthRequired(adminctl.SystemInfoHandler))
+	// 变量管理API
+	mux.HandleFunc("/admin/variable/list", adminctl.AdminAuthRequired(adminctl.VariableListHandler))
+	mux.HandleFunc("/admin/variable/apps", adminctl.AdminAuthRequired(adminctl.VariableGetAppsHandler))
+	mux.HandleFunc("/admin/variable/create", adminctl.AdminAuthRequired(adminctl.VariableCreateHandler))
+	mux.HandleFunc("/admin/variable/update", adminctl.AdminAuthRequired(adminctl.VariableUpdateHandler))
+	mux.HandleFunc("/admin/variable/delete", adminctl.AdminAuthRequired(adminctl.VariableDeleteHandler))
+	mux.HandleFunc("/admin/variable/batch_delete", adminctl.AdminAuthRequired(adminctl.VariablesBatchDeleteHandler))
 }

@@ -168,7 +168,7 @@ func APIUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		ID               uint   `json:"id"`
+		UUID             string `json:"uuid"`
 		Status           int    `json:"status"`
 		SubmitAlgorithm  int    `json:"submit_algorithm"`
 		ReturnAlgorithm  int    `json:"return_algorithm"`
@@ -184,8 +184,8 @@ func APIUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 验证必填字段
-	if req.ID == 0 {
-		http.Error(w, "接口ID不能为空", http.StatusBadRequest)
+	if strings.TrimSpace(req.UUID) == "" {
+		http.Error(w, "接口UUID不能为空", http.StatusBadRequest)
 		return
 	}
 
@@ -209,7 +209,7 @@ func APIUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 查找并更新API记录
 	var api models.API
-	if err := db.First(&api, req.ID).Error; err != nil {
+	if err := db.Where("uuid = ?", strings.TrimSpace(req.UUID)).First(&api).Error; err != nil {
 		http.Error(w, "接口不存在", http.StatusNotFound)
 		return
 	}

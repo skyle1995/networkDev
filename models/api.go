@@ -1,7 +1,11 @@
 package models
 
 import (
+	"strings"
 	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // API 接口表模型
@@ -12,6 +16,9 @@ import (
 type API struct {
 	// ID：主键，自增
 	ID uint `gorm:"primaryKey;comment:API接口ID，自增主键" json:"id"`
+
+	// UUID：API接口唯一标识符，自动生成
+	UUID string `gorm:"uniqueIndex;size:36;not null;comment:API接口UUID，唯一标识符" json:"uuid"`
 
 	// API类型（int型）
 	APIType int `gorm:"not null;comment:API类型" json:"api_type"`
@@ -45,6 +52,14 @@ type API struct {
 	// 时间字段
 	CreatedAt time.Time `gorm:"comment:创建时间" json:"created_at"`
 	UpdatedAt time.Time `gorm:"comment:更新时间" json:"updated_at"`
+}
+
+// BeforeCreate 在创建记录前自动生成UUID
+func (api *API) BeforeCreate(tx *gorm.DB) error {
+	if api.UUID == "" {
+		api.UUID = strings.ToUpper(uuid.New().String())
+	}
+	return nil
 }
 
 // TableName 指定表名

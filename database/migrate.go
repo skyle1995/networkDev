@@ -17,7 +17,7 @@ func AutoMigrate() error {
 	if err != nil {
 		return err
 	}
-	if err := db.AutoMigrate(&models.User{}, &models.Settings{}, &models.App{}, &models.API{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &models.Settings{}, &models.App{}, &models.API{}, &models.Variable{}); err != nil {
 		logrus.WithError(err).Error("AutoMigrate 执行失败")
 		return err
 	}
