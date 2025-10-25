@@ -83,8 +83,8 @@
             <input type="text" name="submit_private_key" placeholder="易加密密钥（15-30位整数数组，逗号分隔）" autocomplete="off" class="layui-input" readonly />
           </div>
           <div style="margin-top:8px;">
-            <button type="button" class="layui-btn layui-btn-sm" id="btnGenSubmitKeys">一键生成</button>
-            <span class="layui-word-aux" style="margin-left:8px;">密钥由系统生成，禁止手动输入</span>
+            <button type="button" class="layui-btn layui-btn-sm" id="btnGenSubmitKeys">重新生成</button>
+            <span class="layui-word-aux" style="margin-left:8px;">自动生成密钥，也可手动重新生成</span>
           </div>
         </div>
       </div>
@@ -115,8 +115,8 @@
             <input type="text" name="return_private_key" placeholder="易加密密钥（15-30位整数数组，逗号分隔）" autocomplete="off" class="layui-input" readonly />
           </div>
           <div style="margin-top:8px;">
-            <button type="button" class="layui-btn layui-btn-sm" id="btnGenReturnKeys">一键生成</button>
-            <span class="layui-word-aux" style="margin-left:8px;">密钥由系统生成，禁止手动输入</span>
+            <button type="button" class="layui-btn layui-btn-sm" id="btnGenReturnKeys">重新生成</button>
+            <span class="layui-word-aux" style="margin-left:8px;">自动生成密钥，也可手动重新生成</span>
           </div>
         </div>
       </div>
@@ -254,7 +254,7 @@ layui.use(['table', 'form', 'layer', 'dropdown'], function() {
         width: 180,
         templet: (d) => formatDateTime(d.created_at)
       },
-      { fixed: 'right', title: '操作', toolbar: '#tpl-apis-ops', width: 180 }
+      { fixed: 'right', title: '操作', toolbar: '#tpl-apis-ops', width: 150 }
     ]]
   });
 
@@ -399,12 +399,61 @@ layui.use(['table', 'form', 'layer', 'dropdown'], function() {
     }
   }
 
-  form.on('select(submitAlgorithm)', function(data){ refreshSubmitKeysUI(); });
-  form.on('select(returnAlgorithm)', function(data){ refreshReturnKeysUI(); });
+  // 自动生成密钥函数
+  function autoGenerateKeys(side, algorithm) {
+    if (algorithm === 0) return; // 不加密不需要生成密钥
+    
+    var prefix = side === 'submit' ? 'submit' : 'return';
+    
+    // 先清空所有相关输入框
+    $('[name="' + prefix + '_public_key"]').val('');
+    $('[name="' + prefix + '_private_key"]').val('');
+    
+    $.ajax({
+      url: '/admin/api/apis/generate_keys',
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify({ side: side, algorithm: algorithm }),
+      success: function(res){
+        if (res.success && res.data) {
+          if (algorithm === 1) { // RC4
+            $('[name="' + prefix + '_private_key"]').val(res.data.private_key || '');
+          } else if (algorithm === 4) { // 易加密
+            $('[name="' + prefix + '_private_key"]').val(res.data.private_key || '');
+          } else { // RSA & RSA动态
+            $('[name="' + prefix + '_public_key"]').val(res.data.public_key || '');
+            $('[name="' + prefix + '_private_key"]').val(res.data.private_key || '');
+          }
+          layer.msg('已自动生成' + (side === 'submit' ? '提交' : '返回') + '密钥', {icon: 1, time: 1500});
+        } else {
+          layer.msg(res.message || '自动生成密钥失败', {icon: 2});
+        }
+      },
+      error: function(){ 
+        layer.msg('自动生成密钥失败', {icon: 2}); 
+      }
+    });
+  }
+
+  form.on('select(submitAlgorithm)', function(data){ 
+    refreshSubmitKeysUI(); 
+    var algo = parseInt(data.value);
+    autoGenerateKeys('submit', algo);
+  });
+  form.on('select(returnAlgorithm)', function(data){ 
+    refreshReturnKeysUI(); 
+    var algo = parseInt(data.value);
+    autoGenerateKeys('return', algo);
+  });
 
   $('#btnGenSubmitKeys').on('click', function(){
     var algo = parseInt($('select[name="submit_algorithm"]').val());
     if (algo === 0) { layer.msg('请选择加密算法', {icon: 0}); return; }
+    
+    // 先清空所有相关输入框
+    $('[name="submit_public_key"]').val('');
+    $('[name="submit_private_key"]').val('');
+    
     $.ajax({
       url: '/admin/api/apis/generate_keys',
       type: 'POST',
@@ -430,6 +479,11 @@ layui.use(['table', 'form', 'layer', 'dropdown'], function() {
   $('#btnGenReturnKeys').on('click', function(){
     var algo = parseInt($('select[name="return_algorithm"]').val());
     if (algo === 0) { layer.msg('请选择加密算法', {icon: 0}); return; }
+    
+    // 先清空所有相关输入框
+    $('[name="return_public_key"]').val('');
+    $('[name="return_private_key"]').val('');
+    
     $.ajax({
       url: '/admin/api/apis/generate_keys',
       type: 'POST',
