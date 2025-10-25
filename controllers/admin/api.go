@@ -1,7 +1,6 @@
 package admin
 
 import (
-	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
@@ -42,8 +41,12 @@ func APIListHandler(w http.ResponseWriter, r *http.Request) {
 	// 获取应用UUID参数（用于按应用筛选接口）
 	appUUID := strings.TrimSpace(r.URL.Query().Get("app_uuid"))
 
-	// 获取搜索参数
-	search := strings.TrimSpace(r.URL.Query().Get("search"))
+	// 获取接口类型参数（用于按接口类型筛选）
+	apiTypeStr := strings.TrimSpace(r.URL.Query().Get("api_type"))
+	var apiType int
+	if apiTypeStr != "" {
+		apiType, _ = strconv.Atoi(apiTypeStr)
+	}
 
 	// 构建查询
 	db, err := database.GetDB()
@@ -61,9 +64,9 @@ func APIListHandler(w http.ResponseWriter, r *http.Request) {
 		query = query.Where("app_uuid = ?", appUUID)
 	}
 
-	// 如果有搜索条件，添加搜索
-	if search != "" {
-		query = query.Where("api_key LIKE ? OR app_uuid LIKE ?", "%"+search+"%", "%"+search+"%")
+	// 如果指定了接口类型，则按接口类型筛选
+	if apiType > 0 {
+		query = query.Where("api_type = ?", apiType)
 	}
 
 	// 获取总数
@@ -274,6 +277,48 @@ func APIGetAppsHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+// APIGetTypesHandler 获取接口类型列表API处理器
+func APIGetTypesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// 构建接口类型列表
+	type APITypeItem struct {
+		Value int    `json:"value"`
+		Name  string `json:"name"`
+	}
+
+	var apiTypes []APITypeItem
+	
+	// 获取所有有效的API类型
+	validTypes := []int{
+		models.APITypeGetBulletin, models.APITypeGetUpdateUrl, models.APITypeCheckAppVersion, models.APITypeGetCardInfo,
+		models.APITypeSingleLogin,
+		models.APITypeUserLogin, models.APITypeUserRegin, models.APITypeUserRecharge, models.APITypeCardRegin,
+		models.APITypeLogOut,
+		models.APITypeGetExpired, models.APITypeCheckUserStatus, models.APITypeGetAppData, models.APITypeGetVariable,
+		models.APITypeUpdatePwd, models.APITypeMacChangeBind, models.APITypeIPChangeBind,
+		models.APITypeDisableUser, models.APITypeBlackUser, models.APITypeUserDeductedTime,
+	}
+
+	for _, apiType := range validTypes {
+		apiTypes = append(apiTypes, APITypeItem{
+			Value: apiType,
+			Name:  models.GetAPITypeName(apiType),
+		})
+	}
+
+	response := map[string]interface{}{
+		"success": true,
+		"data":    apiTypes,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
 func APIGenerateKeysHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -372,67 +417,6 @@ func APIGenerateKeysHandler(w http.ResponseWriter, r *http.Request) {
 		"message": "生成成功",
 		"data":    result,
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-func APIResetKeyHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var req struct {
-		ID uint `json:"id"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	if req.ID == 0 {
-		http.Error(w, "接口ID不能为空", http.StatusBadRequest)
-		return
-	}
-
-	db, err := database.GetDB()
-	if err != nil {
-		logrus.WithError(err).Error("Failed to get database connection")
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	var api models.API
-	if err := db.First(&api, req.ID).Error; err != nil {
-		http.Error(w, "接口不存在", http.StatusNotFound)
-		return
-	}
-
-	// 生成新的16位大写十六进制密钥
-	bytes := make([]byte, 8)
-	if _, err := rand.Read(bytes); err != nil {
-		logrus.WithError(err).Error("Failed to generate random API key")
-		http.Error(w, "生成密钥失败", http.StatusInternalServerError)
-		return
-	}
-	newKey := strings.ToUpper(hex.EncodeToString(bytes))
-
-	if err := db.Model(&api).Update("api_key", newKey).Error; err != nil {
-		logrus.WithError(err).Error("Failed to update API key")
-		http.Error(w, "更新密钥失败", http.StatusInternalServerError)
-		return
-	}
-
-	response := map[string]interface{}{
-		"success": true,
-		"message": "接口密钥重置成功",
-		"data": map[string]interface{}{
-			"id":      api.ID,
-			"api_key": newKey,
-		},
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }

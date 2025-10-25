@@ -17,13 +17,14 @@
             </div>
           </div>
           <div class="layui-inline">
-            <label class="layui-form-label">搜索</label>
+            <label class="layui-form-label">接口类型</label>
             <div class="layui-input-inline">
-              <input type="text" name="search" placeholder="API接口/应用UUID" autocomplete="off" class="layui-input" />
+              <select name="api_type" lay-filter="apiTypeSelect">
+                <option value="">请选择接口类型</option>
+              </select>
             </div>
           </div>
           <div class="layui-inline">
-            <button type="button" class="layui-btn" id="btnSearchAPIs">查询</button>
             <button type="button" class="layui-btn layui-btn-primary" id="btnResetAPIs">重置</button>
           </div>
         </div>
@@ -38,7 +39,6 @@
       <script type="text/html" id="tpl-apis-ops">
         <div style="white-space: nowrap;">
           <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
-          <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="reset">重置接口</a>
         </div>
       </script>
       <script type="text/html" id="tpl-apis-status">
@@ -139,7 +139,6 @@ layui.use(['table', 'form', 'layer', 'dropdown'], function() {
   var form = layui.form;
   var layer = layui.layer;
   var dropdown = layui.dropdown;
-
   // 格式化时间函数
   function formatDateTime(dateStr) {
     if (!dateStr) return '-';
@@ -212,21 +211,9 @@ layui.use(['table', 'form', 'layer', 'dropdown'], function() {
     loading: true,
     cols: [[
       { field: 'id', title: 'ID', width: 80, sort: true },
-      { field: 'app_name', title: '应用名称', width: 180 },
-      { field: 'api_type_name', title: '接口类型', width: 120 },
-      { 
-        field: 'api_key', 
-        title: 'API接口', 
-        minWidth: 350, 
-        templet: (d) => {
-          const baseUrl = window.location.protocol + '//' + window.location.host;
-          const fullUrl = baseUrl + '/api/v1/' + d.api_key;
-          return '<span style="font-family: monospace; font-size: 12px; word-break: break-all; cursor: pointer; color: #1E9FFF; text-decoration: underline;" ' +
-                 'onclick="copyToClipboard(\'' + fullUrl + '\')" title="点击复制接口地址">' + 
-                 fullUrl + 
-                 '</span>';
-        }
-      },
+      { field: 'app_name', title: '应用名称', mixWidth: 180 },
+      { field: 'api_type_name', title: '接口类型', mixWidth: 120 },
+
       { 
         field: 'status_name', 
         title: '状态', 
@@ -254,7 +241,13 @@ layui.use(['table', 'form', 'layer', 'dropdown'], function() {
         width: 180,
         templet: (d) => formatDateTime(d.created_at)
       },
-      { fixed: 'right', title: '操作', toolbar: '#tpl-apis-ops', width: 150 }
+      { 
+        field: 'updated_at', 
+        title: '修改时间', 
+        width: 180,
+        templet: (d) => formatDateTime(d.updated_at)
+      },
+      { fixed: 'right', title: '操作', toolbar: '#tpl-apis-ops', width: 70 }
     ]]
   });
 
@@ -283,8 +276,34 @@ layui.use(['table', 'form', 'layer', 'dropdown'], function() {
     });
   }
 
-  // 初始化加载应用列表
+  // 加载接口类型列表到筛选器
+  function loadAPITypes() {
+    $.ajax({
+      url: '/admin/api/apis/types',
+      type: 'GET',
+      success: function(res) {
+        if (res.success && res.data) {
+          var typeSelect = $('select[name="api_type"]').eq(0);
+          // 清空现有选项（保留默认选项）
+          typeSelect.find('option:not(:first)').remove();
+          // 添加接口类型选项
+          res.data.forEach(function(type) {
+            var option = '<option value="' + type.value + '">' + type.name + '</option>';
+            typeSelect.append(option);
+          });
+          // 刷新下拉
+          form.render('select');
+        }
+      },
+      error: function() {
+        layer.msg('加载接口类型列表失败', {icon: 2});
+      }
+    });
+  }
+
+  // 初始化加载应用列表和接口类型列表
   loadApps();
+  loadAPITypes();
 
   // 监听应用选择变化
   form.on('select(appSelect)', function(data) {
@@ -292,7 +311,7 @@ layui.use(['table', 'form', 'layer', 'dropdown'], function() {
     apisTable.reload({
       where: {
         app_uuid: currentAppUUID,
-        search: $('input[name="search"]').val()
+        api_type: $('select[name="api_type"]').val()
       },
       page: {
         curr: 1
@@ -300,14 +319,12 @@ layui.use(['table', 'form', 'layer', 'dropdown'], function() {
     });
   });
 
-  // 搜索功能
-  $('#btnSearchAPIs').on('click', function() {
-    const search = $('input[name="search"]').val();
-    const appUUID = $('select[name="app_uuid"]').eq(0).val();
+  // 监听接口类型选择变化
+  form.on('select(apiTypeSelect)', function(data) {
     apisTable.reload({
       where: {
-        app_uuid: appUUID,
-        search: search
+        app_uuid: $('select[name="app_uuid"]').val(),
+        api_type: data.value
       },
       page: {
         curr: 1
@@ -315,7 +332,7 @@ layui.use(['table', 'form', 'layer', 'dropdown'], function() {
     });
   });
 
-  // 重置搜索
+  // 重置筛选
   $('#btnResetAPIs').on('click', function() {
     $('#apiFilterForm')[0].reset();
     form.render();
@@ -585,37 +602,6 @@ layui.use(['table', 'form', 'layer', 'dropdown'], function() {
           form.render();
         },
         shadeClose: false
-      });
-    } else if (obj.event === 'reset') {
-      layer.confirm('确定重置该接口吗？', {icon: 3, title: '提示'}, function(index) {
-        $.ajax({
-          url: '/admin/api/apis/reset_key',
-          type: 'POST',
-          contentType: 'application/json',
-          data: JSON.stringify({ id: data.id }),
-          success: function(res) {
-            if (res.success) {
-              layer.msg('接口重置成功', {icon: 1});
-              // 更新当前行的密钥显示
-              if (res.data && res.data.api_key) {
-                obj.update({ api_key: res.data.api_key });
-              } else {
-                // 兜底刷新表格
-                apisTable.reload();
-              }
-            } else {
-              layer.msg(res.message || '重置失败', {icon: 2});
-            }
-          },
-          error: function(xhr) {
-            let msg = '重置失败';
-            if (xhr.responseText) {
-              msg = xhr.responseText;
-            }
-            layer.msg(msg, {icon: 2});
-          }
-        });
-        layer.close(index);
       });
     }
   });

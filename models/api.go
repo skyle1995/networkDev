@@ -1,12 +1,7 @@
 package models
 
 import (
-	"crypto/rand"
-	"encoding/hex"
-	"strings"
 	"time"
-
-	"gorm.io/gorm"
 )
 
 // API 接口表模型
@@ -20,9 +15,6 @@ type API struct {
 
 	// API类型（int型）
 	APIType int `gorm:"not null;comment:API类型" json:"api_type"`
-
-	// API密钥
-	APIKey string `gorm:"size:255;not null;uniqueIndex;comment:API密钥，唯一标识" json:"api_key"`
 
 	// 应用UUID，关联到App表
 	AppUUID string `gorm:"size:36;not null;index;comment:关联的应用UUID" json:"app_uuid"`
@@ -53,17 +45,6 @@ type API struct {
 	// 时间字段
 	CreatedAt time.Time `gorm:"comment:创建时间" json:"created_at"`
 	UpdatedAt time.Time `gorm:"comment:更新时间" json:"updated_at"`
-}
-
-// BeforeCreate 在创建记录前自动生成API密钥
-func (api *API) BeforeCreate(tx *gorm.DB) error {
-	if api.APIKey == "" {
-		// 生成16位大写十六进制API密钥
-		bytes := make([]byte, 8) // 8字节 = 16位十六进制字符
-		rand.Read(bytes)
-		api.APIKey = strings.ToUpper(hex.EncodeToString(bytes))
-	}
-	return nil
 }
 
 // TableName 指定表名

@@ -76,7 +76,7 @@ func RegisterAdminRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/admin/api/apis/list", adminctl.AdminAuthRequired(adminctl.APIListHandler))
 	mux.HandleFunc("/admin/api/apis/update", adminctl.AdminAuthRequired(adminctl.APIUpdateHandler))
 	mux.HandleFunc("/admin/api/apis/apps", adminctl.AdminAuthRequired(adminctl.APIGetAppsHandler))
-	mux.HandleFunc("/admin/api/apis/reset_key", adminctl.AdminAuthRequired(adminctl.APIResetKeyHandler))
+	mux.HandleFunc("/admin/api/apis/types", adminctl.AdminAuthRequired(adminctl.APIGetTypesHandler))
 	mux.HandleFunc("/admin/api/apis/generate_keys", adminctl.AdminAuthRequired(adminctl.APIGenerateKeysHandler))
 
 	// 系统信息API（用于仪表盘定时刷新）
