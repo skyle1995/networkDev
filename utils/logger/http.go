@@ -50,10 +50,16 @@ func (l *Logger) LogRequestWithHeaders(method, path, clientIP string, statusCode
 	l.writeHTTPLog(logLine)
 }
 
-// writeHTTPLog 直接输出HTTP日志到标准输出
+// writeHTTPLog 输出HTTP日志到标准输出和配置的日志文件
 // 避免Logrus的任何格式化和转义，保持Apache日志格式的原始性
 // logLine: 格式化后的日志行
 func (l *Logger) writeHTTPLog(logLine string) {
-	// 直接输出到标准输出，避免Logrus的转义处理
+	// 输出到标准输出
 	fmt.Fprintln(os.Stdout, logLine)
+	
+	// 同时输出到logrus配置的输出目标（包括文件）
+	// 使用logrus的输出目标，但不经过格式化器
+	if l.Logger.Out != nil && l.Logger.Out != os.Stdout {
+		fmt.Fprintln(l.Logger.Out, logLine)
+	}
 }

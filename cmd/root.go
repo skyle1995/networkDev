@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var cfgFile string
@@ -84,7 +85,7 @@ func initConfig() {
 }
 
 // setupLogrusFromConfig 根据配置文件进一步配置logrus
-// 设置日志级别和输出目标
+// 设置日志级别和输出目标，支持日志切割功能
 func setupLogrusFromConfig() {
 	// 设置日志级别
 	if level := viper.GetString("log.level"); level != "" {
@@ -98,14 +99,30 @@ func setupLogrusFromConfig() {
 	if logFile != "" {
 		// 确保日志目录存在
 		logDir := filepath.Dir(logFile)
-		if err := os.MkdirAll(logDir, 0755); err == nil {
-			// 打开日志文件
-			if file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644); err == nil {
-				// 同时输出到控制台和文件
-				multiWriter := io.MultiWriter(os.Stdout, file)
-				logrus.SetOutput(multiWriter)
-			}
+		if err := os.MkdirAll(logDir, 0755); err != nil {
+			logrus.WithError(err).Error("创建日志目录失败")
+			return
 		}
+
+		// 配置lumberjack日志轮转
+		lumberjackLogger := &lumberjack.Logger{
+			Filename:   logFile,
+			MaxSize:    viper.GetInt("log.max_size"),    // MB
+			MaxBackups: viper.GetInt("log.max_backups"), // 保留的旧日志文件数量
+			MaxAge:     viper.GetInt("log.max_age"),     // 天数
+			Compress:   true,                            // 压缩旧日志文件
+		}
+
+		// 同时输出到控制台和文件（带日志切割）
+		multiWriter := io.MultiWriter(os.Stdout, lumberjackLogger)
+		logrus.SetOutput(multiWriter)
+
+		logrus.WithFields(logrus.Fields{
+			"file":        logFile,
+			"max_size":    viper.GetInt("log.max_size"),
+			"max_backups": viper.GetInt("log.max_backups"),
+			"max_age":     viper.GetInt("log.max_age"),
+		}).Info("日志切割功能已启用")
 	}
 	// 当日志文件路径为空时，保持默认输出到控制台，不创建任何目录
 }
