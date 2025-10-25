@@ -10,7 +10,7 @@ import (
 // SeedDefaultAdmin 初始化默认管理员账号
 // - 如果用户名为 admin 的用户已存在，则跳过
 // - 如不存在，则创建用户名为 admin、密码为 admin123（以 bcrypt 哈希存储）、角色 Role=0 的管理员
-// - 根据需求：默认 admin 用户的 ID 固定为 10000
+// - ID和UUID将自动生成
 func SeedDefaultAdmin() error {
 	db, err := GetDB()
 	if err != nil {
@@ -38,9 +38,8 @@ func SeedDefaultAdmin() error {
 		return err
 	}
 
-	// 创建默认管理员（指定固定 ID=10000）
+	// 创建默认管理员（ID和UUID将自动生成）
 	admin := models.User{
-		ID:           10000,
 		Username:     "admin",
 		Password:     hash,
 		PasswordSalt: salt,
@@ -49,6 +48,6 @@ func SeedDefaultAdmin() error {
 	if err := db.Create(&admin).Error; err != nil {
 		return err
 	}
-	logrus.WithField("username", "admin").WithField("id", admin.ID).Info("默认管理员创建成功")
+	logrus.WithField("username", "admin").WithField("uuid", admin.UUID).Info("默认管理员创建成功")
 	return nil
 }

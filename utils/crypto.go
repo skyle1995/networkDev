@@ -299,8 +299,8 @@ func HashPasswordWithSalt(password, salt string) (string, error) {
 	// 将密码和盐值组合
 	combined := password + salt
 
-	// 使用bcrypt进行哈希（成本因子12，平衡安全性和性能）
-	hashed, err := bcrypt.GenerateFromPassword([]byte(combined), 12)
+	// 使用bcrypt进行哈希（成本因子10，平衡安全性和性能）
+	hashed, err := bcrypt.GenerateFromPassword([]byte(combined), 10)
 	if err != nil {
 		return "", err
 	}
@@ -320,4 +320,11 @@ func VerifyPasswordWithSalt(password, salt, hashedPassword string) bool {
 	// 使用bcrypt验证
 	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(combined))
 	return err == nil
+}
+
+// GenerateSHA256Hash 生成字符串的SHA256哈希值
+// 用于生成密码哈希摘要，用于JWT验证
+func GenerateSHA256Hash(input string) string {
+	hash := sha256.Sum256([]byte(input))
+	return fmt.Sprintf("%x", hash)
 }

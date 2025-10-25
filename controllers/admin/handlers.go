@@ -13,8 +13,9 @@ import (
 // AdminIndexHandler /admin 与 /admin/ 根路径入口
 // - 未登录：重定向到 /admin/login
 // - 已登录：渲染后台布局页（或重定向到 /admin/layout）
+// - 自动清理失效的JWT Cookie
 func AdminIndexHandler(w http.ResponseWriter, r *http.Request) {
-	if IsAdminAuthenticated(r) {
+	if IsAdminAuthenticatedWithCleanup(w, r) {
 		// 直接渲染布局页，保持URL为 /admin
 		AdminLayoutHandler(w, r)
 		return

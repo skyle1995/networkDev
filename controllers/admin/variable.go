@@ -40,8 +40,13 @@ func VariableListHandler(w http.ResponseWriter, r *http.Request) {
 	// 获取应用UUID参数（用于按应用筛选变量）
 	appUUID := strings.TrimSpace(r.URL.Query().Get("app_uuid"))
 
-	// 获取别名搜索参数
-	alias := strings.TrimSpace(r.URL.Query().Get("alias"))
+	// 获取搜索关键词参数（支持编号、别名、数据的综合搜索）
+	search := strings.TrimSpace(r.URL.Query().Get("search"))
+	
+	// 兼容旧的别名搜索参数
+	if search == "" {
+		search = strings.TrimSpace(r.URL.Query().Get("alias"))
+	}
 
 	// 构建查询
 	db, err := database.GetDB()
@@ -59,9 +64,10 @@ func VariableListHandler(w http.ResponseWriter, r *http.Request) {
 		query = query.Where("app_uuid = ?", appUUID)
 	}
 
-	// 如果指定了别名搜索，则按别名模糊搜索
-	if alias != "" {
-		query = query.Where("alias LIKE ?", "%"+alias+"%")
+	// 如果指定了搜索关键词，则在编号、别名、数据、备注中进行模糊搜索
+	if search != "" {
+		query = query.Where("number LIKE ? OR alias LIKE ? OR data LIKE ? OR remark LIKE ?", 
+			"%"+search+"%", "%"+search+"%", "%"+search+"%", "%"+search+"%")
 	}
 
 	// 获取总数

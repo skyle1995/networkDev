@@ -2,6 +2,7 @@ package admin
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"networkDev/database"
 	"networkDev/models"
@@ -16,7 +17,7 @@ func UserFragmentHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // UserProfileQueryHandler 查询当前登录管理员的基本信息
-// - 返回 id/username/role 三个字段
+// - 返回 uuid/username/role/created_at 四个字段
 // - 自动刷新接近过期的JWT令牌
 func UserProfileQueryHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -30,10 +31,24 @@ func UserProfileQueryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 查询用户完整信息以获取创建时间
+	db, err := database.GetDB()
+	if err != nil {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "数据库连接失败", nil)
+		return
+	}
+
+	var user models.User
+	if dbErr := db.Where("uuid = ?", claims.UserUUID).First(&user).Error; dbErr != nil {
+		utils.JsonResponse(w, http.StatusNotFound, false, "用户不存在", nil)
+		return
+	}
+
 	utils.JsonResponse(w, http.StatusOK, true, "ok", map[string]interface{}{
-		"id":       claims.UserID,
-		"username": claims.Username,
-		"role":     claims.Role,
+		"uuid":       user.UUID,
+		"username":   user.Username,
+		"role":       user.Role,
+		"created_at": user.CreatedAt,
 	})
 }
 
@@ -91,7 +106,7 @@ func UserPasswordUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 查询当前用户
 	var user models.User
-	if dbErr := db.First(&user, claims.UserID).Error; dbErr != nil {
+	if dbErr := db.Where("uuid = ?", claims.UserUUID).First(&user).Error; dbErr != nil {
 		utils.JsonResponse(w, http.StatusNotFound, false, "用户不存在", nil)
 		return
 	}
@@ -105,30 +120,59 @@ func UserPasswordUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	// 生成新的密码盐值
 	newSalt, err := utils.GenerateRandomSalt()
 	if err != nil {
+		// 添加详细错误日志
+		fmt.Printf("生成密码盐失败: %v\n", err)
 		utils.JsonResponse(w, http.StatusInternalServerError, false, "生成密码盐失败", nil)
 		return
 	}
+	fmt.Printf("成功生成新盐值，长度: %d\n", len(newSalt))
 
 	// 使用新盐值生成密码哈希
 	hash, err := utils.HashPasswordWithSalt(body.NewPassword, newSalt)
 	if err != nil {
+		// 添加详细错误日志
+		fmt.Printf("生成密码哈希失败: %v, 密码长度: %d, 盐值长度: %d\n", err, len(body.NewPassword), len(newSalt))
 		utils.JsonResponse(w, http.StatusInternalServerError, false, "生成密码哈希失败", nil)
 		return
 	}
+	fmt.Printf("成功生成密码哈希，长度: %d\n", len(hash))
 
 	// 更新密码和盐值
-	if err := db.Model(&models.User{}).Where("id = ?", claims.UserID).Updates(map[string]interface{}{
+	if dbErr := db.Model(&models.User{}).Where("uuid = ?", claims.UserUUID).Updates(map[string]interface{}{
 		"password":      hash,
 		"password_salt": newSalt,
-	}).Error; err != nil {
+	}).Error; dbErr != nil {
 		utils.JsonResponse(w, http.StatusInternalServerError, false, "更新密码失败", nil)
 		return
 	}
 
-	// 可选：安全起见，通知前端跳转到登录页
-	utils.JsonResponse(w, http.StatusOK, true, "密码修改成功，请重新登录", map[string]interface{}{
-		"redirect": "/admin/login",
-	})
+	// 重新查询用户信息（包含新密码）
+	var updatedUser models.User
+	if dbErr := db.Where("uuid = ?", claims.UserUUID).First(&updatedUser).Error; dbErr != nil {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "查询用户信息失败", nil)
+		return
+	}
+
+	// 重新生成JWT令牌（包含新的密码哈希摘要）
+	newToken, err := generateJWTToken(updatedUser)
+	if err != nil {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "生成新令牌失败", nil)
+		return
+	}
+
+	// 更新Cookie
+	cookie := &http.Cookie{
+		Name:     "admin_session",
+		Value:    newToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,        // 生产环境应设置为true（HTTPS）
+		MaxAge:   24 * 60 * 60, // 24小时
+	}
+	http.SetCookie(w, cookie)
+
+	// 密码修改成功，已重新生成JWT令牌
+	utils.JsonResponse(w, http.StatusOK, true, "密码修改成功", nil)
 }
 
 // UserProfileUpdateHandler 修改当前登录管理员的用户名
@@ -173,9 +217,9 @@ func UserProfileUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 检查唯一性：排除当前用户ID
+	// 检查唯一性：排除当前用户UUID
 	var cnt int64
-	if dbErr := db.Model(&models.User{}).Where("username = ? AND id <> ?", username, claims.UserID).Count(&cnt).Error; dbErr != nil {
+	if dbErr := db.Model(&models.User{}).Where("username = ? AND uuid <> ?", username, claims.UserUUID).Count(&cnt).Error; dbErr != nil {
 		utils.JsonResponse(w, http.StatusInternalServerError, false, "检查用户名唯一性失败", nil)
 		return
 	}
@@ -199,7 +243,7 @@ func UserProfileUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// 查询当前用户并校验旧密码
 	var user models.User
-	if dbErr := db.First(&user, claims.UserID).Error; dbErr != nil {
+	if dbErr := db.Where("uuid = ?", claims.UserUUID).First(&user).Error; dbErr != nil {
 		utils.JsonResponse(w, http.StatusNotFound, false, "用户不存在", nil)
 		return
 	}
@@ -210,13 +254,13 @@ func UserProfileUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 执行更新
-	if dbErr := db.Model(&models.User{}).Where("id = ?", claims.UserID).Update("username", username).Error; dbErr != nil {
+	if dbErr := db.Model(&models.User{}).Where("uuid = ?", claims.UserUUID).Update("username", username).Error; dbErr != nil {
 		utils.JsonResponse(w, http.StatusInternalServerError, false, "更新用户名失败", nil)
 		return
 	}
 
 	// 重新签发JWT并写入Cookie
-	newUser := models.User{ID: claims.UserID, Username: username, Role: claims.Role}
+	newUser := models.User{UUID: claims.UserUUID, Username: username, Role: claims.Role}
 	token, err := generateJWTToken(newUser)
 	if err != nil {
 		utils.JsonResponse(w, http.StatusInternalServerError, false, "生成新令牌失败", nil)

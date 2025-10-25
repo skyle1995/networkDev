@@ -22,7 +22,7 @@
           <div class="layui-inline">
             <label class="layui-form-label">搜索</label>
             <div class="layui-input-inline">
-              <input type="text" name="search" placeholder="变量别名/数据" autocomplete="off" class="layui-input" />
+              <input type="text" name="search" placeholder="变量编号/别名/数据/备注" autocomplete="off" class="layui-input" />
             </div>
           </div>
           <div class="layui-inline">
@@ -210,7 +210,7 @@
            variablesTable.reload({
              where: {
                app_uuid: data.value,
-               alias: $('input[name="search"]').val()
+               search: $('input[name="search"]').val()
              },
              page: {
                curr: 1
@@ -223,7 +223,7 @@
           variablesTable.reload({
             where: {
               app_uuid: $('select[name="app_uuid"]').val(),
-              alias: $('input[name="search"]').val()
+              search: $('input[name="search"]').val()
             },
             page: {
               curr: 1
