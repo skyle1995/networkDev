@@ -176,28 +176,75 @@ networkDev/
 
 ### 配置说明
 
-主要配置文件位于 `config/config.json`，包含以下配置项：
+主要配置文件位于 `config.json`，包含以下配置项：
 
-- **服务器配置**: 端口、主机地址等
-- **数据库配置**: 数据库类型、连接参数等
-- **Redis 配置**: Redis 连接参数
-- **JWT 配置**: JWT 密钥和过期时间
-- **日志配置**: 日志级别和输出方式
+#### 服务器配置 (server)
+- `host`: 服务器监听地址，默认 `0.0.0.0`
+- `port`: 服务器端口，默认 `8080`
+- `dist`: Web 资源目录，默认 `./web/`
+- `dev_mode`: 开发模式开关
+
+#### 数据库配置 (database)
+- `type`: 数据库类型，支持 `sqlite` 或 `mysql`
+- `mysql`: MySQL 数据库连接配置
+  - `host`, `port`, `username`, `password`, `database`
+  - `charset`: 字符集，默认 `utf8mb4`
+  - `max_idle_conns`, `max_open_conns`: 连接池配置
+- `sqlite`: SQLite 数据库配置
+  - `path`: 数据库文件路径，默认 `./database.db`
+
+#### Redis 配置 (redis)
+- `host`: Redis 服务器地址
+- `port`: Redis 端口
+- `password`: Redis 密码
+- `db`: Redis 数据库编号
+
+#### 日志配置 (log)
+- `level`: 日志级别 (debug, info, warn, error)
+- `file`: 日志文件路径
+- `max_size`: 单个日志文件最大大小 (MB)
+- `max_backups`: 保留的日志文件数量
+- `max_age`: 日志文件保留天数
+
+#### 安全配置 (security)
+- `jwt_secret`: JWT 签名密钥
+- `encryption_key`: 数据加密密钥
+- `jwt_refresh`: JWT 刷新时间 (小时)
+- `cookie`: Cookie 安全配置
+  - `secure`: HTTPS 安全标志
+  - `same_site`: SameSite 策略
+  - `domain`: Cookie 域名
+  - `max_age`: Cookie 过期时间 (秒)
 
 ### 命令行工具
 
-项目提供了命令行工具支持：
+项目基于 Cobra CLI 框架，提供了丰富的命令行工具支持：
 
 ```bash
+# 查看帮助信息
+./networkDev --help
+
 # 启动服务器
+./networkDev server
+
+# 指定配置文件启动
+./networkDev --config ./config.json server
+
+# 指定端口启动 (覆盖配置文件)
+./networkDev server -p 8080
+
+# 指定主机和端口 (覆盖配置文件)
+./networkDev server -H 0.0.0.0 -p 8080
+
+# 使用 go run 方式
 go run main.go server
-
-# 指定端口启动
-go run main.go server -p 8080
-
-# 指定主机和端口
-go run main.go server -H 0.0.0.0 -p 8080
+go run main.go --config ./config.json server
 ```
+
+#### 可用参数
+- `--config`: 指定配置文件路径，默认为 `./config.json`
+- `-H, --host`: 服务器监听地址，覆盖配置文件设置
+- `-p, --port`: 服务器监听端口，覆盖配置文件设置
 
 ## API 文档
 
