@@ -374,8 +374,8 @@
               title: '应用状态',
               width: 100,
               templet: (d) => {
-                if (d.status === 1) return '<span style="color: #5FB878;">启用</span>';
-                return '<span style="color: #FF5722;">禁用</span>';
+                const checked = d.status === 1 ? 'checked' : '';
+                return `<input type="checkbox" name="app-status-${d.id}" lay-skin="switch" lay-text="启用|禁用" ${checked} lay-filter="app-status-switch" data-id="${d.id}">`;
               }
             },
             {
@@ -1191,6 +1191,35 @@
             },
             error: function (xhr) {
               layer.msg(xhr.responseText || '批量禁用失败', { icon: 2 });
+            }
+          });
+        });
+
+        // 应用状态switch开关事件监听
+        form.on('switch(app-status-switch)', function(data) {
+          const appId = data.elem.getAttribute('data-id');
+          const status = data.elem.checked ? 1 : 0;
+          
+          $.ajax({
+            url: '/admin/api/apps/update_status',
+            type: 'POST',
+            data: JSON.stringify({ id: parseInt(appId), status: status }),
+            contentType: 'application/json',
+            success: function (res) {
+              if (res.code === 0) {
+                layer.msg(res.msg || '状态更新成功', { icon: 1 });
+              } else {
+                layer.msg(res.msg || '状态更新失败', { icon: 2 });
+                // 如果更新失败，恢复开关状态
+                data.elem.checked = !data.elem.checked;
+                form.render('checkbox');
+              }
+            },
+            error: function (xhr) {
+              layer.msg(xhr.responseText || '状态更新失败', { icon: 2 });
+              // 如果更新失败，恢复开关状态
+              data.elem.checked = !data.elem.checked;
+              form.render('checkbox');
             }
           });
         });

@@ -339,25 +339,25 @@ func AppCreateHandler(c *gin.Context) {
 
 	// 为应用创建所有默认接口
 	defaultAPITypes := []int{
-		models.APITypeGetBulletin,     // 获取程序公告
-		models.APITypeGetUpdateUrl,    // 获取更新地址
-		models.APITypeCheckAppVersion, // 检测最新版本
-		models.APITypeGetCardInfo,     // 获取卡密信息
-		models.APITypeSingleLogin,     // 卡密登录
-		models.APITypeUserLogin,       // 用户登录
-		models.APITypeUserRegin,       // 用户注册
-		models.APITypeUserRecharge,    // 用户充值
-		models.APITypeCardRegin,       // 卡密注册
-		models.APITypeLogOut,          // 退出登录
-		models.APITypeGetExpired,      // 获取到期时间
-		models.APITypeCheckUserStatus, // 检测账号状态
-		models.APITypeGetAppData,      // 获取程序数据
-		models.APITypeGetVariable,     // 获取变量数据
-		models.APITypeUpdatePwd,       // 修改账号密码
-		models.APITypeMacChangeBind,   // 机器码转绑
-		models.APITypeIPChangeBind,    // IP转绑
-		models.APITypeDisableUser,     // 封停用户
-		models.APITypeBlackUser,       // 添加黑名单
+		models.APITypeGetBulletin,      // 获取程序公告
+		models.APITypeGetUpdateUrl,     // 获取更新地址
+		models.APITypeCheckAppVersion,  // 检测最新版本
+		models.APITypeGetCardInfo,      // 获取卡密信息
+		models.APITypeSingleLogin,      // 卡密登录
+		models.APITypeUserLogin,        // 用户登录
+		models.APITypeUserRegin,        // 用户注册
+		models.APITypeUserRecharge,     // 用户充值
+		models.APITypeCardRegin,        // 卡密注册
+		models.APITypeLogOut,           // 退出登录
+		models.APITypeGetExpired,       // 获取到期时间
+		models.APITypeCheckUserStatus,  // 检测账号状态
+		models.APITypeGetAppData,       // 获取程序数据
+		models.APITypeGetVariable,      // 获取变量数据
+		models.APITypeUpdatePwd,        // 修改账号密码
+		models.APITypeMacChangeBind,    // 机器码转绑
+		models.APITypeIPChangeBind,     // IP转绑
+		models.APITypeDisableUser,      // 封停用户
+		models.APITypeBlackUser,        // 添加黑名单
 		models.APITypeUserDeductedTime, // 扣除时间
 	}
 
@@ -366,7 +366,7 @@ func AppCreateHandler(c *gin.Context) {
 		api := models.API{
 			APIType:         apiType,
 			AppUUID:         app.UUID,
-			Status:          1, // 默认启用
+			Status:          0,                    // 默认禁用
 			SubmitAlgorithm: models.AlgorithmNone, // 默认不加密
 			ReturnAlgorithm: models.AlgorithmNone, // 默认不加密
 		}
@@ -928,18 +928,18 @@ func AppGetBindConfigHandler(c *gin.Context) {
 		"code": 0,
 		"msg":  "获取绑定配置成功",
 		"data": gin.H{
-			"machine_verify":          app.MachineVerify,
-			"machine_rebind_enabled":  app.MachineRebindEnabled,
-			"machine_rebind_limit":    app.MachineRebindLimit,
-			"machine_free_count":      app.MachineFreeCount,
-			"machine_rebind_count":    app.MachineRebindCount,
-			"machine_rebind_deduct":   app.MachineRebindDeduct,
-			"ip_verify":               app.IPVerify,
-			"ip_rebind_enabled":       app.IPRebindEnabled,
-			"ip_rebind_limit":         app.IPRebindLimit,
-			"ip_free_count":           app.IPFreeCount,
-			"ip_rebind_count":         app.IPRebindCount,
-			"ip_rebind_deduct":        app.IPRebindDeduct,
+			"machine_verify":         app.MachineVerify,
+			"machine_rebind_enabled": app.MachineRebindEnabled,
+			"machine_rebind_limit":   app.MachineRebindLimit,
+			"machine_free_count":     app.MachineFreeCount,
+			"machine_rebind_count":   app.MachineRebindCount,
+			"machine_rebind_deduct":  app.MachineRebindDeduct,
+			"ip_verify":              app.IPVerify,
+			"ip_rebind_enabled":      app.IPRebindEnabled,
+			"ip_rebind_limit":        app.IPRebindLimit,
+			"ip_free_count":          app.IPFreeCount,
+			"ip_rebind_count":        app.IPRebindCount,
+			"ip_rebind_deduct":       app.IPRebindDeduct,
 		},
 	})
 }
@@ -948,19 +948,19 @@ func AppGetBindConfigHandler(c *gin.Context) {
 func AppUpdateBindConfigHandler(c *gin.Context) {
 	// 解析请求体
 	var req struct {
-		UUID                   string `json:"uuid"`
-		MachineVerify          int    `json:"machine_verify"`
-		MachineRebindEnabled   int    `json:"machine_rebind_enabled"`
-		MachineRebindLimit     int    `json:"machine_rebind_limit"`
-		MachineFreeCount       int    `json:"machine_free_count"`
-		MachineRebindCount     int    `json:"machine_rebind_count"`
-		MachineRebindDeduct    int    `json:"machine_rebind_deduct"`
-		IPVerify               int    `json:"ip_verify"`
-		IPRebindEnabled        int    `json:"ip_rebind_enabled"`
-		IPRebindLimit          int    `json:"ip_rebind_limit"`
-		IPFreeCount            int    `json:"ip_free_count"`
-		IPRebindCount          int    `json:"ip_rebind_count"`
-		IPRebindDeduct         int    `json:"ip_rebind_deduct"`
+		UUID                 string `json:"uuid"`
+		MachineVerify        int    `json:"machine_verify"`
+		MachineRebindEnabled int    `json:"machine_rebind_enabled"`
+		MachineRebindLimit   int    `json:"machine_rebind_limit"`
+		MachineFreeCount     int    `json:"machine_free_count"`
+		MachineRebindCount   int    `json:"machine_rebind_count"`
+		MachineRebindDeduct  int    `json:"machine_rebind_deduct"`
+		IPVerify             int    `json:"ip_verify"`
+		IPRebindEnabled      int    `json:"ip_rebind_enabled"`
+		IPRebindLimit        int    `json:"ip_rebind_limit"`
+		IPFreeCount          int    `json:"ip_free_count"`
+		IPRebindCount        int    `json:"ip_rebind_count"`
+		IPRebindDeduct       int    `json:"ip_rebind_deduct"`
 	}
 
 	if !appBaseController.BindJSON(c, &req) {
@@ -1005,18 +1005,18 @@ func AppUpdateBindConfigHandler(c *gin.Context) {
 
 	// 更新绑定配置
 	updates := map[string]interface{}{
-		"machine_verify":          req.MachineVerify,
-		"machine_rebind_enabled":  req.MachineRebindEnabled,
-		"machine_rebind_limit":    req.MachineRebindLimit,
-		"machine_free_count":      req.MachineFreeCount,
-		"machine_rebind_count":    req.MachineRebindCount,
-		"machine_rebind_deduct":   req.MachineRebindDeduct,
-		"ip_verify":               req.IPVerify,
-		"ip_rebind_enabled":       req.IPRebindEnabled,
-		"ip_rebind_limit":         req.IPRebindLimit,
-		"ip_free_count":           req.IPFreeCount,
-		"ip_rebind_count":         req.IPRebindCount,
-		"ip_rebind_deduct":        req.IPRebindDeduct,
+		"machine_verify":         req.MachineVerify,
+		"machine_rebind_enabled": req.MachineRebindEnabled,
+		"machine_rebind_limit":   req.MachineRebindLimit,
+		"machine_free_count":     req.MachineFreeCount,
+		"machine_rebind_count":   req.MachineRebindCount,
+		"machine_rebind_deduct":  req.MachineRebindDeduct,
+		"ip_verify":              req.IPVerify,
+		"ip_rebind_enabled":      req.IPRebindEnabled,
+		"ip_rebind_limit":        req.IPRebindLimit,
+		"ip_free_count":          req.IPFreeCount,
+		"ip_rebind_count":        req.IPRebindCount,
+		"ip_rebind_deduct":       req.IPRebindDeduct,
 	}
 
 	if err := db.Model(&app).Updates(updates).Error; err != nil {
@@ -1332,5 +1332,69 @@ func AppsBatchUpdateStatusHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": 0,
 		"msg":  "批量" + statusText + "成功",
+	})
+}
+
+// AppUpdateStatusHandler 更新单个应用状态处理器
+func AppUpdateStatusHandler(c *gin.Context) {
+	var req struct {
+		ID     uint `json:"id"`
+		Status int  `json:"status"`
+	}
+
+	if !appBaseController.BindJSON(c, &req) {
+		return
+	}
+
+	if req.ID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code": 1,
+			"msg":  "应用ID不能为空",
+		})
+		return
+	}
+
+	if req.Status != 0 && req.Status != 1 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code": 1,
+			"msg":  "状态值无效",
+		})
+		return
+	}
+
+	// 获取数据库连接
+	db, ok := appBaseController.GetDB(c)
+	if !ok {
+		return
+	}
+
+	// 检查应用是否存在
+	var app models.App
+	if err := db.Where("id = ?", req.ID).First(&app).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code": 1,
+			"msg":  "应用不存在",
+		})
+		return
+	}
+
+	// 更新状态
+	if err := db.Model(&app).Update("status", req.Status).Error; err != nil {
+		logrus.WithError(err).Error("Failed to update app status")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code": 1,
+			"msg":  "更新状态失败",
+		})
+		return
+	}
+
+	statusText := "禁用"
+	if req.Status == 1 {
+		statusText = "启用"
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 0,
+		"msg":  "应用" + statusText + "成功",
 	})
 }

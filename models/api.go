@@ -27,7 +27,7 @@ type API struct {
 	AppUUID string `gorm:"size:36;not null;index;comment:关联的应用UUID" json:"app_uuid"`
 
 	// 接口状态（1=启用，0=禁用）
-	Status int `gorm:"default:1;not null;comment:接口状态，1=启用，0=禁用" json:"status"`
+	Status int `gorm:"default:0;not null;comment:接口状态，1=启用，0=禁用" json:"status"`
 
 	// 接口提交算法
 	// 支持的算法：0=不加密，1=RC4，2=RSA，3=RSA（动态），4=易加密

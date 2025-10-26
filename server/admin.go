@@ -81,6 +81,7 @@ func RegisterAdminRoutes(router *gin.Engine) {
 	router.POST("/admin/api/apps/delete", adminctl.AdminAuthRequired(), adminctl.AppDeleteHandler)
 	router.POST("/admin/api/apps/batch_delete", adminctl.AdminAuthRequired(), adminctl.AppsBatchDeleteHandler)
 	router.POST("/admin/api/apps/batch_update_status", adminctl.AdminAuthRequired(), adminctl.AppsBatchUpdateStatusHandler)
+	router.POST("/admin/api/apps/update_status", adminctl.AdminAuthRequired(), adminctl.AppUpdateStatusHandler)
 	router.POST("/admin/api/apps/reset_secret", adminctl.AdminAuthRequired(), adminctl.AppResetSecretHandler)
 	router.GET("/admin/api/apps/get_app_data", adminctl.AdminAuthRequired(), adminctl.AppGetAppDataHandler)
 	router.POST("/admin/api/apps/update_app_data", adminctl.AdminAuthRequired(), adminctl.AppUpdateAppDataHandler)
@@ -96,6 +97,7 @@ func RegisterAdminRoutes(router *gin.Engine) {
 	// API接口管理API
 	router.GET("/admin/api/apis/list", adminctl.AdminAuthRequired(), adminctl.APIListHandler)
 	router.POST("/admin/api/apis/update", adminctl.AdminAuthRequired(), adminctl.APIUpdateHandler)
+	router.POST("/admin/api/apis/update_status", adminctl.AdminAuthRequired(), adminctl.APIUpdateStatusHandler)
 	router.GET("/admin/api/apis/apps", adminctl.AdminAuthRequired(), adminctl.APIGetAppsHandler)
 	router.GET("/admin/api/apis/types", adminctl.AdminAuthRequired(), adminctl.APIGetTypesHandler)
 	router.POST("/admin/api/apis/generate_keys", adminctl.AdminAuthRequired(), adminctl.APIGenerateKeysHandler)

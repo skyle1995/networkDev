@@ -105,6 +105,9 @@ func createHTTPServer(addr string) *http.Server {
 	// 添加日志中间件
 	router.Use(middleware.WrapHandler())
 
+	// 添加开发模式中间件（统一管理开发模式功能）
+	router.Use(middleware.DevModeMiddleware(router))
+
 	// 加载模板
 	if err := loadTemplates(router); err != nil {
 		logrus.WithError(err).Fatal("模板加载失败")

@@ -226,10 +226,10 @@
         {
           field: 'status_name',
           title: '状态',
-          width: 80,
+          width: 100,
           templet: (d) => {
-            if (d.status === 1) return '<span style="color: #5FB878;">启用</span>';
-            return '<span style="color: #FF5722;">禁用</span>';
+            const checked = d.status === 1 ? 'checked' : '';
+            return `<input type="checkbox" ${checked} lay-skin="switch" lay-text="启用|禁用" lay-filter="api-status-switch" data-id="${d.id}">`;
           }
         },
         {
@@ -624,6 +624,35 @@
           shadeClose: false
         });
       }
+    });
+
+    // 接口状态switch开关事件监听
+    form.on('switch(api-status-switch)', function(data) {
+      const apiId = data.elem.getAttribute('data-id');
+      const status = data.elem.checked ? 1 : 0;
+      
+      $.ajax({
+        url: '/admin/api/apis/update_status',
+        type: 'POST',
+        data: JSON.stringify({ id: parseInt(apiId), status: status }),
+        contentType: 'application/json',
+        success: function (res) {
+          if (res.code === 0) {
+            layer.msg(res.msg || '状态更新成功', { icon: 1 });
+          } else {
+            layer.msg(res.msg || '状态更新失败', { icon: 2 });
+            // 如果更新失败，恢复开关状态
+            data.elem.checked = !data.elem.checked;
+            form.render('checkbox');
+          }
+        },
+        error: function (xhr) {
+          layer.msg(xhr.responseText || '状态更新失败', { icon: 2 });
+          // 如果更新失败，恢复开关状态
+          data.elem.checked = !data.elem.checked;
+          form.render('checkbox');
+        }
+      });
     });
 
   });

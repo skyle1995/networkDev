@@ -65,3 +65,9 @@ func GetStaticFS() (fs.FS, error) { // Go 顶级函数不支持箭头写法
 	}
 	return staticFS, nil
 }
+
+// IsDevMode 检查是否为开发模式
+// 注意：这个函数保留用于向后兼容，建议使用 middleware.IsDevMode()
+func IsDevMode() bool {
+	return viper.GetBool("server.dev_mode")
+}

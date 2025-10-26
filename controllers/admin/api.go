@@ -274,6 +274,55 @@ func APIGetTypesHandler(c *gin.Context) {
 	apiBaseController.HandleSuccess(c, "获取接口类型列表成功", apiTypes)
 }
 
+// APIUpdateStatusHandler 更新单个接口状态处理器
+func APIUpdateStatusHandler(c *gin.Context) {
+	var req struct {
+		ID     uint `json:"id"`
+		Status int  `json:"status"`
+	}
+
+	if !apiBaseController.BindJSON(c, &req) {
+		return
+	}
+
+	if req.ID == 0 {
+		apiBaseController.HandleValidationError(c, "接口ID不能为空")
+		return
+	}
+
+	if req.Status != 0 && req.Status != 1 {
+		apiBaseController.HandleValidationError(c, "状态值无效")
+		return
+	}
+
+	// 获取数据库连接
+	db, ok := apiBaseController.GetDB(c)
+	if !ok {
+		return
+	}
+
+	// 检查接口是否存在
+	var api models.API
+	if err := db.Where("id = ?", req.ID).First(&api).Error; err != nil {
+		apiBaseController.HandleValidationError(c, "接口不存在")
+		return
+	}
+
+	// 更新状态
+	if err := db.Model(&api).Update("status", req.Status).Error; err != nil {
+		logrus.WithError(err).Error("Failed to update API status")
+		apiBaseController.HandleInternalError(c, "更新状态失败", err)
+		return
+	}
+
+	statusText := "禁用"
+	if req.Status == 1 {
+		statusText = "启用"
+	}
+
+	apiBaseController.HandleSuccess(c, "接口"+statusText+"成功", nil)
+}
+
 func APIGenerateKeysHandler(c *gin.Context) {
 	var req struct {
 		Side      string `json:"side"`      // submit | return

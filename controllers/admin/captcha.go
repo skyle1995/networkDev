@@ -9,10 +9,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"networkDev/controllers"
+	"networkDev/middleware"
 	"networkDev/utils"
 
 	"github.com/mojocn/base64Captcha"
-	"github.com/spf13/viper"
 )
 
 // 创建基础控制器实例
@@ -94,7 +94,7 @@ func CaptchaHandler(c *gin.Context) {
 // 支持大小写不敏感匹配
 func VerifyCaptcha(c *gin.Context, captchaValue string) bool {
 	// 检查是否为开发模式，如果是则跳过验证码验证
-	if viper.GetBool("server.dev_mode") {
+	if middleware.ShouldSkipCaptcha(c) {
 		return true
 	}
 	

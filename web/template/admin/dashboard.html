@@ -11,25 +11,31 @@
             <tbody>
               <tr>
                 <td style="width: 120px; font-weight: bold;">程序版本</td>
-                <td><span style="font-size: 18px; font-weight: bold; color: var(--lay-color-normal);">{{ .Version }}</span></td>
+                <td style="height: 20px; vertical-align: middle;">
+                  <span class="layui-badge layui-bg-blue" style="font-size: 14px; padding: 2px 8px; line-height: 1.2;">v{{ .Version }}</span>
+                </td>
               </tr>
               <tr>
                 <td style="font-weight: bold;">存储方案</td>
-                <td><span style="font-size: 18px; font-weight: bold; color: var(--lay-color-info);">{{ .DBType }}</span></td>
+                <td style="height: 20px; vertical-align: middle;">
+                  <span class="layui-badge layui-bg-cyan" style="font-size: 14px; padding: 2px 8px; line-height: 1.2;">{{ .DBType }}</span>
+                </td>
               </tr>
               <tr>
                 <td style="font-weight: bold;">开发模式</td>
-                <td>
+                <td style="height: 20px; vertical-align: middle;">
                   {{ if .Mode }}
-                    <span style="font-size: 18px; font-weight: bold; color: var(--lay-color-danger);">开启</span>
+                    <span class="layui-badge layui-bg-orange" style="font-size: 14px; padding: 2px 8px; line-height: 1.2;">开启</span>
                   {{ else }}
-                    <span style="font-size: 18px; font-weight: bold; color: var(--lay-color-success);">关闭</span>
+                    <span class="layui-badge layui-bg-green" style="font-size: 14px; padding: 2px 8px; line-height: 1.2;">关闭</span>
                   {{ end }}
                 </td>
               </tr>
               <tr>
                 <td style="font-weight: bold;">运行时长</td>
-                <td><span id="uptime-display" style="font-size: 18px; font-weight: bold; color: var(--lay-color-normal);">{{ .Uptime }}</span></td>
+                <td style="height: 20px; vertical-align: middle;">
+                  <span id="uptime-display" class="layui-badge layui-bg-gray" style="font-size: 14px; padding: 2px 8px; line-height: 1.2;">{{ .Uptime }}</span>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -46,19 +52,27 @@
             <tbody>
               <tr>
                 <td style="width: 120px; font-weight: bold;">全部应用</td>
-                <td><span id="total-apps" style="font-size: 18px; font-weight: bold;">0</span></td>
+                <td style="height: 20px; vertical-align: middle;">
+                  <span id="total-apps" class="layui-badge" style="font-size: 14px; padding: 2px 8px; min-width: 30px; text-align: center; line-height: 1.2;">0</span>
+                </td>
               </tr>
               <tr>
                 <td style="font-weight: bold;">启用应用</td>
-                <td><span id="enabled-apps" style="font-size: 18px; font-weight: bold; color: var(--lay-color-success);">0</span></td>
+                <td style="height: 20px; vertical-align: middle;">
+                  <span id="enabled-apps" class="layui-badge layui-bg-green" style="font-size: 14px; padding: 2px 8px; min-width: 30px; text-align: center; line-height: 1.2;">0</span>
+                </td>
               </tr>
               <tr>
                 <td style="font-weight: bold;">禁用应用</td>
-                <td><span id="disabled-apps" style="font-size: 18px; font-weight: bold; color: var(--lay-color-danger);">0</span></td>
+                <td style="height: 20px; vertical-align: middle;">
+                  <span id="disabled-apps" class="layui-badge layui-bg-orange" style="font-size: 14px; padding: 2px 8px; min-width: 30px; text-align: center; line-height: 1.2;">0</span>
+                </td>
               </tr>
               <tr>
                 <td style="font-weight: bold;">变量数量</td>
-                <td><span id="total-variables" style="font-size: 18px; font-weight: bold; color: var(--lay-color-info);">0</span></td>
+                <td style="height: 20px; vertical-align: middle;">
+                  <span id="total-variables" class="layui-badge layui-bg-blue" style="font-size: 14px; padding: 2px 8px; min-width: 30px; text-align: center; line-height: 1.2;">0</span>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -98,9 +112,19 @@
       $.get('/admin/api/system/info', (res) => {
         if (res && res.code === 0 && res.data) {
           const data = res.data;
-          // 更新运行时长
+          // 更新运行时长，保持徽章样式
           if (data.uptime) {
-            $('#uptime-display').text(data.uptime);
+            const uptimeElement = $('#uptime-display');
+            uptimeElement.text(data.uptime);
+            // 确保徽章样式保持一致
+            if (!uptimeElement.hasClass('layui-badge')) {
+              uptimeElement.addClass('layui-badge layui-bg-gray');
+              uptimeElement.css({
+              'font-size': '14px',
+              'padding': '2px 8px',
+              'line-height': '1.2'
+            });
+            }
           }
         }
       }).fail(() => {

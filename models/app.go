@@ -25,7 +25,7 @@ type App struct {
 	// UUID：应用唯一标识符，自动生成
 	UUID string `gorm:"uniqueIndex;size:36;not null;comment:应用UUID，唯一标识符" json:"uuid"`
 	// Status：状态（1=启用，0=禁用）；json 名称与前端一致
-	Status int `gorm:"default:1;not null;comment:应用状态，1=启用，0=禁用" json:"status"`
+	Status int `gorm:"default:0;not null;comment:应用状态，1=启用，0=禁用" json:"status"`
 	// Name：应用名称；json 名称与前端一致
 	Name string `gorm:"size:100;not null;comment:应用名称" json:"name"`
 	// Secret：应用密钥，用于API认证

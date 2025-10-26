@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"networkDev/constants"
 	"networkDev/controllers"
+	"networkDev/middleware"
 	"networkDev/models"
 	"networkDev/services"
 	"networkDev/utils"
@@ -97,7 +98,7 @@ func AdminLayoutHandler(c *gin.Context) {
 // - 展示系统信息：版本、开发模式、数据库类型、启动时长
 func DashboardFragmentHandler(c *gin.Context) {
 	version := constants.AppVersion
-	mode := viper.GetBool("server.dev_mode")
+	mode := middleware.IsDevModeFromContext(c)
 	dbType := viper.GetString("database.type")
 	if dbType == "" {
 		dbType = "sqlite"
@@ -118,7 +119,7 @@ func DashboardFragmentHandler(c *gin.Context) {
 // - 返回系统运行状态的JSON数据，用于前端定时刷新
 func SystemInfoHandler(c *gin.Context) {
 	version := constants.AppVersion
-	mode := viper.GetBool("server.dev_mode")
+	mode := middleware.IsDevModeFromContext(c)
 	dbType := viper.GetString("database.type")
 	if dbType == "" {
 		dbType = "sqlite"
