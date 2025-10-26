@@ -2,37 +2,66 @@
 <section>
   <h2>系统信息</h2>
   <div class="layui-row layui-col-space15" style="margin-top:12px">
-    <div class="layui-col-md6">
-      <div class="layui-card">
-        <div class="layui-card-header">基本信息</div>
-        <div class="layui-card-body">
-          <div class="system-info-grid">
-            <div class="system-info-item">
-              <div class="system-info-label">版本</div>
-              <div class="system-info-value">{{ .Version }}</div>
-            </div>
-            <div class="system-info-item">
-              <div class="system-info-label">运行模式</div>
-              <div class="system-info-value">{{ .Mode }}</div>
-            </div>
-          </div>
+    <!-- 系统信息面板 -->
+    <div class="layui-col-md8">
+      <div class="layui-panel">
+        <div style="padding: 20px;">
+          <h3 style="margin-top: 0; margin-bottom: 15px; font-weight: bold; border-bottom: 1px solid var(--lay-color-border-2); padding-bottom: 10px;">系统信息</h3>
+          <table class="layui-table" lay-skin="nob">
+            <tbody>
+              <tr>
+                <td style="width: 120px; font-weight: bold;">程序版本</td>
+                <td><span style="font-size: 18px; font-weight: bold; color: var(--lay-color-normal);">{{ .Version }}</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight: bold;">存储方案</td>
+                <td><span style="font-size: 18px; font-weight: bold; color: var(--lay-color-info);">{{ .DBType }}</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight: bold;">开发模式</td>
+                <td>
+                  {{ if .Mode }}
+                    <span style="font-size: 18px; font-weight: bold; color: var(--lay-color-danger);">开启</span>
+                  {{ else }}
+                    <span style="font-size: 18px; font-weight: bold; color: var(--lay-color-success);">关闭</span>
+                  {{ end }}
+                </td>
+              </tr>
+              <tr>
+                <td style="font-weight: bold;">运行时长</td>
+                <td><span id="uptime-display" style="font-size: 18px; font-weight: bold; color: var(--lay-color-normal);">{{ .Uptime }}</span></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
-    <div class="layui-col-md6">
-      <div class="layui-card">
-        <div class="layui-card-header">运行状态</div>
-        <div class="layui-card-body">
-          <div class="system-info-grid">
-            <div class="system-info-item">
-              <div class="system-info-label">数据库</div>
-              <div class="system-info-value">{{ .DBType }}</div>
-            </div>
-            <div class="system-info-item">
-              <div class="system-info-label">运行时长</div>
-              <div class="system-info-value">{{ .Uptime }}</div>
-            </div>
-          </div>
+    
+    <!-- 应用统计面板 -->
+    <div class="layui-col-md4">
+      <div class="layui-panel">
+        <div style="padding: 20px;">
+          <h3 style="margin-top: 0; margin-bottom: 15px; font-weight: bold; border-bottom: 1px solid var(--lay-color-border-2); padding-bottom: 10px;">应用统计</h3>
+          <table class="layui-table" lay-skin="nob">
+            <tbody>
+              <tr>
+                <td style="width: 120px; font-weight: bold;">全部应用</td>
+                <td><span id="total-apps" style="font-size: 18px; font-weight: bold;">0</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight: bold;">启用应用</td>
+                <td><span id="enabled-apps" style="font-size: 18px; font-weight: bold; color: var(--lay-color-success);">0</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight: bold;">禁用应用</td>
+                <td><span id="disabled-apps" style="font-size: 18px; font-weight: bold; color: var(--lay-color-danger);">0</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight: bold;">变量数量</td>
+                <td><span id="total-variables" style="font-size: 18px; font-weight: bold; color: var(--lay-color-info);">0</span></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -71,12 +100,7 @@
           const data = res.data;
           // 更新运行时长
           if (data.uptime) {
-            $('.system-info-item').each(function () {
-              const label = $(this).find('.system-info-label').text();
-              if (label === '运行时长') {
-                $(this).find('.system-info-value').text(data.uptime);
-              }
-            });
+            $('#uptime-display').text(data.uptime);
           }
         }
       }).fail(() => {
@@ -84,8 +108,30 @@
       });
     };
 
-    // 立即刷新一次系统信息
+    // 函数：刷新应用统计数据
+    // 说明：请求后台获取应用统计信息并更新页面显示
+    const refreshAppStats = () => {
+      $.get('/admin/api/dashboard/stats', (res) => {
+        if (res && res.code === 0 && res.data) {
+          const data = res.data;
+          $('#total-apps').text(data.total_apps || 0);
+          $('#enabled-apps').text(data.enabled_apps || 0);
+          $('#disabled-apps').text(data.disabled_apps || 0);
+          $('#total-variables').text(data.total_variables || 0);
+        }
+      }).fail(() => {
+        console.log('获取应用统计失败');
+        // 显示默认值
+        $('#total-apps').text('0');
+        $('#enabled-apps').text('0');
+        $('#disabled-apps').text('0');
+        $('#total-variables').text('0');
+      });
+    };
+
+    // 立即刷新一次系统信息和应用统计
     refreshSystemInfo();
+    refreshAppStats();
   });
 </script>
 {{ end }}

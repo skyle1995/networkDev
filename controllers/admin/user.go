@@ -81,11 +81,7 @@ func UserPasswordUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 确认是管理员
-	if !claims.IsAdmin {
-		utils.JsonResponse(w, http.StatusForbidden, false, "权限不足", nil)
-		return
-	}
+	// 注释：由于使用了AdminAuthRequired中间件，已确保是管理员用户
 
 	// 获取数据库连接
 	db, err := database.GetDB()
@@ -176,7 +172,7 @@ func UserProfileUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, _, err := GetCurrentAdminUserWithRefresh(w, r)
+	_, _, err := GetCurrentAdminUserWithRefresh(w, r)
 	if err != nil {
 		utils.JsonResponse(w, http.StatusUnauthorized, false, "未登录或会话已过期", nil)
 		return
@@ -207,11 +203,7 @@ func UserProfileUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 确认当前用户是管理员
-	if !claims.IsAdmin {
-		utils.JsonResponse(w, http.StatusForbidden, false, "权限不足", nil)
-		return
-	}
+	// 注释：由于使用了AdminAuthRequired中间件，已确保是管理员用户
 
 	// 获取所有管理员相关设置
 	var adminSettings []models.Settings

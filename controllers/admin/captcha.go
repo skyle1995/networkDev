@@ -11,6 +11,7 @@ import (
 	"networkDev/utils"
 
 	"github.com/mojocn/base64Captcha"
+	"github.com/spf13/viper"
 )
 
 // 全局验证码存储器
@@ -91,6 +92,11 @@ func CaptchaHandler(w http.ResponseWriter, r *http.Request) {
 // 这个函数将在登录处理中被调用
 // 支持大小写不敏感匹配
 func VerifyCaptcha(r *http.Request, captchaValue string) bool {
+	// 检查是否为开发模式，如果是则跳过验证码验证
+	if viper.GetBool("server.dev_mode") {
+		return true
+	}
+	
 	// 从cookie中获取验证码ID
 	cookie, err := r.Cookie("captcha_id")
 	if err != nil {

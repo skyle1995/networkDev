@@ -54,6 +54,9 @@ func RegisterAdminRoutes(mux *http.ServeMux) {
 	// 系统信息API（用于仪表盘定时刷新）
 	mux.HandleFunc("/admin/api/system/info", adminctl.AdminAuthRequired(adminctl.SystemInfoHandler))
 
+	// 仪表盘统计数据API
+	mux.HandleFunc("/admin/api/dashboard/stats", adminctl.AdminAuthRequired(adminctl.DashboardStatsHandler))
+
 	// 个人资料API
 	mux.HandleFunc("/admin/api/user/profile", adminctl.AdminAuthRequired(adminctl.UserProfileQueryHandler))
 	mux.HandleFunc("/admin/api/user/profile/update", adminctl.AdminAuthRequired(utils.RequireCSRFToken(adminctl.UserProfileUpdateHandler)))

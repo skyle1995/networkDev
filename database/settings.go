@@ -144,7 +144,7 @@ func initDefaultAdmin(db *gorm.DB) error {
 
 	// 如果密码已设置，跳过初始化
 	if passwordSetting.Value != "" {
-		logrus.Info("管理员密码已设置，跳过默认密码初始化")
+		logrus.Debug("管理员密码已设置，跳过默认密码初始化")
 		return nil
 	}
 

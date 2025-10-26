@@ -14,10 +14,10 @@ import (
 // ServerConfig 服务器配置结构体
 // 包含服务器运行相关的配置信息
 type ServerConfig struct {
-	Host string `json:"host" mapstructure:"host"` // 服务器监听地址
-	Port int    `json:"port" mapstructure:"port"` // 服务器监听端口
-	Mode string `json:"mode" mapstructure:"mode"` // 运行模式（debug/release）
-	Dist string `json:"dist" mapstructure:"dist"` // 静态文件目录
+	Host    string `json:"host" mapstructure:"host"`       // 服务器监听地址
+	Port    int    `json:"port" mapstructure:"port"`       // 服务器监听端口
+	Dist    string `json:"dist" mapstructure:"dist"`       // 静态文件目录
+	DevMode bool   `json:"dev_mode" mapstructure:"dev_mode"` // 开发模式（跳过验证码等）
 }
 
 // DatabaseConfig 数据库配置结构体
@@ -78,10 +78,10 @@ type CookieConfig struct {
 // SecurityConfig 安全配置结构体
 // 包含应用程序安全相关的配置信息
 type SecurityConfig struct {
-	JWTSecret                string       `json:"jwt_secret" mapstructure:"jwt_secret"`                                   // JWT签名密钥
-	EncryptionKey            string       `json:"encryption_key" mapstructure:"encryption_key"`                           // 数据加密密钥
-	JWTRefreshThresholdHours int          `json:"jwt_refresh_threshold_hours" mapstructure:"jwt_refresh_threshold_hours"` // JWT令牌刷新阈值（小时）
-	Cookie                   CookieConfig `json:"cookie" mapstructure:"cookie"`                                           // Cookie配置
+	JWTSecret     string       `json:"jwt_secret" mapstructure:"jwt_secret"`         // JWT签名密钥
+	EncryptionKey string       `json:"encryption_key" mapstructure:"encryption_key"` // 数据加密密钥
+	JWTRefresh    int          `json:"jwt_refresh" mapstructure:"jwt_refresh"`       // JWT令牌刷新阈值（小时）
+	Cookie        CookieConfig `json:"cookie" mapstructure:"cookie"`                 // Cookie配置
 }
 
 // AppConfig 应用配置结构体
@@ -97,10 +97,10 @@ type AppConfig struct {
 func GetDefaultAppConfig() *AppConfig {
 	return &AppConfig{
 		Server: ServerConfig{
-			Host: "0.0.0.0",
-			Port: 8080,
-			Mode: "debug",
-			Dist: "",
+			Host:    "0.0.0.0",
+			Port:    8080,
+			Dist:    "",
+			DevMode: false,
 		},
 		Database: DatabaseConfig{
 			Type: "sqlite",
@@ -132,9 +132,9 @@ func GetDefaultAppConfig() *AppConfig {
 			MaxAge:     30,
 		},
 		Security: SecurityConfig{
-			JWTSecret:                "",
-			EncryptionKey:            "",
-			JWTRefreshThresholdHours: 6,
+			JWTSecret:     "",
+			EncryptionKey: "",
+			JWTRefresh:    6,
 			Cookie: CookieConfig{
 				Secure:   true,
 				SameSite: "Lax",

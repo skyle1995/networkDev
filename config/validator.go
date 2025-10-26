@@ -75,12 +75,6 @@ func validateServerConfig(config *ServerConfig) error {
 		return fmt.Errorf("无效的端口号: %d，端口号必须在1-65535之间", config.Port)
 	}
 
-	// 验证运行模式
-	validModes := []string{"debug", "release", "test"}
-	if !contains(validModes, config.Mode) {
-		return fmt.Errorf("无效的运行模式: %s，支持的模式: %s", config.Mode, strings.Join(validModes, ", "))
-	}
-
 	return nil
 }
 
@@ -200,7 +194,7 @@ func validateSecurityConfig(config *SecurityConfig) error {
 		return errors.New("加密密钥长度不能少于16个字符")
 	}
 
-	if config.JWTRefreshThresholdHours < 1 || config.JWTRefreshThresholdHours > 23 {
+	if config.JWTRefresh < 1 || config.JWTRefresh > 23 {
 		return errors.New("JWT令牌刷新阈值必须在1-23小时之间")
 	}
 

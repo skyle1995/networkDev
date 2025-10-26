@@ -3,6 +3,7 @@ package admin
 import (
 	"net/http"
 	"networkDev/database"
+	"networkDev/models"
 	"networkDev/services"
 	"networkDev/utils"
 	"networkDev/utils/timeutil"
@@ -10,7 +11,24 @@ import (
 	"github.com/spf13/viper"
 )
 
-// AdminIndexHandler /admin 与 /admin/ 根路径入口
+// formatDBType 格式化数据库类型显示
+// 将配置文件中的小写类型转换为友好的显示格式
+func formatDBType(dbType string) string {
+	switch dbType {
+	case "mysql":
+		return "MySQL"
+	case "sqlite":
+		return "SQLite"
+	case "postgresql", "postgres":
+		return "PostgreSQL"
+	case "sqlserver":
+		return "SQL Server"
+	default:
+		return "SQLite" // 默认显示
+	}
+}
+
+// AdminIndexHandler 后台首页处理器/admin 与 /admin/ 根路径入口
 // - 未登录：重定向到 /admin/login
 // - 已登录：渲染后台布局页（或重定向到 /admin/layout）
 // - 自动清理失效的JWT Cookie
@@ -71,10 +89,10 @@ func AdminLayoutHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // DashboardFragmentHandler 仪表盘片段渲染
-// - 展示系统信息：版本、运行模式、数据库类型、启动时长
+// - 展示系统信息：版本、开发模式、数据库类型、启动时长
 func DashboardFragmentHandler(w http.ResponseWriter, r *http.Request) {
 	version := "1.0.0"
-	mode := viper.GetString("server.mode")
+	mode := viper.GetBool("server.dev_mode")
 	dbType := viper.GetString("database.type")
 	if dbType == "" {
 		dbType = "sqlite"
@@ -84,7 +102,7 @@ func DashboardFragmentHandler(w http.ResponseWriter, r *http.Request) {
 	data := map[string]interface{}{
 		"Version": version,
 		"Mode":    mode,
-		"DBType":  dbType,
+		"DBType":  formatDBType(dbType),
 		"Uptime":  uptime,
 	}
 
@@ -100,7 +118,7 @@ func SystemInfoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	version := "1.0.0"
-	mode := viper.GetString("server.mode")
+	mode := viper.GetBool("server.dev_mode")
 	dbType := viper.GetString("database.type")
 	if dbType == "" {
 		dbType = "sqlite"
@@ -110,8 +128,63 @@ func SystemInfoHandler(w http.ResponseWriter, r *http.Request) {
 	data := map[string]interface{}{
 		"version": version,
 		"mode":    mode,
-		"db_type": dbType,
+		"db_type": formatDBType(dbType),
 		"uptime":  uptime,
+	}
+
+	utils.JsonResponse(w, http.StatusOK, true, "ok", data)
+}
+
+// DashboardStatsHandler 仪表盘统计数据API接口
+// - 返回应用统计数据的JSON数据，包括全部/启用/禁用/变量数量
+func DashboardStatsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// 获取数据库连接
+	db, err := database.GetDB()
+	if err != nil {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "数据库连接失败", nil)
+		return
+	}
+
+	// 统计应用数据
+	var totalApps int64
+	var enabledApps int64
+	var disabledApps int64
+	var totalVariables int64
+
+	// 统计全部应用数量
+	if err := db.Model(&models.App{}).Count(&totalApps).Error; err != nil {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "统计应用数量失败", nil)
+		return
+	}
+
+	// 统计启用应用数量
+	if err := db.Model(&models.App{}).Where("status = ?", 1).Count(&enabledApps).Error; err != nil {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "统计启用应用数量失败", nil)
+		return
+	}
+
+	// 统计禁用应用数量
+	if err := db.Model(&models.App{}).Where("status = ?", 0).Count(&disabledApps).Error; err != nil {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "统计禁用应用数量失败", nil)
+		return
+	}
+
+	// 统计变量数量
+	if err := db.Model(&models.Variable{}).Count(&totalVariables).Error; err != nil {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "统计变量数量失败", nil)
+		return
+	}
+
+	data := map[string]interface{}{
+		"total_apps":      totalApps,
+		"enabled_apps":    enabledApps,
+		"disabled_apps":   disabledApps,
+		"total_variables": totalVariables,
 	}
 
 	utils.JsonResponse(w, http.StatusOK, true, "ok", data)

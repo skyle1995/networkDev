@@ -185,13 +185,15 @@ func clearInvalidJWTCookie(w http.ResponseWriter) {
 	http.SetCookie(w, cookie)
 }
 
-// JWT密钥（生产环境应从配置文件或环境变量读取）
-var jwtSecret = []byte(viper.GetString("security.jwt_secret"))
+// getJWTSecret 动态获取当前的JWT密钥
+// 修复安全漏洞：确保每次都从最新配置中获取密钥，而不是使用启动时的全局变量
+func getJWTSecret() []byte {
+	return []byte(viper.GetString("security.jwt_secret"))
+}
 
 // JWTClaims JWT载荷结构
 type JWTClaims struct {
 	Username     string `json:"username"`
-	IsAdmin      bool   `json:"is_admin"`      // 是否为管理员
 	PasswordHash string `json:"password_hash"` // 密码哈希摘要，用于验证密码是否被修改
 	jwt.RegisteredClaims
 }
@@ -206,7 +208,6 @@ func generateJWTTokenForAdmin(adminUser models.User) (string, error) {
 
 	claims := JWTClaims{
 		Username:     adminUser.Username,
-		IsAdmin:      true,               // 管理员
 		PasswordHash: passwordHashDigest, // 包含密码哈希摘要
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
@@ -218,7 +219,7 @@ func generateJWTTokenForAdmin(adminUser models.User) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtSecret)
+	return token.SignedString(getJWTSecret())
 }
 
 // parseJWTToken 解析并验证JWT令牌
@@ -230,7 +231,7 @@ func parseJWTToken(tokenString string) (*JWTClaims, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return jwtSecret, nil
+		return getJWTSecret(), nil
 	})
 
 	if err != nil {
@@ -244,11 +245,48 @@ func parseJWTToken(tokenString string) (*JWTClaims, error) {
 	return nil, fmt.Errorf("invalid token")
 }
 
+// getJWTCookie 获取JWT cookie的通用函数
+func getJWTCookie(r *http.Request) (*http.Cookie, error) {
+	return r.Cookie("admin_session")
+}
+
+// validateAdminPasswordHash 验证管理员密码哈希的通用函数
+func validateAdminPasswordHash(claims *JWTClaims, r *http.Request) bool {
+	// 【安全修复】验证数据库中的当前密码哈希
+	// 这确保了密码修改后，旧的JWT令牌会失效
+	db, err := database.GetDB()
+	if err != nil {
+		fmt.Printf("[SECURITY WARNING] Database connection failed during auth - Username=%s, IP=%s\n",
+			claims.Username, r.RemoteAddr)
+		return false
+	}
+
+	// 获取当前数据库中的管理员密码
+	var adminPassword models.Settings
+	if err := db.Where("name = ?", "admin_password").First(&adminPassword).Error; err != nil {
+		fmt.Printf("[SECURITY WARNING] Admin password not found in database - Username=%s, IP=%s\n",
+			claims.Username, r.RemoteAddr)
+		return false
+	}
+
+	// 生成当前数据库密码的哈希摘要
+	currentPasswordHash := utils.GenerateSHA256Hash(adminPassword.Value)
+
+	// 验证JWT中的密码哈希是否与当前数据库中的密码哈希一致
+	if claims.PasswordHash != currentPasswordHash {
+		fmt.Printf("[SECURITY WARNING] Password hash mismatch - JWT token invalidated - Username=%s, IP=%s\n",
+			claims.Username, r.RemoteAddr)
+		return false
+	}
+
+	return true
+}
+
 // IsAdminAuthenticated 判断管理员是否已认证（导出）
 // - 检查admin_session Cookie中的JWT令牌
 // - 验证令牌签名、过期时间和用户角色
 func IsAdminAuthenticated(r *http.Request) bool {
-	cookie, err := r.Cookie("admin_session")
+	cookie, err := getJWTCookie(r)
 	if err != nil || cookie.Value == "" {
 		return false
 	}
@@ -259,27 +297,17 @@ func IsAdminAuthenticated(r *http.Request) bool {
 		return false
 	}
 
-	// 验证用户角色（只允许管理员）
-	if !claims.IsAdmin {
-		return false
-	}
+	// 注释：由于这是管理员专用认证函数，不需要额外的角色验证
 
-	// 对于管理员，不需要验证数据库中的用户记录，因为管理员信息存储在settings中
-	// 只需要验证JWT中的信息即可
-	if !claims.IsAdmin {
-		fmt.Printf("[SECURITY WARNING] Invalid admin token detected - Username=%s, IP=%s\n",
-			claims.Username, r.RemoteAddr)
-		return false
-	}
-
-	return true
+	// 验证密码哈希
+	return validateAdminPasswordHash(claims, r)
 }
 
 // IsAdminAuthenticatedWithCleanup 带自动清理功能的JWT校验函数
 // - 当JWT校验失败时，自动清理失效的Cookie
 // - 适用于API接口等需要清理失效令牌的场景
 func IsAdminAuthenticatedWithCleanup(w http.ResponseWriter, r *http.Request) bool {
-	cookie, err := r.Cookie("admin_session")
+	cookie, err := getJWTCookie(r)
 	if err != nil || cookie.Value == "" {
 		return false
 	}
@@ -292,17 +320,10 @@ func IsAdminAuthenticatedWithCleanup(w http.ResponseWriter, r *http.Request) boo
 		return false
 	}
 
-	// 验证用户角色（只允许管理员）
-	if !claims.IsAdmin {
-		clearInvalidJWTCookie(w)
-		return false
-	}
+	// 注释：由于这是管理员专用认证函数，不需要额外的角色验证
 
-	// 对于管理员，不需要验证数据库中的用户记录，因为管理员信息存储在settings中
-	// 只需要验证JWT中的信息即可
-	if !claims.IsAdmin {
-		fmt.Printf("[SECURITY WARNING] Invalid admin token detected - Username=%s, IP=%s\n",
-			claims.Username, r.RemoteAddr)
+	// 验证密码哈希
+	if !validateAdminPasswordHash(claims, r) {
 		clearInvalidJWTCookie(w)
 		return false
 	}
@@ -315,7 +336,7 @@ func IsAdminAuthenticatedWithCleanup(w http.ResponseWriter, r *http.Request) boo
 // - 自动刷新接近过期的令牌（剩余时间少于6小时时刷新）
 // - 返回用户ID、用户名和角色
 func GetCurrentAdminUser(r *http.Request) (*JWTClaims, error) {
-	cookie, err := r.Cookie("admin_session")
+	cookie, err := getJWTCookie(r)
 	if err != nil {
 		return nil, fmt.Errorf("未找到会话信息")
 	}
@@ -325,15 +346,7 @@ func GetCurrentAdminUser(r *http.Request) (*JWTClaims, error) {
 		return nil, fmt.Errorf("无效的会话信息")
 	}
 
-	if !claims.IsAdmin {
-		return nil, fmt.Errorf("权限不足")
-	}
-
-	// 对于管理员，不需要验证数据库中的用户记录，因为管理员信息存储在settings中
-	// 只需要验证JWT中的信息即可
-	if !claims.IsAdmin {
-		return nil, fmt.Errorf("无效的管理员令牌")
-	}
+	// 注释：由于这是管理员专用函数，不需要额外的角色验证
 
 	return claims, nil
 }
@@ -343,7 +356,7 @@ func GetCurrentAdminUser(r *http.Request) (*JWTClaims, error) {
 // - 自动刷新接近过期的令牌（剩余时间少于6小时时刷新）
 // - 返回用户ID、用户名、角色和是否刷新了令牌
 func GetCurrentAdminUserWithRefresh(w http.ResponseWriter, r *http.Request) (*JWTClaims, bool, error) {
-	cookie, err := r.Cookie("admin_session")
+	cookie, err := getJWTCookie(r)
 	if err != nil {
 		return nil, false, fmt.Errorf("未找到会话信息")
 	}
@@ -353,19 +366,16 @@ func GetCurrentAdminUserWithRefresh(w http.ResponseWriter, r *http.Request) (*JW
 		return nil, false, fmt.Errorf("无效的会话信息")
 	}
 
-	if !claims.IsAdmin {
-		return nil, false, fmt.Errorf("权限不足")
-	}
+	// 注释：由于这是管理员专用函数，不需要额外的角色验证
 
-	// 对于管理员，不需要验证数据库中的用户记录，因为管理员信息存储在settings中
-	// 只需要验证JWT中的信息即可
-	if !claims.IsAdmin {
-		return nil, false, fmt.Errorf("无效的管理员令牌")
+	// 验证密码哈希
+	if !validateAdminPasswordHash(claims, r) {
+		return nil, false, fmt.Errorf("会话已失效，请重新登录")
 	}
 
 	// 检查是否需要刷新令牌（根据配置的阈值）
 	refreshed := false
-	refreshThreshold := time.Duration(viper.GetInt("security.jwt_refresh_threshold_hours")) * time.Hour
+	refreshThreshold := time.Duration(viper.GetInt("security.jwt_refresh")) * time.Hour
 	if time.Until(claims.ExpiresAt.Time) < refreshThreshold {
 		// 为管理员生成新的JWT令牌
 		adminUser := models.User{
