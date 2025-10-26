@@ -121,15 +121,6 @@ func DecryptString(enc string) (string, error) {
 	return string(plain), nil
 }
 
-// ResetCrypto 重置加密管理器（用于配置更新后重新初始化）
-func ResetCrypto() {
-	cryptoManager.mutex.Lock()
-	defer cryptoManager.mutex.Unlock()
-	cryptoManager.inited = false
-	cryptoManager.key = nil
-	cryptoManager.gcm = nil
-}
-
 // EncryptStringBatch 批量加密字符串
 // 减少锁竞争，提高批量处理性能
 func EncryptStringBatch(plains []string) ([]string, error) {
@@ -281,12 +272,12 @@ func DecryptStringWithSalt(enc, salt string) (string, error) {
 	if len(combined) < len(salt) {
 		return "", errors.New("decrypted data too short")
 	}
-	
+
 	// 验证盐值是否匹配
 	if combined[len(combined)-len(salt):] != salt {
 		return "", errors.New("salt mismatch")
 	}
-	
+
 	return combined[:len(combined)-len(salt)], nil
 }
 

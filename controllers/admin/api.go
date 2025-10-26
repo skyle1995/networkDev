@@ -2,57 +2,52 @@ package admin
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"net/http"
-	"networkDev/database"
+	"networkDev/controllers"
 	"networkDev/models"
-	"networkDev/utils"
 	"networkDev/utils/encrypt"
 	"strconv"
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
+// 创建基础控制器实例
+var apiBaseController = controllers.NewBaseController()
+
 // APIFragmentHandler 接口列表页面片段处理器
-func APIFragmentHandler(w http.ResponseWriter, r *http.Request) {
-	utils.RenderTemplate(w, "apis.html", map[string]interface{}{
+func APIFragmentHandler(c *gin.Context) {
+	c.HTML(http.StatusOK, "apis.html", gin.H{
 		"Title": "接口管理",
 	})
 }
 
 // APIListHandler 接口列表API处理器
-func APIListHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func APIListHandler(c *gin.Context) {
 	// 获取分页参数
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	page, _ := strconv.Atoi(c.Query("page"))
 	if page <= 0 {
 		page = 1
 	}
-	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	limit, _ := strconv.Atoi(c.Query("limit"))
 	if limit <= 0 {
 		limit = 10
 	}
 
 	// 获取应用UUID参数（用于按应用筛选接口）
-	appUUID := strings.TrimSpace(r.URL.Query().Get("app_uuid"))
+	appUUID := strings.TrimSpace(c.Query("app_uuid"))
 
 	// 获取接口类型参数（用于按接口类型筛选）
-	apiTypeStr := strings.TrimSpace(r.URL.Query().Get("api_type"))
+	apiTypeStr := strings.TrimSpace(c.Query("api_type"))
 	var apiType int
 	if apiTypeStr != "" {
 		apiType, _ = strconv.Atoi(apiTypeStr)
 	}
 
 	// 构建查询
-	db, err := database.GetDB()
-	if err != nil {
-		logrus.WithError(err).Error("Failed to get database connection")
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	db, ok := apiBaseController.GetDB(c)
+	if !ok {
 		return
 	}
 
@@ -73,7 +68,7 @@ func APIListHandler(w http.ResponseWriter, r *http.Request) {
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
 		logrus.WithError(err).Error("Failed to count APIs")
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		apiBaseController.HandleInternalError(c, "获取接口总数失败", err)
 		return
 	}
 
@@ -82,7 +77,7 @@ func APIListHandler(w http.ResponseWriter, r *http.Request) {
 	offset := (page - 1) * limit
 	if err := query.Offset(offset).Limit(limit).Order("created_at DESC").Find(&apis).Error; err != nil {
 		logrus.WithError(err).Error("Failed to fetch APIs")
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		apiBaseController.HandleInternalError(c, "获取接口列表失败", err)
 		return
 	}
 
@@ -133,9 +128,9 @@ func APIListHandler(w http.ResponseWriter, r *http.Request) {
 	// 计算分页信息
 	totalPages := (total + int64(limit) - 1) / int64(limit)
 
-	response := map[string]interface{}{
+	response := gin.H{
 		"success": true,
-		"data": map[string]interface{}{
+		"data": gin.H{
 			"apis":        responseAPIs,
 			"total":       total,
 			"page":        page,
@@ -144,8 +139,7 @@ func APIListHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	c.JSON(http.StatusOK, response)
 }
 
 // getAPIStatusName 获取API状态名称
@@ -161,12 +155,7 @@ func getAPIStatusName(status int) string {
 }
 
 // APIUpdateHandler 更新接口处理器
-func APIUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func APIUpdateHandler(c *gin.Context) {
 	var req struct {
 		UUID             string `json:"uuid"`
 		Status           int    `json:"status"`
@@ -178,39 +167,36 @@ func APIUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		ReturnPrivateKey string `json:"return_private_key"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+	if !apiBaseController.BindJSON(c, &req) {
 		return
 	}
 
 	// 验证必填字段
 	if strings.TrimSpace(req.UUID) == "" {
-		http.Error(w, "接口UUID不能为空", http.StatusBadRequest)
+		apiBaseController.HandleValidationError(c, "接口UUID不能为空")
 		return
 	}
 
 	if req.Status != 0 && req.Status != 1 {
-		http.Error(w, "无效的状态值", http.StatusBadRequest)
+		apiBaseController.HandleValidationError(c, "无效的状态值")
 		return
 	}
 
 	if !models.IsValidAlgorithm(req.SubmitAlgorithm) || !models.IsValidAlgorithm(req.ReturnAlgorithm) {
-		http.Error(w, "无效的算法类型", http.StatusBadRequest)
+		apiBaseController.HandleValidationError(c, "无效的算法类型")
 		return
 	}
 
 	// 获取数据库连接
-	db, err := database.GetDB()
-	if err != nil {
-		logrus.WithError(err).Error("Failed to get database connection")
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	db, ok := apiBaseController.GetDB(c)
+	if !ok {
 		return
 	}
 
 	// 查找并更新API记录
 	var api models.API
 	if err := db.Where("uuid = ?", strings.TrimSpace(req.UUID)).First(&api).Error; err != nil {
-		http.Error(w, "接口不存在", http.StatusNotFound)
+		apiBaseController.HandleValidationError(c, "接口不存在")
 		return
 	}
 
@@ -231,32 +217,18 @@ func APIUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := db.Save(&api).Error; err != nil {
 		logrus.WithError(err).Error("Failed to update API")
-		http.Error(w, "更新接口失败", http.StatusInternalServerError)
+		apiBaseController.HandleInternalError(c, "更新接口失败", err)
 		return
 	}
 
-	response := map[string]interface{}{
-		"success": true,
-		"message": "接口更新成功",
-		"data":    api,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	apiBaseController.HandleSuccess(c, "接口更新成功", api)
 }
 
 // APIGetAppsHandler 获取应用列表（用于接口页面的应用选择器）
-func APIGetAppsHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func APIGetAppsHandler(c *gin.Context) {
 	// 获取数据库连接
-	db, err := database.GetDB()
-	if err != nil {
-		logrus.WithError(err).Error("Failed to get database connection")
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	db, ok := apiBaseController.GetDB(c)
+	if !ok {
 		return
 	}
 
@@ -264,26 +236,15 @@ func APIGetAppsHandler(w http.ResponseWriter, r *http.Request) {
 	var apps []models.App
 	if err := db.Select("uuid, name").Order("created_at ASC").Find(&apps).Error; err != nil {
 		logrus.WithError(err).Error("Failed to fetch apps")
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		apiBaseController.HandleInternalError(c, "获取应用列表失败", err)
 		return
 	}
 
-	response := map[string]interface{}{
-		"success": true,
-		"data":    apps,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	apiBaseController.HandleSuccess(c, "获取应用列表成功", apps)
 }
 
 // APIGetTypesHandler 获取接口类型列表API处理器
-func APIGetTypesHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func APIGetTypesHandler(c *gin.Context) {
 	// 构建接口类型列表
 	type APITypeItem struct {
 		Value int    `json:"value"`
@@ -310,35 +271,25 @@ func APIGetTypesHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	response := map[string]interface{}{
-		"success": true,
-		"data":    apiTypes,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	apiBaseController.HandleSuccess(c, "获取接口类型列表成功", apiTypes)
 }
 
-func APIGenerateKeysHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func APIGenerateKeysHandler(c *gin.Context) {
 	var req struct {
 		Side      string `json:"side"`      // submit | return
 		Algorithm int    `json:"algorithm"` // 与 models.Algorithm* 对应
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+	
+	if !apiBaseController.BindJSON(c, &req) {
 		return
 	}
+	
 	if req.Side != "submit" && req.Side != "return" {
-		http.Error(w, "side参数必须为submit或return", http.StatusBadRequest)
+		apiBaseController.HandleValidationError(c, "side参数必须为submit或return")
 		return
 	}
 	if !models.IsValidAlgorithm(req.Algorithm) {
-		http.Error(w, "无效的算法类型", http.StatusBadRequest)
+		apiBaseController.HandleValidationError(c, "无效的算法类型")
 		return
 	}
 
@@ -355,7 +306,7 @@ func APIGenerateKeysHandler(w http.ResponseWriter, r *http.Request) {
 		key, err := encrypt.GenerateRC4Key(8) // 生成8字节密钥
 		if err != nil {
 			logrus.WithError(err).Error("Failed to generate RC4 key")
-			http.Error(w, "生成RC4密钥失败", http.StatusInternalServerError)
+			apiBaseController.HandleInternalError(c, "生成RC4密钥失败", err)
 			return
 		}
 		result["public_key"] = ""
@@ -365,7 +316,7 @@ func APIGenerateKeysHandler(w http.ResponseWriter, r *http.Request) {
 		publicKey, privateKey, err := encrypt.GenerateRSAKeyPair(2048)
 		if err != nil {
 			logrus.WithError(err).Error("Failed to generate RSA key pair")
-			http.Error(w, "生成RSA密钥失败", http.StatusInternalServerError)
+			apiBaseController.HandleInternalError(c, "生成RSA密钥失败", err)
 			return
 		}
 
@@ -373,14 +324,14 @@ func APIGenerateKeysHandler(w http.ResponseWriter, r *http.Request) {
 		publicKeyPEM, err := encrypt.PublicKeyToPEM(publicKey)
 		if err != nil {
 			logrus.WithError(err).Error("Failed to convert public key to PEM")
-			http.Error(w, "转换公钥格式失败", http.StatusInternalServerError)
+			apiBaseController.HandleInternalError(c, "转换公钥格式失败", err)
 			return
 		}
 
 		privateKeyPEM, err := encrypt.PrivateKeyToPEM(privateKey)
 		if err != nil {
 			logrus.WithError(err).Error("Failed to convert private key to PEM")
-			http.Error(w, "转换私钥格式失败", http.StatusInternalServerError)
+			apiBaseController.HandleInternalError(c, "转换私钥格式失败", err)
 			return
 		}
 
@@ -391,7 +342,7 @@ func APIGenerateKeysHandler(w http.ResponseWriter, r *http.Request) {
 		publicKeyPEM, privateKeyPEM, err := encrypt.GenerateRSADynamicKeyPair(2048)
 		if err != nil {
 			logrus.WithError(err).Error("Failed to generate RSA dynamic key pair")
-			http.Error(w, "生成RSA动态密钥失败", http.StatusInternalServerError)
+			apiBaseController.HandleInternalError(c, "生成RSA动态密钥失败", err)
 			return
 		}
 
@@ -402,21 +353,15 @@ func APIGenerateKeysHandler(w http.ResponseWriter, r *http.Request) {
 		encryptKey, _, err := encrypt.GenerateEasyKey()
 		if err != nil {
 			logrus.WithError(err).Error("Failed to generate Easy encryption key")
-			http.Error(w, "生成易加密密钥失败", http.StatusInternalServerError)
+			apiBaseController.HandleInternalError(c, "生成易加密密钥失败", err)
 			return
 		}
 		result["public_key"] = ""
 		result["private_key"] = encrypt.FormatKeyAsString(encryptKey)
 	default:
-		http.Error(w, "不支持的算法类型", http.StatusBadRequest)
+		apiBaseController.HandleValidationError(c, "不支持的算法类型")
 		return
 	}
 
-	response := map[string]interface{}{
-		"success": true,
-		"message": "生成成功",
-		"data":    result,
-	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	apiBaseController.HandleSuccess(c, "生成成功", result)
 }

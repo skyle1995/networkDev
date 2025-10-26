@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,7 +15,9 @@ import (
 	"networkDev/server"
 	"networkDev/utils"
 	"networkDev/utils/logger"
+	"networkDev/web"
 
+	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -90,24 +93,46 @@ func getServerPort(cmd *cobra.Command) int {
 
 // createHTTPServer 创建HTTP服务器
 func createHTTPServer(addr string) *http.Server {
-	mux := http.NewServeMux()
+	// 配置Gin模式和日志
+	configureGin()
+
+	// 创建Gin引擎
+	router := gin.New()
+	
+	// 添加恢复中间件
+	router.Use(gin.Recovery())
+
+	// 添加日志中间件
+	router.Use(middleware.WrapHandler())
+
+	// 加载模板
+	if err := loadTemplates(router); err != nil {
+		logrus.WithError(err).Fatal("模板加载失败")
+	}
 
 	// 注册路由
-	registerRoutes(mux)
-
-	// 使用日志中间件包装处理器
-	handler := middleware.WrapHandler(mux)
+	registerRoutes(router)
 
 	return &http.Server{
 		Addr:    addr,
-		Handler: handler,
+		Handler: router,
 	}
 }
 
+// loadTemplates 加载模板到Gin引擎
+func loadTemplates(router *gin.Engine) error {
+	tmpl, err := web.ParseTemplates()
+	if err != nil {
+		return err
+	}
+	router.SetHTMLTemplate(tmpl)
+	return nil
+}
+
 // registerRoutes 注册HTTP路由
-func registerRoutes(mux *http.ServeMux) {
+func registerRoutes(router *gin.Engine) {
 	// 使用server包中的路由注册函数
-	server.RegisterRoutes(mux)
+	server.RegisterRoutes(router)
 }
 
 // startServer 启动服务器并处理优雅关闭
@@ -141,5 +166,22 @@ func startServer(server *http.Server) {
 		logger.LogError(err, "服务器关闭时出错")
 	} else {
 		logger.LogServerStop()
+	}
+}
+
+// configureGin 配置Gin的全局设置
+func configureGin() {
+	// 禁用Gin的颜色输出，提高控制台兼容性
+	gin.DisableConsoleColor()
+	
+	// 设置Gin的输出为丢弃，因为我们使用自定义日志中间件
+	gin.DefaultWriter = io.Discard
+	gin.DefaultErrorWriter = io.Discard
+	
+	// 根据配置设置Gin模式
+	if viper.GetString("app.mode") == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	} else {
+		gin.SetMode(gin.DebugMode)
 	}
 }

@@ -3,16 +3,20 @@ package admin
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/json"
 	"math/big"
 	"net/http"
 	"strings"
 
+	"github.com/gin-gonic/gin"
+	"networkDev/controllers"
 	"networkDev/utils"
 
 	"github.com/mojocn/base64Captcha"
 	"github.com/spf13/viper"
 )
+
+// 创建基础控制器实例
+var captchaBaseController = controllers.NewBaseController()
 
 // 全局验证码存储器
 var store = base64Captcha.DefaultMemStore
@@ -28,17 +32,12 @@ func secureRandomInt(max int) (int, error) {
 
 // CaptchaHandler 生成验证码图片
 // GET /admin/captcha - 返回验证码图片
-func CaptchaHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func CaptchaHandler(c *gin.Context) {
 	// 随机生成4-6位长度
 	// 使用crypto/rand生成安全的随机数
 	randomNum, err := secureRandomInt(3)
 	if err != nil {
-		http.Error(w, "生成随机数失败", http.StatusInternalServerError)
+		captchaBaseController.HandleInternalError(c, "生成随机数失败", err)
 		return
 	}
 	captchaLength := 4 + randomNum // 4-6位随机长度
@@ -58,20 +57,20 @@ func CaptchaHandler(w http.ResponseWriter, r *http.Request) {
 	captcha := base64Captcha.NewCaptcha(&driver, store)
 	id, b64s, _, err := captcha.Generate()
 	if err != nil {
-		http.Error(w, "生成验证码失败", http.StatusInternalServerError)
+		captchaBaseController.HandleInternalError(c, "生成验证码失败", err)
 		return
 	}
 
 	// 将验证码ID存储到session中（这里简化处理，实际项目中应该使用更安全的方式）
 	// 设置cookie来存储验证码ID
 	cookie := utils.CreateSecureCookie("captcha_id", id, 300) // 5分钟过期
-	http.SetCookie(w, cookie)
+	c.SetCookie(cookie.Name, cookie.Value, cookie.MaxAge, cookie.Path, cookie.Domain, cookie.Secure, cookie.HttpOnly)
 
 	// 解码base64图片数据并返回
-	w.Header().Set("Content-Type", "image/png")
-	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-	w.Header().Set("Pragma", "no-cache")
-	w.Header().Set("Expires", "0")
+	c.Header("Content-Type", "image/png")
+	c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
+	c.Header("Pragma", "no-cache")
+	c.Header("Expires", "0")
 
 	// 直接返回base64编码的图片数据，让浏览器解析
 	// 但是我们需要返回实际的图片数据，所以需要解码base64
@@ -81,29 +80,30 @@ func CaptchaHandler(w http.ResponseWriter, r *http.Request) {
 
 	imgData, err := base64.StdEncoding.DecodeString(b64s)
 	if err != nil {
-		http.Error(w, "解码验证码图片失败", http.StatusInternalServerError)
+		captchaBaseController.HandleInternalError(c, "解码验证码图片失败", err)
 		return
 	}
 
-	w.Write(imgData)
+	c.Data(http.StatusOK, "image/png", imgData)
 }
+
+
 
 // VerifyCaptcha 验证验证码
 // 这个函数将在登录处理中被调用
 // 支持大小写不敏感匹配
-func VerifyCaptcha(r *http.Request, captchaValue string) bool {
+func VerifyCaptcha(c *gin.Context, captchaValue string) bool {
 	// 检查是否为开发模式，如果是则跳过验证码验证
 	if viper.GetBool("server.dev_mode") {
 		return true
 	}
 	
 	// 从cookie中获取验证码ID
-	cookie, err := r.Cookie("captcha_id")
+	captchaId, err := c.Cookie("captcha_id")
 	if err != nil {
 		return false
 	}
 
-	captchaId := cookie.Value
 	if captchaId == "" {
 		return false
 	}
@@ -132,36 +132,19 @@ func VerifyCaptcha(r *http.Request, captchaValue string) bool {
 
 // CaptchaAPIHandler 验证码API接口（可选，用于AJAX验证）
 // POST /admin/api/captcha/verify - 验证验证码
-func CaptchaAPIHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func CaptchaAPIHandler(c *gin.Context) {
 	var body struct {
 		Captcha string `json:"captcha"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"code": 1,
-			"msg":  "请求参数错误",
-		})
+	if !captchaBaseController.BindJSON(c, &body) {
 		return
 	}
 
-	isValid := VerifyCaptcha(r, body.Captcha)
+	isValid := VerifyCaptcha(c, body.Captcha)
 
-	w.Header().Set("Content-Type", "application/json")
 	if isValid {
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"code": 0,
-			"msg":  "验证码正确",
-		})
+		captchaBaseController.HandleSuccess(c, "验证码正确", nil)
 	} else {
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"code": 1,
-			"msg":  "验证码错误",
-		})
+		captchaBaseController.HandleValidationError(c, "验证码错误")
 	}
 }

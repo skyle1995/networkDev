@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 	"runtime"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
@@ -68,27 +68,13 @@ type LogEntry struct {
 	Line      int         `json:"line"`               // 源文件行号
 }
 
-// WriteJSONResponse 写入JSON响应
-// w: HTTP响应写入器
-// statusCode: HTTP状态码
-// response: 响应数据
-func WriteJSONResponse(w http.ResponseWriter, statusCode int, response interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		LogError("Failed to encode JSON response", err, nil)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
-}
-
 // WriteErrorResponse 写入错误响应
-// w: HTTP响应写入器
+// c: Gin上下文
 // statusCode: HTTP状态码
 // message: 错误消息
 // errorCode: 错误代码
 // data: 附加数据
-func WriteErrorResponse(w http.ResponseWriter, statusCode int, message, errorCode string, data interface{}) {
+func WriteErrorResponse(c *gin.Context, statusCode int, message, errorCode string, data interface{}) {
 	response := ErrorResponse{
 		Success:   false,
 		Message:   message,
@@ -97,15 +83,15 @@ func WriteErrorResponse(w http.ResponseWriter, statusCode int, message, errorCod
 		Timestamp: time.Now().Unix(),
 	}
 
-	WriteJSONResponse(w, statusCode, response)
+	c.JSON(statusCode, response)
 }
 
 // WriteSuccessResponse 写入成功响应
-// w: HTTP响应写入器
+// c: Gin上下文
 // statusCode: HTTP状态码
 // message: 成功消息
 // data: 响应数据
-func WriteSuccessResponse(w http.ResponseWriter, statusCode int, message string, data interface{}) {
+func WriteSuccessResponse(c *gin.Context, statusCode int, message string, data interface{}) {
 	response := SuccessResponse{
 		Success:   true,
 		Message:   message,
@@ -113,57 +99,57 @@ func WriteSuccessResponse(w http.ResponseWriter, statusCode int, message string,
 		Timestamp: time.Now().Unix(),
 	}
 
-	WriteJSONResponse(w, statusCode, response)
+	c.JSON(statusCode, response)
 }
 
 // HandleDatabaseError 处理数据库错误
-// w: HTTP响应写入器
+// c: Gin上下文
 // err: 数据库错误
 // operation: 操作描述
-func HandleDatabaseError(w http.ResponseWriter, err error, operation string) {
+func HandleDatabaseError(c *gin.Context, err error, operation string) {
 	if err == gorm.ErrRecordNotFound {
 		LogWarn(fmt.Sprintf("Record not found during %s", operation), map[string]interface{}{
 			"operation": operation,
 			"error":     err.Error(),
 		})
-		WriteErrorResponse(w, http.StatusNotFound, "记录不存在", ErrCodeNotFound, nil)
+		WriteErrorResponse(c, 404, "记录不存在", ErrCodeNotFound, nil)
 		return
 	}
 
 	LogError(fmt.Sprintf("Database error during %s", operation), err, map[string]interface{}{
 		"operation": operation,
 	})
-	WriteErrorResponse(w, http.StatusInternalServerError, "数据库操作失败", ErrCodeDatabaseError, nil)
+	WriteErrorResponse(c, 500, "数据库操作失败", ErrCodeDatabaseError, nil)
 }
 
 // HandleValidationError 处理验证错误
-// w: HTTP响应写入器
+// c: Gin上下文
 // message: 验证错误消息
 // details: 验证错误详情
-func HandleValidationError(w http.ResponseWriter, message string, details interface{}) {
+func HandleValidationError(c *gin.Context, message string, details interface{}) {
 	LogWarn("Validation error: "+message, map[string]interface{}{
 		"details": details,
 	})
-	WriteErrorResponse(w, http.StatusBadRequest, message, ErrCodeValidationError, details)
+	WriteErrorResponse(c, 400, message, ErrCodeValidationError, details)
 }
 
 // HandleUnauthorizedError 处理未授权错误
-// w: HTTP响应写入器
+// c: Gin上下文
 // message: 错误消息
-func HandleUnauthorizedError(w http.ResponseWriter, message string) {
+func HandleUnauthorizedError(c *gin.Context, message string) {
 	LogWarn("Unauthorized access: "+message, nil)
-	WriteErrorResponse(w, http.StatusUnauthorized, message, ErrCodeUnauthorized, nil)
+	WriteErrorResponse(c, 401, message, ErrCodeUnauthorized, nil)
 }
 
 // HandleInternalError 处理内部错误
-// w: HTTP响应写入器
+// c: Gin上下文
 // err: 错误
 // operation: 操作描述
-func HandleInternalError(w http.ResponseWriter, err error, operation string) {
+func HandleInternalError(c *gin.Context, err error, operation string) {
 	LogError(fmt.Sprintf("Internal error during %s", operation), err, map[string]interface{}{
 		"operation": operation,
 	})
-	WriteErrorResponse(w, http.StatusInternalServerError, "服务器内部错误", ErrCodeInternalError, nil)
+	WriteErrorResponse(c, 500, "服务器内部错误", ErrCodeInternalError, nil)
 }
 
 // LogInfo 记录信息日志

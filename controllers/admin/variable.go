@@ -1,58 +1,57 @@
 package admin
 
 import (
-	"encoding/json"
 	"net/http"
-	"networkDev/database"
+	"networkDev/controllers"
 	"networkDev/models"
-	"networkDev/utils"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
+// 创建基础控制器实例
+var variableBaseController = controllers.NewBaseController()
+
 // VariableFragmentHandler 变量列表页面片段处理器
-func VariableFragmentHandler(w http.ResponseWriter, r *http.Request) {
-	utils.RenderTemplate(w, "variables", map[string]interface{}{
+func VariableFragmentHandler(c *gin.Context) {
+	c.HTML(http.StatusOK, "variables.html", gin.H{
 		"Title": "变量管理",
 	})
 }
 
 // VariableListHandler 变量列表API处理器
-func VariableListHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func VariableListHandler(c *gin.Context) {
 	// 获取分页参数
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	page, _ := strconv.Atoi(c.Query("page"))
 	if page <= 0 {
 		page = 1
 	}
-	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	limit, _ := strconv.Atoi(c.Query("limit"))
+	// 兼容前端使用的page_size参数
+	if limit <= 0 {
+		limit, _ = strconv.Atoi(c.Query("page_size"))
+	}
 	if limit <= 0 {
 		limit = 10
 	}
 
 	// 获取应用UUID参数（用于按应用筛选变量）
-	appUUID := strings.TrimSpace(r.URL.Query().Get("app_uuid"))
+	appUUID := strings.TrimSpace(c.Query("app_uuid"))
 
 	// 获取搜索关键词参数（支持编号、别名、数据的综合搜索）
-	search := strings.TrimSpace(r.URL.Query().Get("search"))
-	
+	search := strings.TrimSpace(c.Query("search"))
+
 	// 兼容旧的别名搜索参数
 	if search == "" {
-		search = strings.TrimSpace(r.URL.Query().Get("alias"))
+		search = strings.TrimSpace(c.Query("alias"))
 	}
 
 	// 构建查询
-	db, err := database.GetDB()
-	if err != nil {
-		logrus.WithError(err).Error("Failed to get database connection")
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	db, ok := variableBaseController.GetDB(c)
+	if !ok {
 		return
 	}
 
@@ -66,7 +65,7 @@ func VariableListHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 如果指定了搜索关键词，则在编号、别名、数据、备注中进行模糊搜索
 	if search != "" {
-		query = query.Where("number LIKE ? OR alias LIKE ? OR data LIKE ? OR remark LIKE ?", 
+		query = query.Where("number LIKE ? OR alias LIKE ? OR data LIKE ? OR remark LIKE ?",
 			"%"+search+"%", "%"+search+"%", "%"+search+"%", "%"+search+"%")
 	}
 
@@ -74,7 +73,7 @@ func VariableListHandler(w http.ResponseWriter, r *http.Request) {
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
 		logrus.WithError(err).Error("Failed to count variables")
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		variableBaseController.HandleInternalError(c, "查询变量总数失败", err)
 		return
 	}
 
@@ -83,7 +82,7 @@ func VariableListHandler(w http.ResponseWriter, r *http.Request) {
 	offset := (page - 1) * limit
 	if err := query.Offset(offset).Limit(limit).Order("created_at DESC").Find(&variables).Error; err != nil {
 		logrus.WithError(err).Error("Failed to fetch variables")
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		variableBaseController.HandleInternalError(c, "查询变量列表失败", err)
 		return
 	}
 
@@ -141,24 +140,18 @@ func VariableListHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	response := map[string]interface{}{
+	response := gin.H{
 		"code":  0,
 		"msg":   "success",
 		"count": total,
 		"data":  responseData,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	utils.WriteJSONResponse(w, http.StatusOK, response)
+	c.JSON(http.StatusOK, response)
 }
 
 // VariableCreateHandler 新增变量API处理器
-func VariableCreateHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func VariableCreateHandler(c *gin.Context) {
 	var req struct {
 		AppUUID string `json:"app_uuid"`
 		Alias   string `json:"alias"`
@@ -166,40 +159,34 @@ func VariableCreateHandler(w http.ResponseWriter, r *http.Request) {
 		Remark  string `json:"remark"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		logrus.WithError(err).Error("Failed to decode JSON request")
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+	if !variableBaseController.BindJSON(c, &req) {
 		return
 	}
 
 	// 验证必填字段
-	if strings.TrimSpace(req.AppUUID) == "" {
-		http.Error(w, "应用UUID不能为空", http.StatusBadRequest)
-		return
-	}
-	if strings.TrimSpace(req.Alias) == "" {
-		http.Error(w, "变量别名不能为空", http.StatusBadRequest)
+	if !variableBaseController.ValidateRequired(c, map[string]interface{}{
+		"应用UUID": req.AppUUID,
+		"变量别名":   req.Alias,
+	}) {
 		return
 	}
 
 	// 验证别名格式：必须以英文字母开头，只能包含数字和英文字母
 	aliasPattern := regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9]*$`)
 	if !aliasPattern.MatchString(req.Alias) {
-		http.Error(w, "别名必须以英文字母开头，只能包含数字和英文字母", http.StatusBadRequest)
+		variableBaseController.HandleValidationError(c, "别名必须以英文字母开头，只能包含数字和英文字母")
 		return
 	}
 
-	db, err := database.GetDB()
-	if err != nil {
-		logrus.WithError(err).Error("Failed to get database connection")
-		http.Error(w, "数据库连接失败", http.StatusInternalServerError)
+	db, ok := variableBaseController.GetDB(c)
+	if !ok {
 		return
 	}
 
 	// 验证应用是否存在
 	var app models.App
 	if err := db.Where("uuid = ?", req.AppUUID).First(&app).Error; err != nil {
-		http.Error(w, "应用不存在", http.StatusBadRequest)
+		variableBaseController.HandleValidationError(c, "应用不存在")
 		return
 	}
 
@@ -213,27 +200,15 @@ func VariableCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := db.Create(&variable).Error; err != nil {
 		logrus.WithError(err).Error("Failed to create variable")
-		http.Error(w, "创建变量失败", http.StatusInternalServerError)
+		variableBaseController.HandleInternalError(c, "创建变量失败", err)
 		return
 	}
 
-	response := map[string]interface{}{
-		"code": 0,
-		"msg":  "创建成功",
-		"data": variable,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	variableBaseController.HandleSuccess(c, "创建成功", variable)
 }
 
 // VariableUpdateHandler 更新变量API处理器
-func VariableUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func VariableUpdateHandler(c *gin.Context) {
 	var req struct {
 		UUID    string `json:"uuid"`
 		AppUUID string `json:"app_uuid"`
@@ -242,50 +217,42 @@ func VariableUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		Remark  string `json:"remark"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+	if !variableBaseController.BindJSON(c, &req) {
 		return
 	}
 
 	// 验证必填字段
-	if strings.TrimSpace(req.UUID) == "" {
-		http.Error(w, "变量UUID不能为空", http.StatusBadRequest)
-		return
-	}
-	if strings.TrimSpace(req.AppUUID) == "" {
-		http.Error(w, "应用UUID不能为空", http.StatusBadRequest)
-		return
-	}
-	if strings.TrimSpace(req.Alias) == "" {
-		http.Error(w, "变量别名不能为空", http.StatusBadRequest)
+	if !variableBaseController.ValidateRequired(c, map[string]interface{}{
+		"变量UUID": req.UUID,
+		"应用UUID": req.AppUUID,
+		"变量别名":   req.Alias,
+	}) {
 		return
 	}
 
 	// 验证别名格式：必须以英文字母开头，只能包含数字和英文字母
 	aliasPattern := regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9]*$`)
 	if !aliasPattern.MatchString(req.Alias) {
-		http.Error(w, "别名必须以英文字母开头，只能包含数字和英文字母", http.StatusBadRequest)
+		variableBaseController.HandleValidationError(c, "别名必须以英文字母开头，只能包含数字和英文字母")
 		return
 	}
 
-	db, err := database.GetDB()
-	if err != nil {
-		logrus.WithError(err).Error("Failed to get database connection")
-		http.Error(w, "数据库连接失败", http.StatusInternalServerError)
+	db, ok := variableBaseController.GetDB(c)
+	if !ok {
 		return
 	}
 
 	// 验证应用是否存在
 	var app models.App
 	if err := db.Where("uuid = ?", req.AppUUID).First(&app).Error; err != nil {
-		http.Error(w, "应用不存在", http.StatusBadRequest)
+		variableBaseController.HandleValidationError(c, "应用不存在")
 		return
 	}
 
 	// 通过uuid字段查找变量
 	var variable models.Variable
 	if err := db.Where("uuid = ?", strings.TrimSpace(req.UUID)).First(&variable).Error; err != nil {
-		http.Error(w, "变量不存在", http.StatusNotFound)
+		variableBaseController.HandleValidationError(c, "变量不存在")
 		return
 	}
 
@@ -297,139 +264,90 @@ func VariableUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := db.Save(&variable).Error; err != nil {
 		logrus.WithError(err).Error("Failed to update variable")
-		http.Error(w, "更新变量失败", http.StatusInternalServerError)
+		variableBaseController.HandleInternalError(c, "更新变量失败", err)
 		return
 	}
 
-	response := map[string]interface{}{
-		"code": 0,
-		"msg":  "更新成功",
-		"data": variable,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	variableBaseController.HandleSuccess(c, "更新成功", variable)
 }
 
 // VariableDeleteHandler 删除变量API处理器
-func VariableDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func VariableDeleteHandler(c *gin.Context) {
 	var req struct {
 		ID uint `json:"id"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+	if !variableBaseController.BindJSON(c, &req) {
 		return
 	}
 
 	if req.ID == 0 {
-		http.Error(w, "变量ID不能为空", http.StatusBadRequest)
+		variableBaseController.HandleValidationError(c, "变量ID不能为空")
 		return
 	}
 
-	db, err := database.GetDB()
-	if err != nil {
-		logrus.WithError(err).Error("Failed to get database connection")
-		http.Error(w, "数据库连接失败", http.StatusInternalServerError)
+	db, ok := variableBaseController.GetDB(c)
+	if !ok {
 		return
 	}
 
 	// 删除变量
 	if err := db.Delete(&models.Variable{}, req.ID).Error; err != nil {
 		logrus.WithError(err).Error("Failed to delete variable")
-		http.Error(w, "删除变量失败", http.StatusInternalServerError)
+		variableBaseController.HandleInternalError(c, "删除变量失败", err)
 		return
 	}
 
 	logrus.WithField("variable_id", req.ID).Info("Successfully deleted variable")
 
-	response := map[string]interface{}{
-		"code": 0,
-		"msg":  "删除成功",
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	variableBaseController.HandleSuccess(c, "删除成功", nil)
 }
 
 // VariablesBatchDeleteHandler 批量删除变量API处理器
-func VariablesBatchDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func VariablesBatchDeleteHandler(c *gin.Context) {
 	var req struct {
 		IDs []uint `json:"ids"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+	if !variableBaseController.BindJSON(c, &req) {
 		return
 	}
 
 	if len(req.IDs) == 0 {
-		http.Error(w, "请选择要删除的变量", http.StatusBadRequest)
+		variableBaseController.HandleValidationError(c, "请选择要删除的变量")
 		return
 	}
 
-	db, err := database.GetDB()
-	if err != nil {
-		logrus.WithError(err).Error("Failed to get database connection")
-		http.Error(w, "数据库连接失败", http.StatusInternalServerError)
+	db, ok := variableBaseController.GetDB(c)
+	if !ok {
 		return
 	}
 
 	// 批量删除变量
 	if err := db.Delete(&models.Variable{}, req.IDs).Error; err != nil {
 		logrus.WithError(err).Error("Failed to batch delete variables")
-		http.Error(w, "批量删除失败", http.StatusInternalServerError)
+		variableBaseController.HandleInternalError(c, "批量删除失败", err)
 		return
 	}
 
 	logrus.WithField("variable_ids", req.IDs).Info("Successfully batch deleted variables")
 
-	response := map[string]interface{}{
-		"code": 0,
-		"msg":  "批量删除成功",
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	variableBaseController.HandleSuccess(c, "批量删除成功", nil)
 }
 
 // VariableGetAppsHandler 获取应用列表（用于筛选下拉框）
-func VariableGetAppsHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	db, err := database.GetDB()
-	if err != nil {
-		logrus.WithError(err).Error("Failed to get database connection")
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+func VariableGetAppsHandler(c *gin.Context) {
+	db, ok := variableBaseController.GetDB(c)
+	if !ok {
 		return
 	}
 
 	var apps []models.App
 	if err := db.Select("uuid, name").Find(&apps).Error; err != nil {
 		logrus.WithError(err).Error("Failed to fetch apps")
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		variableBaseController.HandleInternalError(c, "获取应用列表失败", err)
 		return
 	}
 
-	response := map[string]interface{}{
-		"code": 0,
-		"msg":  "success",
-		"data": apps,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	utils.WriteJSONResponse(w, http.StatusOK, response)
+	variableBaseController.HandleSuccess(c, "success", apps)
 }

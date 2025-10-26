@@ -2,72 +2,48 @@ package home
 
 import (
 	"net/http"
+	"networkDev/controllers"
 	"networkDev/database"
-	"networkDev/models"
 	"networkDev/services"
-	"networkDev/utils"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
-// RootHandler 主页处理器
-func RootHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
-		return
-	}
+var homeBaseController = controllers.NewBaseController()
 
+// getSettingValue 获取配置值，优先从数据库获取，不存在时使用默认值
+func getSettingValue(settingName string, defaultValue string, db *gorm.DB) string {
+	if setting, err := services.FindSettingByName(settingName, db); err == nil {
+		return setting.Value
+	}
+	return defaultValue
+}
+
+// RootHandler 主页处理器
+func RootHandler(c *gin.Context) {
 	// 获取数据库连接
 	db, err := database.GetDB()
 	if err != nil {
-		http.Error(w, "数据库连接失败", http.StatusInternalServerError)
+		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+			"error": "数据库连接失败",
+		})
 		return
 	}
 
-	// 从数据库获取站点标题和页脚文本
-	siteTitle, err := services.FindSettingByName("site_title", db)
-	if err != nil {
-		siteTitle = &models.Settings{Value: "凌动技术"}
-	}
+	// 获取默认模板数据
+	defaultData := homeBaseController.GetDefaultTemplateData()
 
-	footerText, err := services.FindSettingByName("footer_text", db)
-	if err != nil {
-		footerText = &models.Settings{Value: "© 2025 凌动技术 保留所有权利"}
-	}
-
-	// 从数据库获取备案信息
-	icpRecord, err := services.FindSettingByName("icp_record", db)
-	if err != nil {
-		icpRecord = &models.Settings{Value: ""}
-	}
-
-	icpRecordLink, err := services.FindSettingByName("icp_record_link", db)
-	if err != nil {
-		icpRecordLink = &models.Settings{Value: "https://beian.miit.gov.cn"}
-	}
-
-	// 从数据库获取公安备案信息
-	psbRecord, err := services.FindSettingByName("psb_record", db)
-	if err != nil {
-		psbRecord = &models.Settings{Value: ""}
-	}
-
-	psbRecordLink, err := services.FindSettingByName("psb_record_link", db)
-	if err != nil {
-		psbRecordLink = &models.Settings{Value: "https://www.beian.gov.cn"}
-	}
-
-	// 准备模板数据
-	data := map[string]interface{}{
-		"SystemName":    siteTitle.Value,
-		"FooterText":    footerText.Value,
-		"ICPRecord":     icpRecord.Value,
-		"ICPRecordLink": icpRecordLink.Value,
-		"PSBRecord":     psbRecord.Value,
-		"PSBRecordLink": psbRecordLink.Value,
+	// 准备模板数据，优先使用数据库配置，不存在时使用默认值
+	data := gin.H{
+		"SystemName":    getSettingValue("site_title", defaultData["SystemName"].(string), db),
+		"FooterText":    getSettingValue("footer_text", defaultData["FooterText"].(string), db),
+		"ICPRecord":     getSettingValue("icp_record", defaultData["ICPRecord"].(string), db),
+		"ICPRecordLink": getSettingValue("icp_record_link", defaultData["ICPRecordLink"].(string), db),
+		"PSBRecord":     getSettingValue("psb_record", defaultData["PSBRecord"].(string), db),
+		"PSBRecordLink": getSettingValue("psb_record_link", defaultData["PSBRecordLink"].(string), db),
 		"title":         "主页",
 	}
 
-	if err := utils.RenderTemplate(w, "index.html", data); err != nil {
-		http.Error(w, "页面加载失败", http.StatusInternalServerError)
-		return
-	}
+	c.HTML(http.StatusOK, "index.html", data)
 }

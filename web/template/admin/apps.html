@@ -761,15 +761,17 @@
                   $.ajax({
                     url: '/admin/api/apps/get_multi_config?uuid=' + obj.data.uuid,
                     type: 'GET',
-                    success: function (config) {
-                      // 填充表单数据
-                      $('input[name="login_type"][value="' + config.login_type + '"]').prop('checked', true);
-                      $('input[name="multi_open_scope"][value="' + config.multi_open_scope + '"]').prop('checked', true);
-                      $('input[name="clean_interval"]').val(config.clean_interval);
-                      $('input[name="check_interval"]').val(config.check_interval);
-                      $('input[name="multi_open_count"]').val(config.multi_open_count);
+                    success: function (res) {
+                      if (res.code === 0 && res.data) {
+                        var config = res.data;
+                        // 填充表单数据
+                        $('input[name="login_type"][value="' + config.login_type + '"]').prop('checked', true);
+                        $('input[name="multi_open_scope"][value="' + config.multi_open_scope + '"]').prop('checked', true);
+                        $('input[name="clean_interval"]').val(config.clean_interval);
+                        $('input[name="check_interval"]').val(config.check_interval);
+                        $('input[name="multi_open_count"]').val(config.multi_open_count);
 
-                      // 打开静态弹窗
+                        // 打开静态弹窗
                       var multiConfigIndex = layer.open({
                         type: 1,
                         title: '多开配置 - ' + obj.data.name,
@@ -815,7 +817,7 @@
                             contentType: 'application/json',
                             data: JSON.stringify(formData),
                             success: function (res) {
-                              if (res.message) {
+                              if (res.code === 0) {
                                 layer.msg('多开配置更新成功', { icon: 1 });
                                 layer.close(index);
                                 table.reload('appsTable');
@@ -836,6 +838,9 @@
                           form.render();
                         }
                       });
+                      } else {
+                        layer.msg(res.msg || '获取多开配置失败', { icon: 2 });
+                      }
                     },
                     error: function () {
                       layer.msg('获取多开配置失败，请稍后重试', { icon: 2 });
@@ -884,9 +889,11 @@
                   $.ajax({
                     url: '/admin/api/apps/get_bind_config?uuid=' + obj.data.uuid,
                     type: 'GET',
-                    success: function (config) {
-                      // 填充表单数据
-                      $('#bindConfigModal input[name="machine_verify"][value="' + config.machine_verify + '"]').prop('checked', true);
+                    success: function (res) {
+                      if (res.code === 0 && res.data) {
+                        var config = res.data;
+                        // 填充表单数据
+                        $('#bindConfigModal input[name="machine_verify"][value="' + config.machine_verify + '"]').prop('checked', true);
                       $('#bindConfigModal input[name="machine_rebind_enabled"][value="' + config.machine_rebind_enabled + '"]').prop('checked', true);
                       $('#bindConfigModal input[name="machine_rebind_limit"][value="' + config.machine_rebind_limit + '"]').prop('checked', true);
                       $('#bindConfigModal input[name="machine_free_count"]').val(config.machine_free_count);
@@ -977,6 +984,9 @@
                           form.render();
                         }
                       });
+                      } else {
+                        layer.msg(res.msg || '获取绑定设置失败', { icon: 2 });
+                      }
                     },
                     error: function () {
                       layer.msg('获取绑定设置失败，请稍后重试', { icon: 2 });
@@ -987,9 +997,11 @@
                   $.ajax({
                     url: '/admin/api/apps/get_register_config?uuid=' + obj.data.uuid,
                     type: 'GET',
-                    success: function (config) {
-                      // 填充表单数据
-                      $('#registerConfigModal input[name="register_enabled"][value="' + config.register_enabled + '"]').prop('checked', true);
+                    success: function (res) {
+                      if (res.code === 0 && res.data) {
+                        var config = res.data;
+                        // 填充表单数据
+                        $('#registerConfigModal input[name="register_enabled"][value="' + config.register_enabled + '"]').prop('checked', true);
                       $('#registerConfigModal input[name="register_limit_enabled"][value="' + config.register_limit_enabled + '"]').prop('checked', true);
                       $('#registerConfigModal input[name="register_limit_time"][value="' + config.register_limit_time + '"]').prop('checked', true);
                       $('#registerConfigModal input[name="register_count"]').val(config.register_count);
@@ -1074,6 +1086,9 @@
                           form.render();
                         }
                       });
+                      } else {
+                        layer.msg(res.msg || '获取注册设置失败', { icon: 2 });
+                      }
                     },
                     error: function () {
                       layer.msg('获取注册设置失败，请稍后重试', { icon: 2 });

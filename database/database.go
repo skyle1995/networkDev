@@ -2,9 +2,8 @@ package database
 
 import (
 	"fmt"
-	"sync"
-
 	"networkDev/utils"
+	"sync"
 
 	"github.com/glebarez/sqlite"
 	"github.com/sirupsen/logrus"

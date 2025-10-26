@@ -1,36 +1,35 @@
 package admin
 
 import (
-	"encoding/json"
 	"net/http"
-	"networkDev/database"
+	"networkDev/controllers"
 	"networkDev/models"
 	"networkDev/utils"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
+
+// 创建基础控制器实例
+var baseController = controllers.NewBaseController()
 
 // UserFragmentHandler 个人资料片段渲染
 // - 渲染个人资料与修改密码表单
-func UserFragmentHandler(w http.ResponseWriter, r *http.Request) {
-	utils.RenderTemplate(w, "user.html", map[string]interface{}{})
+func UserFragmentHandler(c *gin.Context) {
+	c.HTML(http.StatusOK, "user.html", gin.H{})
 }
 
 // UserProfileQueryHandler 获取当前登录管理员的用户名
 // - 返回 JSON: {username}
 // - 直接从JWT获取用户名信息
-func UserProfileQueryHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	claims, _, err := GetCurrentAdminUserWithRefresh(w, r)
+func UserProfileQueryHandler(c *gin.Context) {
+	claims, _, err := GetCurrentAdminUserWithRefresh(c)
 	if err != nil {
-		utils.JsonResponse(w, http.StatusUnauthorized, false, "未登录或会话已过期", nil)
+		baseController.HandleValidationError(c, "未登录或会话已过期")
 		return
 	}
 
-	utils.JsonResponse(w, http.StatusOK, true, "ok", map[string]interface{}{
+	baseController.HandleSuccess(c, "ok", gin.H{
 		"username": claims.Username,
 	})
 }
@@ -40,15 +39,10 @@ func UserProfileQueryHandler(w http.ResponseWriter, r *http.Request) {
 // - 校验旧密码正确性、新密码与确认一致性
 // - 成功后更新密码哈希
 // - 自动刷新接近过期的JWT令牌
-func UserPasswordUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	claims, _, err := GetCurrentAdminUserWithRefresh(w, r)
+func UserPasswordUpdateHandler(c *gin.Context) {
+	claims, _, err := GetCurrentAdminUserWithRefresh(c)
 	if err != nil {
-		utils.JsonResponse(w, http.StatusUnauthorized, false, "未登录或会话已过期", nil)
+		baseController.HandleValidationError(c, "未登录或会话已过期")
 		return
 	}
 
@@ -57,43 +51,45 @@ func UserPasswordUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		NewPassword     string `json:"new_password"`
 		ConfirmPassword string `json:"confirm_password"`
 	}
-	var decodeErr error
-	if decodeErr = json.NewDecoder(r.Body).Decode(&body); decodeErr != nil {
-		utils.JsonResponse(w, http.StatusBadRequest, false, "请求参数错误", nil)
+	
+	if !baseController.BindJSON(c, &body) {
 		return
 	}
 
 	// 基础校验
-	if body.OldPassword == "" || body.NewPassword == "" || body.ConfirmPassword == "" {
-		utils.JsonResponse(w, http.StatusBadRequest, false, "旧密码/新密码/确认密码均不能为空", nil)
+	if !baseController.ValidateRequired(c, map[string]interface{}{
+		"旧密码": body.OldPassword,
+		"新密码": body.NewPassword,
+		"确认密码": body.ConfirmPassword,
+	}) {
 		return
 	}
+	
 	if len(body.NewPassword) < 6 {
-		utils.JsonResponse(w, http.StatusBadRequest, false, "新密码长度不能少于6位", nil)
+		baseController.HandleValidationError(c, "新密码长度不能少于6位")
 		return
 	}
 	if body.NewPassword != body.ConfirmPassword {
-		utils.JsonResponse(w, http.StatusBadRequest, false, "两次输入的新密码不一致", nil)
+		baseController.HandleValidationError(c, "两次输入的新密码不一致")
 		return
 	}
 	if body.NewPassword == body.OldPassword {
-		utils.JsonResponse(w, http.StatusBadRequest, false, "新密码不能与旧密码相同", nil)
+		baseController.HandleValidationError(c, "新密码不能与旧密码相同")
 		return
 	}
 
 	// 注释：由于使用了AdminAuthRequired中间件，已确保是管理员用户
 
 	// 获取数据库连接
-	db, err := database.GetDB()
-	if err != nil {
-		utils.JsonResponse(w, http.StatusInternalServerError, false, "数据库连接失败", nil)
+	db, ok := baseController.GetDB(c)
+	if !ok {
 		return
 	}
 
 	// 通过前缀匹配一次性获取所有管理员相关设置
 	var adminSettings []models.Settings
 	if err = db.Where("name LIKE ?", "admin_%").Find(&adminSettings).Error; err != nil {
-		utils.JsonResponse(w, http.StatusInternalServerError, false, "获取管理员设置失败", nil)
+		baseController.HandleInternalError(c, "获取管理员设置失败", err)
 		return
 	}
 
@@ -107,37 +103,37 @@ func UserPasswordUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	adminPassword, hasPassword := settingsMap["admin_password"]
 	adminPasswordSalt, hasSalt := settingsMap["admin_password_salt"]
 	if !hasPassword || !hasSalt {
-		utils.JsonResponse(w, http.StatusInternalServerError, false, "管理员密码设置不完整", nil)
+		baseController.HandleInternalError(c, "管理员密码设置不完整", nil)
 		return
 	}
 
 	// 校验旧密码
 	if !utils.VerifyPasswordWithSalt(body.OldPassword, adminPasswordSalt, adminPassword) {
-		utils.JsonResponse(w, http.StatusUnauthorized, false, "旧密码不正确", nil)
+		baseController.HandleValidationError(c, "旧密码不正确")
 		return
 	}
 
 	// 生成新的密码盐值
 	newSalt, err := utils.GenerateRandomSalt()
 	if err != nil {
-		utils.JsonResponse(w, http.StatusInternalServerError, false, "生成密码盐失败", nil)
+		baseController.HandleInternalError(c, "生成密码盐失败", err)
 		return
 	}
 
 	// 生成新密码哈希
 	newPasswordHash, err := utils.HashPasswordWithSalt(body.NewPassword, newSalt)
 	if err != nil {
-		utils.JsonResponse(w, http.StatusInternalServerError, false, "生成密码哈希失败", nil)
+		baseController.HandleInternalError(c, "生成密码哈希失败", err)
 		return
 	}
 
 	// 更新settings中的管理员密码和盐值
 	if err = db.Model(&models.Settings{}).Where("name = ?", "admin_password").Update("value", newPasswordHash).Error; err != nil {
-		utils.JsonResponse(w, http.StatusInternalServerError, false, "更新密码失败", nil)
+		baseController.HandleInternalError(c, "更新密码失败", err)
 		return
 	}
 	if err = db.Model(&models.Settings{}).Where("name = ?", "admin_password_salt").Update("value", newSalt).Error; err != nil {
-		utils.JsonResponse(w, http.StatusInternalServerError, false, "更新密码盐值失败", nil)
+		baseController.HandleInternalError(c, "更新密码盐值失败", err)
 		return
 	}
 
@@ -149,16 +145,15 @@ func UserPasswordUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	newToken, err := generateJWTTokenForAdmin(adminUser)
 	if err != nil {
-		utils.JsonResponse(w, http.StatusInternalServerError, false, "生成新令牌失败", nil)
+		baseController.HandleInternalError(c, "生成新令牌失败", err)
 		return
 	}
 
 	// 更新Cookie（使用安全配置）
-	cookie := utils.CreateSecureCookie("admin_session", newToken, utils.GetDefaultCookieMaxAge())
-	http.SetCookie(w, cookie)
+	c.SetCookie("admin_session", newToken, utils.GetDefaultCookieMaxAge(), "/", "", false, true)
 
 	// 密码修改成功，已重新生成JWT令牌
-	utils.JsonResponse(w, http.StatusOK, true, "密码修改成功", nil)
+	baseController.HandleSuccess(c, "密码修改成功", nil)
 }
 
 // UserProfileUpdateHandler 修改当前登录管理员的用户名
@@ -166,15 +161,10 @@ func UserPasswordUpdateHandler(w http.ResponseWriter, r *http.Request) {
 // - 校验用户名非空、长度与唯一性
 // - 更新数据库后重新签发JWT并写入 Cookie，保持前端展示的一致性
 // - 自动刷新接近过期的JWT令牌
-func UserProfileUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	_, _, err := GetCurrentAdminUserWithRefresh(w, r)
+func UserProfileUpdateHandler(c *gin.Context) {
+	_, _, err := GetCurrentAdminUserWithRefresh(c)
 	if err != nil {
-		utils.JsonResponse(w, http.StatusUnauthorized, false, "未登录或会话已过期", nil)
+		baseController.HandleValidationError(c, "未登录或会话已过期")
 		return
 	}
 
@@ -182,24 +172,22 @@ func UserProfileUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		Username    string `json:"username"`
 		OldPassword string `json:"old_password"`
 	}
-	if decodeErr := json.NewDecoder(r.Body).Decode(&body); decodeErr != nil {
-		utils.JsonResponse(w, http.StatusBadRequest, false, "请求参数错误", nil)
+	if !baseController.BindJSON(c, &body) {
 		return
 	}
 
 	username := strings.TrimSpace(body.Username)
 	if username == "" {
-		utils.JsonResponse(w, http.StatusBadRequest, false, "用户名不能为空", nil)
+		baseController.HandleValidationError(c, "用户名不能为空")
 		return
 	}
 	if len(username) > 64 {
-		utils.JsonResponse(w, http.StatusBadRequest, false, "用户名长度不能超过64字符", nil)
+		baseController.HandleValidationError(c, "用户名长度不能超过64字符")
 		return
 	}
 
-	db, err := database.GetDB()
-	if err != nil {
-		utils.JsonResponse(w, http.StatusInternalServerError, false, "数据库连接失败", nil)
+	db, ok := baseController.GetDB(c)
+	if !ok {
 		return
 	}
 
@@ -208,7 +196,7 @@ func UserProfileUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	// 获取所有管理员相关设置
 	var adminSettings []models.Settings
 	if dbErr := db.Where("name LIKE ?", "admin_%").Find(&adminSettings).Error; dbErr != nil {
-		utils.JsonResponse(w, http.StatusInternalServerError, false, "获取管理员设置失败", nil)
+		baseController.HandleInternalError(c, "获取管理员设置失败", dbErr)
 		return
 	}
 
@@ -220,25 +208,25 @@ func UserProfileUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	adminUsername, exists := settingsMap["admin_username"]
 	if !exists {
-		utils.JsonResponse(w, http.StatusInternalServerError, false, "管理员用户名设置不存在", nil)
+		baseController.HandleInternalError(c, "管理员用户名设置不存在", nil)
 		return
 	}
 
 	adminPassword, exists := settingsMap["admin_password"]
 	if !exists {
-		utils.JsonResponse(w, http.StatusInternalServerError, false, "管理员密码设置不存在", nil)
+		baseController.HandleInternalError(c, "管理员密码设置不存在", nil)
 		return
 	}
 
 	adminPasswordSalt, exists := settingsMap["admin_password_salt"]
 	if !exists {
-		utils.JsonResponse(w, http.StatusInternalServerError, false, "管理员密码盐值设置不存在", nil)
+		baseController.HandleInternalError(c, "管理员密码盐值设置不存在", nil)
 		return
 	}
 
 	// 如果用户名未变化则直接返回成功（无需校验旧密码）
 	if strings.EqualFold(username, adminUsername) {
-		utils.JsonResponse(w, http.StatusOK, true, "保存成功", map[string]interface{}{
+		baseController.HandleSuccess(c, "保存成功", gin.H{
 			"username": username,
 		})
 		return
@@ -246,19 +234,19 @@ func UserProfileUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 修改用户名需要进行当前密码校验
 	if strings.TrimSpace(body.OldPassword) == "" {
-		utils.JsonResponse(w, http.StatusBadRequest, false, "修改用户名需要提供当前密码", nil)
+		baseController.HandleValidationError(c, "修改用户名需要提供当前密码")
 		return
 	}
 
 	// 使用盐值验证当前密码
 	if !utils.VerifyPasswordWithSalt(body.OldPassword, adminPasswordSalt, adminPassword) {
-		utils.JsonResponse(w, http.StatusUnauthorized, false, "当前密码不正确", nil)
+		baseController.HandleValidationError(c, "当前密码不正确")
 		return
 	}
 
 	// 更新管理员用户名设置
 	if dbErr := db.Model(&models.Settings{}).Where("name = ?", "admin_username").Update("value", username).Error; dbErr != nil {
-		utils.JsonResponse(w, http.StatusInternalServerError, false, "更新管理员用户名失败", nil)
+		baseController.HandleInternalError(c, "更新管理员用户名失败", dbErr)
 		return
 	}
 
@@ -271,13 +259,12 @@ func UserProfileUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	token, err := generateJWTTokenForAdmin(adminUser)
 	if err != nil {
-		utils.JsonResponse(w, http.StatusInternalServerError, false, "生成新令牌失败", nil)
+		baseController.HandleInternalError(c, "生成新令牌失败", err)
 		return
 	}
-	cookie := utils.CreateSecureCookie("admin_session", token, utils.GetDefaultCookieMaxAge())
-	http.SetCookie(w, cookie)
+	c.SetCookie("admin_session", token, utils.GetDefaultCookieMaxAge(), "/", "", false, true)
 
-	utils.JsonResponse(w, http.StatusOK, true, "保存成功", map[string]interface{}{
+	baseController.HandleSuccess(c, "保存成功", gin.H{
 		"username": username,
 	})
 }

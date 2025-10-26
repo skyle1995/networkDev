@@ -278,7 +278,7 @@
         url: '/admin/api/apis/apps',
         type: 'GET',
         success: function (res) {
-          if (res.success && res.data) {
+          if (res.code === 0 && res.data) {
             var filterSelect = $('select[name="app_uuid"]').eq(0);
             // 清空现有选项（保留默认选项）
             filterSelect.find('option:not(:first)').remove();
@@ -303,7 +303,7 @@
         url: '/admin/api/apis/types',
         type: 'GET',
         success: function (res) {
-          if (res.success && res.data) {
+          if (res.code === 0 && res.data) {
             var typeSelect = $('select[name="api_type"]').eq(0);
             // 清空现有选项（保留默认选项）
             typeSelect.find('option:not(:first)').remove();
@@ -453,7 +453,7 @@
         contentType: 'application/json',
         data: JSON.stringify({ side: side, algorithm: algorithm }),
         success: function (res) {
-          if (res.success && res.data) {
+          if (res.code === 0 && res.data) {
             if (algorithm === 1) { // RC4
               $('[name="' + prefix + '_private_key"]').val(res.data.private_key || '');
             } else if (algorithm === 4) { // 易加密
@@ -464,7 +464,7 @@
             }
             layer.msg('已自动生成' + (side === 'submit' ? '提交' : '返回') + '密钥', { icon: 1, time: 1500 });
           } else {
-            layer.msg(res.message || '自动生成密钥失败', { icon: 2 });
+            layer.msg(res.msg || '自动生成密钥失败', { icon: 2 });
           }
         },
         error: function () {
@@ -498,7 +498,7 @@
         contentType: 'application/json',
         data: JSON.stringify({ side: 'submit', algorithm: algo }),
         success: function (res) {
-          if (res.success && res.data) {
+          if (res.code === 0 && res.data) {
             if (algo === 1) { // RC4
               $('[name="submit_private_key"]').val(res.data.private_key || '');
             } else if (algo === 4) { // 易加密
@@ -508,7 +508,7 @@
               $('[name="submit_private_key"]').val(res.data.private_key || '');
             }
           } else {
-            layer.msg(res.message || '生成失败', { icon: 2 });
+            layer.msg(res.msg || '生成失败', { icon: 2 });
           }
         },
         error: function () { layer.msg('生成失败', { icon: 2 }); }
@@ -528,7 +528,7 @@
         contentType: 'application/json',
         data: JSON.stringify({ side: 'return', algorithm: algo }),
         success: function (res) {
-          if (res.success && res.data) {
+          if (res.code === 0 && res.data) {
             if (algo === 1) { // RC4
               $('[name="return_private_key"]').val(res.data.private_key || '');
             } else if (algo === 4) { // 易加密
@@ -538,7 +538,7 @@
               $('[name="return_private_key"]').val(res.data.private_key || '');
             }
           } else {
-            layer.msg(res.message || '生成失败', { icon: 2 });
+            layer.msg(res.msg || '生成失败', { icon: 2 });
           }
         },
         error: function () { layer.msg('生成失败', { icon: 2 }); }
@@ -602,12 +602,12 @@
               contentType: 'application/json',
               data: JSON.stringify(formData),
               success: function (res) {
-                if (res.success) {
+                if (res.code === 0) {
                   layer.msg('接口更新成功', { icon: 1 });
                   layer.close(index);
                   apisTable.reload();
                 } else {
-                  layer.msg(res.message || '更新失败', { icon: 2 });
+                  layer.msg(res.msg || '更新失败', { icon: 2 });
                 }
               },
               error: function () {

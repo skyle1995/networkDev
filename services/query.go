@@ -10,10 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-
-
-
-
 // FindSettingByName 根据名称查找设置
 // name: 设置名称
 // db: 数据库连接
@@ -29,8 +25,6 @@ func FindSettingByName(name string, db *gorm.DB) (*models.Settings, error) {
 		return &setting, nil
 	})
 }
-
-
 
 // UpdateEntityByID 根据ID更新实体
 // model: 模型类型

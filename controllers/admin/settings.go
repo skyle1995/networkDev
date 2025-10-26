@@ -1,49 +1,43 @@
 package admin
 
 import (
-	"encoding/json"
-	"fmt"
-	"net/http"
-	"networkDev/database"
-	"networkDev/models"
-	"networkDev/utils"
-
-	// 新增：用于刷新内存缓存
-	"networkDev/services"
-	// 新增：用于RedisDel上下文
 	"context"
-
+	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"net/http"
+	"networkDev/controllers"
+	"networkDev/models"
+	"networkDev/services"
+	"networkDev/utils"
 )
+
+// 创建基础控制器实例
+var settingsBaseController = controllers.NewBaseController()
 
 // SettingsFragmentHandler 设置片段渲染
 // - 渲染设置表单（通过前端JS调用API加载/保存）
-func SettingsFragmentHandler(w http.ResponseWriter, r *http.Request) {
-	utils.RenderTemplate(w, "settings.html", map[string]interface{}{})
+func SettingsFragmentHandler(c *gin.Context) {
+	c.HTML(http.StatusOK, "settings.html", gin.H{})
 }
 
 // SettingsQueryHandler 设置查询API
 // - 返回所有设置项的 name:value 映射
-func SettingsQueryHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	db, err := database.GetDB()
-	if err != nil {
-		utils.JsonResponse(w, http.StatusInternalServerError, false, "数据库连接失败", nil)
+func SettingsQueryHandler(c *gin.Context) {
+	db, ok := settingsBaseController.GetDB(c)
+	if !ok {
 		return
 	}
 	var list []models.Settings
 	if err := db.Find(&list).Error; err != nil {
-		utils.JsonResponse(w, http.StatusInternalServerError, false, "查询失败", nil)
+		settingsBaseController.HandleInternalError(c, "查询失败", err)
 		return
 	}
 	res := map[string]string{}
 	for _, s := range list {
 		res[s.Name] = s.Value
 	}
-	utils.JsonResponse(w, http.StatusOK, true, "ok", res)
+	settingsBaseController.HandleSuccess(c, "ok", res)
 }
 
 // SettingsUpdateHandler 更新系统设置处理器
@@ -56,16 +50,10 @@ func SettingsQueryHandler(w http.ResponseWriter, r *http.Request) {
 // - 更新完成后：
 //  1. 删除对应的Redis缓存键，确保后续读取走数据库并重建缓存
 //  2. 刷新SettingsService内存缓存
-func SettingsUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func SettingsUpdateHandler(c *gin.Context) {
 	// 先尝试解析为直接字段格式
 	var directBody map[string]interface{}
-	if err := json.NewDecoder(r.Body).Decode(&directBody); err != nil {
-		utils.JsonResponse(w, http.StatusBadRequest, false, "请求体错误", nil)
+	if !settingsBaseController.BindJSON(c, &directBody) {
 		return
 	}
 
@@ -82,7 +70,7 @@ func SettingsUpdateHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		} else {
-			utils.JsonResponse(w, http.StatusBadRequest, false, "settings字段格式错误", nil)
+			settingsBaseController.HandleValidationError(c, "settings字段格式错误")
 			return
 		}
 	} else {
@@ -99,13 +87,12 @@ func SettingsUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(settingsData) == 0 {
-		utils.JsonResponse(w, http.StatusBadRequest, false, "无设置项", nil)
+		settingsBaseController.HandleValidationError(c, "无设置项")
 		return
 	}
 
-	db, err := database.GetDB()
-	if err != nil {
-		utils.JsonResponse(w, http.StatusInternalServerError, false, "数据库连接失败", nil)
+	db, ok := settingsBaseController.GetDB(c)
+	if !ok {
 		return
 	}
 
@@ -120,7 +107,7 @@ func SettingsUpdateHandler(w http.ResponseWriter, r *http.Request) {
 			s = models.Settings{Name: k, Value: v}
 			if err := db.Create(&s).Error; err != nil {
 				logrus.WithError(err).WithField("setting_name", k).Error("创建设置失败")
-				utils.JsonResponse(w, http.StatusInternalServerError, false, fmt.Sprintf("保存设置 %s 失败", k), nil)
+				settingsBaseController.HandleInternalError(c, fmt.Sprintf("保存设置 %s 失败", k), err)
 				return
 			}
 
@@ -128,7 +115,7 @@ func SettingsUpdateHandler(w http.ResponseWriter, r *http.Request) {
 			// 存在则更新
 			if err := db.Model(&models.Settings{}).Where("id = ?", s.ID).Update("value", v).Error; err != nil {
 				logrus.WithError(err).WithField("setting_name", k).Error("更新设置失败")
-				utils.JsonResponse(w, http.StatusInternalServerError, false, fmt.Sprintf("更新设置 %s 失败", k), nil)
+				settingsBaseController.HandleInternalError(c, fmt.Sprintf("更新设置 %s 失败", k), err)
 				return
 			}
 
@@ -143,5 +130,5 @@ func SettingsUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	// 刷新内存中的设置缓存，保证后续读取一致
 	services.GetSettingsService().RefreshCache()
 
-	utils.JsonResponse(w, http.StatusOK, true, "保存成功", nil)
+	settingsBaseController.HandleSuccess(c, "保存成功", nil)
 }

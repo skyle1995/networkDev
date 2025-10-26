@@ -1,13 +1,14 @@
 package server
 
 import (
-	"net/http"
 	"networkDev/controllers/home"
+
+	"github.com/gin-gonic/gin"
 )
 
 // RegisterHomeRoutes 注册主页路由
 // 只包含根路径，用于主页功能
-func RegisterHomeRoutes(mux *http.ServeMux) {
+func RegisterHomeRoutes(router *gin.Engine) {
 	// 根路径 - 主页
-	mux.HandleFunc("/", home.RootHandler)
+	router.GET("/", home.RootHandler)
 }
