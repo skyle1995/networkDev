@@ -1,51 +1,14 @@
 {{ define "user.html" }}
 <section>
-  <h2>个人资料</h2>
+  <h2>账户管理</h2>
   <div class="layui-tab layui-tab-brief" lay-filter="userTabs" style="margin-top: 16px;">
     <ul class="layui-tab-title">
-      <li class="layui-this">个人资料</li>
-      <li>修改密码</li>
-      <li>修改用户名</li>d
+      <li class="layui-this">修改密码</li>
+      <li>修改用户名</li>
     </ul>
     <div class="layui-tab-content">
-      <!-- 个人资料模块 -->
-      <div class="layui-tab-item layui-show">
-        <div class="layui-card" style="margin-top: 16px;">
-          <div class="layui-card-header">个人资料</div>
-          <div class="layui-card-body">
-            <form class="layui-form" id="profileForm" lay-filter="profileForm">
-              <div class="layui-form-item">
-                <label class="layui-form-label">UUID</label>
-                <div class="layui-input-block">
-                  <input type="text" name="uuid" disabled readonly class="layui-input readonly-field"
-                    style="font-family: monospace; font-size: 12px;" />
-                </div>
-              </div>
-              <div class="layui-form-item">
-                <label class="layui-form-label">用户组</label>
-                <div class="layui-input-block">
-                  <input type="text" name="role" disabled readonly class="layui-input readonly-field" />
-                </div>
-              </div>
-              <div class="layui-form-item">
-                <label class="layui-form-label">用户名</label>
-                <div class="layui-input-block">
-                  <input type="text" name="username" disabled readonly class="layui-input readonly-field" />
-                </div>
-              </div>
-              <div class="layui-form-item">
-                <label class="layui-form-label">创建时间</label>
-                <div class="layui-input-block">
-                  <input type="text" name="created_at" disabled readonly class="layui-input readonly-field" />
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-
       <!-- 修改密码模块 -->
-      <div class="layui-tab-item">
+      <div class="layui-tab-item layui-show">
         <div class="layui-card" style="margin-top: 16px;">
           <div class="layui-card-header">修改密码</div>
           <div class="layui-card-body">
@@ -58,7 +21,7 @@
                 </div>
               </div>
               <div class="layui-form-item">
-                <label class="layui-form-label">新密码</label>
+                <label class="layui-form-label">新的密码</label>
                 <div class="layui-input-block">
                   <input type="password" name="new_password" placeholder="请输入新密码（至少6位）" autocomplete="off"
                     class="layui-input" lay-verify="required" />
@@ -166,31 +129,22 @@
           const element = layui.element
 
           // 全局变量
-          let userProfile = null
+          let currentUsername = null
 
-          // 加载个人资料
-          const loadProfile = async () => {
+          // 获取当前用户名
+          const getCurrentUsername = async () => {
             try {
               const res = await fetch('/admin/api/user/profile')
               const data = await res.json()
               const ok = (data.success === true) || (data.code === 0)
-              if (!ok) throw new Error(data.message || data.msg || '加载失败')
+              if (!ok) throw new Error(data.message || data.msg || '获取用户信息失败')
 
-              userProfile = data.data || {}
-
-              // 填充个人资料表单
-              const profileData = {
-                ...userProfile,
-                role: roleToText(userProfile.role),
-                created_at: formatTime(userProfile.created_at)
-              }
-              form.val('profileForm', profileData)
-
+              currentUsername = data.data.username
               // 填充用户名修改表单的当前用户名
-              form.val('usernameForm', { current_username: userProfile.username })
+              form.val('usernameForm', { current_username: currentUsername })
 
             } catch (e) {
-              layer.msg(e.message || '加载个人资料失败', { icon: 2 })
+              layer.msg(e.message || '获取用户信息失败', { icon: 2 })
             }
           }
 
@@ -273,7 +227,7 @@
                 return { ok: false, msg: '请填写新用户名和当前密码' }
               }
 
-              if (new_username === userProfile?.username) {
+              if (new_username === currentUsername) {
                 return { ok: false, msg: '新用户名不能与当前用户名相同' }
               }
 
@@ -307,14 +261,14 @@
 
                 layer.msg('用户名修改成功', { icon: 1 })
 
-                // 重新加载个人资料
-                await loadProfile()
+                // 重新获取当前用户名
+                await getCurrentUsername()
 
                 // 清空表单（不显示重置提示）
                 form.val('usernameForm', {
                   new_username: '',
                   password: '',
-                  current_username: userProfile?.username || ''
+                  current_username: currentUsername || ''
                 })
 
               } catch (e) {
@@ -328,7 +282,7 @@
               form.val('usernameForm', {
                 new_username: '',
                 password: '',
-                current_username: userProfile?.username || ''
+                current_username: currentUsername || ''
               })
               layer.msg('表单已重置', { icon: 1 })
             }
@@ -348,7 +302,7 @@
           document.getElementById('resetUsernameBtn')?.addEventListener('click', UsernameModule.reset)
 
           // 初始化加载
-          loadProfile()
+          getCurrentUsername()
         })
       })
     })()

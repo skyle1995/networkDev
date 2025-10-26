@@ -93,13 +93,12 @@ func (s *SettingsService) RefreshCache() {
 	s.loadAllSettings()
 }
 
-
 // GetSessionTimeout 获取会话超时时间（秒）
 func (s *SettingsService) GetSessionTimeout() int {
 	return s.GetInt("session_timeout", 3600) // 默认1小时
 }
 
-// IsMaintenanceMode 检查系统是否关闭
+// IsMaintenanceMode 检查是否开启维护模式
 func (s *SettingsService) IsMaintenanceMode() bool {
 	return s.GetBool("maintenance_mode", false)
 }

@@ -2,8 +2,10 @@ package database
 
 import (
 	"networkDev/models"
+	"networkDev/utils"
 
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 // SeedDefaultSettings 初始化默认系统设置
@@ -60,7 +62,23 @@ func SeedDefaultSettings() error {
 		{
 			Name:        "maintenance_mode",
 			Value:       "0",
-			Description: "系统开关，0=开启系统，1=关闭系统",
+			Description: "维护模式，0=关闭维护模式，1=开启维护模式",
+		},
+		// ===== 管理员账号相关默认项 =====
+		{
+			Name:        "admin_username",
+			Value:       "admin",
+			Description: "管理员用户名",
+		},
+		{
+			Name:        "admin_password",
+			Value:       "",
+			Description: "管理员密码哈希值",
+		},
+		{
+			Name:        "admin_password_salt",
+			Value:       "",
+			Description: "管理员密码加密盐值",
 		},
 		// ===== 页脚与备案相关默认项 =====
 		{
@@ -106,6 +124,55 @@ func SeedDefaultSettings() error {
 		}
 	}
 
+	// 初始化默认管理员账号（如果密码为空）
+	if err := initDefaultAdmin(db); err != nil {
+		return err
+	}
+
 	logrus.Info("默认系统设置初始化完成")
+	return nil
+}
+
+// initDefaultAdmin 初始化默认管理员账号
+// 如果admin_password为空，则生成默认密码admin123的哈希值
+func initDefaultAdmin(db *gorm.DB) error {
+	var passwordSetting models.Settings
+	if err := db.Where("name = ?", "admin_password").First(&passwordSetting).Error; err != nil {
+		logrus.WithError(err).Error("获取管理员密码设置失败")
+		return err
+	}
+
+	// 如果密码已设置，跳过初始化
+	if passwordSetting.Value != "" {
+		logrus.Info("管理员密码已设置，跳过默认密码初始化")
+		return nil
+	}
+
+	// 生成密码盐值
+	salt, err := utils.GenerateRandomSalt()
+	if err != nil {
+		logrus.WithError(err).Error("生成密码盐值失败")
+		return err
+	}
+
+	// 使用盐值生成密码哈希（默认密码：admin123）
+	hash, err := utils.HashPasswordWithSalt("admin123", salt)
+	if err != nil {
+		logrus.WithError(err).Error("生成密码哈希失败")
+		return err
+	}
+
+	// 更新密码和盐值
+	if err := db.Model(&models.Settings{}).Where("name = ?", "admin_password").Update("value", hash).Error; err != nil {
+		logrus.WithError(err).Error("更新管理员密码失败")
+		return err
+	}
+
+	if err := db.Model(&models.Settings{}).Where("name = ?", "admin_password_salt").Update("value", salt).Error; err != nil {
+		logrus.WithError(err).Error("更新管理员密码盐值失败")
+		return err
+	}
+
+	logrus.Info("默认管理员账号初始化完成，用户名: admin, 密码: admin123")
 	return nil
 }

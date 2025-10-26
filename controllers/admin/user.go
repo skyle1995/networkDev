@@ -2,7 +2,6 @@ package admin
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"networkDev/database"
 	"networkDev/models"
@@ -16,9 +15,9 @@ func UserFragmentHandler(w http.ResponseWriter, r *http.Request) {
 	utils.RenderTemplate(w, "user.html", map[string]interface{}{})
 }
 
-// UserProfileQueryHandler 查询当前登录管理员的基本信息
-// - 返回 uuid/username/role/created_at 四个字段
-// - 自动刷新接近过期的JWT令牌
+// UserProfileQueryHandler 获取当前登录管理员的用户名
+// - 返回 JSON: {username}
+// - 直接从JWT获取用户名信息
 func UserProfileQueryHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -31,24 +30,8 @@ func UserProfileQueryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 查询用户完整信息以获取创建时间
-	db, err := database.GetDB()
-	if err != nil {
-		utils.JsonResponse(w, http.StatusInternalServerError, false, "数据库连接失败", nil)
-		return
-	}
-
-	var user models.User
-	if dbErr := db.Where("uuid = ?", claims.UserUUID).First(&user).Error; dbErr != nil {
-		utils.JsonResponse(w, http.StatusNotFound, false, "用户不存在", nil)
-		return
-	}
-
 	utils.JsonResponse(w, http.StatusOK, true, "ok", map[string]interface{}{
-		"uuid":       user.UUID,
-		"username":   user.Username,
-		"role":       user.Role,
-		"created_at": user.CreatedAt,
+		"username": claims.Username,
 	})
 }
 
@@ -98,21 +81,42 @@ func UserPasswordUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 确认是管理员
+	if !claims.IsAdmin {
+		utils.JsonResponse(w, http.StatusForbidden, false, "权限不足", nil)
+		return
+	}
+
+	// 获取数据库连接
 	db, err := database.GetDB()
 	if err != nil {
 		utils.JsonResponse(w, http.StatusInternalServerError, false, "数据库连接失败", nil)
 		return
 	}
 
-	// 查询当前用户
-	var user models.User
-	if dbErr := db.Where("uuid = ?", claims.UserUUID).First(&user).Error; dbErr != nil {
-		utils.JsonResponse(w, http.StatusNotFound, false, "用户不存在", nil)
+	// 通过前缀匹配一次性获取所有管理员相关设置
+	var adminSettings []models.Settings
+	if err = db.Where("name LIKE ?", "admin_%").Find(&adminSettings).Error; err != nil {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "获取管理员设置失败", nil)
 		return
 	}
 
-	// 校验旧密码（使用盐值验证）
-	if !utils.VerifyPasswordWithSalt(body.OldPassword, user.PasswordSalt, user.Password) {
+	// 将设置转换为map便于查找
+	settingsMap := make(map[string]string)
+	for _, setting := range adminSettings {
+		settingsMap[setting.Name] = setting.Value
+	}
+
+	// 检查必要的设置是否存在
+	adminPassword, hasPassword := settingsMap["admin_password"]
+	adminPasswordSalt, hasSalt := settingsMap["admin_password_salt"]
+	if !hasPassword || !hasSalt {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "管理员密码设置不完整", nil)
+		return
+	}
+
+	// 校验旧密码
+	if !utils.VerifyPasswordWithSalt(body.OldPassword, adminPasswordSalt, adminPassword) {
 		utils.JsonResponse(w, http.StatusUnauthorized, false, "旧密码不正确", nil)
 		return
 	}
@@ -120,41 +124,34 @@ func UserPasswordUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	// 生成新的密码盐值
 	newSalt, err := utils.GenerateRandomSalt()
 	if err != nil {
-		// 添加详细错误日志
-		fmt.Printf("生成密码盐失败: %v\n", err)
 		utils.JsonResponse(w, http.StatusInternalServerError, false, "生成密码盐失败", nil)
 		return
 	}
-	fmt.Printf("成功生成新盐值，长度: %d\n", len(newSalt))
 
-	// 使用新盐值生成密码哈希
-	hash, err := utils.HashPasswordWithSalt(body.NewPassword, newSalt)
+	// 生成新密码哈希
+	newPasswordHash, err := utils.HashPasswordWithSalt(body.NewPassword, newSalt)
 	if err != nil {
-		// 添加详细错误日志
-		fmt.Printf("生成密码哈希失败: %v, 密码长度: %d, 盐值长度: %d\n", err, len(body.NewPassword), len(newSalt))
 		utils.JsonResponse(w, http.StatusInternalServerError, false, "生成密码哈希失败", nil)
 		return
 	}
-	fmt.Printf("成功生成密码哈希，长度: %d\n", len(hash))
 
-	// 更新密码和盐值
-	if dbErr := db.Model(&models.User{}).Where("uuid = ?", claims.UserUUID).Updates(map[string]interface{}{
-		"password":      hash,
-		"password_salt": newSalt,
-	}).Error; dbErr != nil {
+	// 更新settings中的管理员密码和盐值
+	if err = db.Model(&models.Settings{}).Where("name = ?", "admin_password").Update("value", newPasswordHash).Error; err != nil {
 		utils.JsonResponse(w, http.StatusInternalServerError, false, "更新密码失败", nil)
 		return
 	}
-
-	// 重新查询用户信息（包含新密码）
-	var updatedUser models.User
-	if dbErr := db.Where("uuid = ?", claims.UserUUID).First(&updatedUser).Error; dbErr != nil {
-		utils.JsonResponse(w, http.StatusInternalServerError, false, "查询用户信息失败", nil)
+	if err = db.Model(&models.Settings{}).Where("name = ?", "admin_password_salt").Update("value", newSalt).Error; err != nil {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "更新密码盐值失败", nil)
 		return
 	}
 
 	// 重新生成JWT令牌（包含新的密码哈希摘要）
-	newToken, err := generateJWTToken(updatedUser)
+	adminUser := models.User{
+		Username:     claims.Username,
+		Password:     newPasswordHash,
+		PasswordSalt: newSalt,
+	}
+	newToken, err := generateJWTTokenForAdmin(adminUser)
 	if err != nil {
 		utils.JsonResponse(w, http.StatusInternalServerError, false, "生成新令牌失败", nil)
 		return
@@ -210,19 +207,45 @@ func UserProfileUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 检查唯一性：排除当前用户UUID
-	var cnt int64
-	if dbErr := db.Model(&models.User{}).Where("username = ? AND uuid <> ?", username, claims.UserUUID).Count(&cnt).Error; dbErr != nil {
-		utils.JsonResponse(w, http.StatusInternalServerError, false, "检查用户名唯一性失败", nil)
-		return
-	}
-	if cnt > 0 {
-		utils.JsonResponse(w, http.StatusBadRequest, false, "用户名已存在，请更换", nil)
+	// 确认当前用户是管理员
+	if !claims.IsAdmin {
+		utils.JsonResponse(w, http.StatusForbidden, false, "权限不足", nil)
 		return
 	}
 
-	// 如果未变化则直接返回成功（无需校验旧密码）
-	if strings.EqualFold(username, claims.Username) {
+	// 获取所有管理员相关设置
+	var adminSettings []models.Settings
+	if dbErr := db.Where("name LIKE ?", "admin_%").Find(&adminSettings).Error; dbErr != nil {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "获取管理员设置失败", nil)
+		return
+	}
+
+	// 转换为map便于查找
+	settingsMap := make(map[string]string)
+	for _, setting := range adminSettings {
+		settingsMap[setting.Name] = setting.Value
+	}
+
+	adminUsername, exists := settingsMap["admin_username"]
+	if !exists {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "管理员用户名设置不存在", nil)
+		return
+	}
+
+	adminPassword, exists := settingsMap["admin_password"]
+	if !exists {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "管理员密码设置不存在", nil)
+		return
+	}
+
+	adminPasswordSalt, exists := settingsMap["admin_password_salt"]
+	if !exists {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "管理员密码盐值设置不存在", nil)
+		return
+	}
+
+	// 如果用户名未变化则直接返回成功（无需校验旧密码）
+	if strings.EqualFold(username, adminUsername) {
 		utils.JsonResponse(w, http.StatusOK, true, "保存成功", map[string]interface{}{
 			"username": username,
 		})
@@ -234,28 +257,27 @@ func UserProfileUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		utils.JsonResponse(w, http.StatusBadRequest, false, "修改用户名需要提供当前密码", nil)
 		return
 	}
-	// 查询当前用户并校验旧密码
-	var user models.User
-	if dbErr := db.Where("uuid = ?", claims.UserUUID).First(&user).Error; dbErr != nil {
-		utils.JsonResponse(w, http.StatusNotFound, false, "用户不存在", nil)
-		return
-	}
+
 	// 使用盐值验证当前密码
-	if !utils.VerifyPasswordWithSalt(body.OldPassword, user.PasswordSalt, user.Password) {
+	if !utils.VerifyPasswordWithSalt(body.OldPassword, adminPasswordSalt, adminPassword) {
 		utils.JsonResponse(w, http.StatusUnauthorized, false, "当前密码不正确", nil)
 		return
 	}
 
-	// 执行更新
-	if dbErr := db.Model(&models.User{}).Where("uuid = ?", claims.UserUUID).Update("username", username).Error; dbErr != nil {
-		utils.JsonResponse(w, http.StatusInternalServerError, false, "更新用户名失败", nil)
+	// 更新管理员用户名设置
+	if dbErr := db.Model(&models.Settings{}).Where("name = ?", "admin_username").Update("value", username).Error; dbErr != nil {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "更新管理员用户名失败", nil)
 		return
 	}
 
 	// 重新签发JWT并写入Cookie
-	// 使用完整的用户信息（包含密码）来生成JWT令牌
-	user.Username = username // 更新用户名
-	token, err := generateJWTToken(user)
+	// 创建虚拟用户对象用于生成JWT令牌
+	adminUser := models.User{
+		Username:     username,        // 使用新的用户名
+		Password:     adminPassword,
+		PasswordSalt: adminPasswordSalt,
+	}
+	token, err := generateJWTTokenForAdmin(adminUser)
 	if err != nil {
 		utils.JsonResponse(w, http.StatusInternalServerError, false, "生成新令牌失败", nil)
 		return

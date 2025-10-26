@@ -60,17 +60,15 @@ func GetDefaultTemplateData() map[string]interface{} {
 func GetTemplateDataWithCSRF(r *http.Request, additionalData map[string]interface{}) map[string]interface{} {
 	// 获取默认模板数据
 	data := GetDefaultTemplateData()
-	
+
 	// 添加CSRF令牌
 	data["CSRFToken"] = GetCSRFTokenForTemplate(r)
-	
+
 	// 合并额外数据
-	if additionalData != nil {
-		for key, value := range additionalData {
-			data[key] = value
-		}
+	for key, value := range additionalData {
+		data[key] = value
 	}
-	
+
 	return data
 }
 

@@ -48,7 +48,7 @@ func LoginPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	data := utils.GetDefaultTemplateData()
 	data["CSRFToken"] = token
-	
+
 	// 合并额外数据
 	for key, value := range extraData {
 		data[key] = value
@@ -98,25 +98,56 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var user models.User
-	dbErr := db.Where("username = ?", body.Username).First(&user).Error
-	if dbErr != nil {
+	// 通过前缀匹配一次性获取所有管理员相关设置
+	var adminSettings []models.Settings
+	if err = db.Where("name LIKE ?", "admin_%").Find(&adminSettings).Error; err != nil {
 		utils.JsonResponse(w, http.StatusUnauthorized, false, "用户不存在或密码错误", nil)
 		return
 	}
-	if user.Role != 0 {
-		utils.JsonResponse(w, http.StatusForbidden, false, "非管理员账号不可登录后台", nil)
+
+	// 将设置转换为map便于查找
+	settingsMap := make(map[string]string)
+	for _, setting := range adminSettings {
+		settingsMap[setting.Name] = setting.Value
+	}
+
+	// 检查必要的设置是否存在
+	adminUsername, hasUsername := settingsMap["admin_username"]
+	adminPassword, hasPassword := settingsMap["admin_password"]
+	adminPasswordSalt, hasSalt := settingsMap["admin_password_salt"]
+
+	if !hasUsername || !hasPassword || !hasSalt {
+		utils.JsonResponse(w, http.StatusUnauthorized, false, "用户不存在或密码错误", nil)
+		return
+	}
+
+	// 验证用户名
+	if body.Username != adminUsername {
+		utils.JsonResponse(w, http.StatusUnauthorized, false, "用户不存在或密码错误", nil)
+		return
+	}
+
+	// 验证密码为空的情况（首次登录需要初始化）
+	if adminPassword == "" || adminPasswordSalt == "" {
+		utils.JsonResponse(w, http.StatusInternalServerError, false, "管理员账号未初始化，请联系系统管理员", nil)
 		return
 	}
 
 	// 使用盐值验证密码
-	if !utils.VerifyPasswordWithSalt(body.Password, user.PasswordSalt, user.Password) {
+	if !utils.VerifyPasswordWithSalt(body.Password, adminPasswordSalt, adminPassword) {
 		utils.JsonResponse(w, http.StatusUnauthorized, false, "用户不存在或密码错误", nil)
 		return
 	}
 
+	// 创建虚拟用户对象用于生成JWT令牌
+	adminUser := models.User{
+		Username:     adminUsername,
+		Password:     adminPassword,
+		PasswordSalt: adminPasswordSalt,
+	}
+
 	// 生成JWT令牌
-	token, err := generateJWTToken(user)
+	token, err := generateJWTTokenForAdmin(adminUser)
 	if err != nil {
 		utils.JsonResponse(w, http.StatusInternalServerError, false, "生成令牌失败", nil)
 		return
@@ -159,32 +190,30 @@ var jwtSecret = []byte(viper.GetString("security.jwt_secret"))
 
 // JWTClaims JWT载荷结构
 type JWTClaims struct {
-	UserUUID     string `json:"user_uuid"`
 	Username     string `json:"username"`
-	Role         int    `json:"role"`
+	IsAdmin      bool   `json:"is_admin"`      // 是否为管理员
 	PasswordHash string `json:"password_hash"` // 密码哈希摘要，用于验证密码是否被修改
 	jwt.RegisteredClaims
 }
 
-// generateJWTToken 生成JWT令牌
-// - 包含用户ID、用户名、角色信息
+// generateJWTTokenForAdmin 生成管理员JWT令牌
+// - 包含管理员UUID、用户名信息
 // - 设置24小时过期时间
 // - 使用HMAC-SHA256签名
-func generateJWTToken(user models.User) (string, error) {
+func generateJWTTokenForAdmin(adminUser models.User) (string, error) {
 	// 生成密码哈希摘要（使用SHA256）
-	passwordHashDigest := utils.GenerateSHA256Hash(user.Password)
-	
+	passwordHashDigest := utils.GenerateSHA256Hash(adminUser.Password)
+
 	claims := JWTClaims{
-		UserUUID:     user.UUID,
-		Username:     user.Username,
-		Role:         user.Role,
+		Username:     adminUser.Username,
+		IsAdmin:      true,               // 管理员
 		PasswordHash: passwordHashDigest, // 包含密码哈希摘要
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			Issuer:    "凌动技术",
-			Subject:   user.UUID,
+			Subject:   adminUser.Username,
 		},
 	}
 
@@ -230,39 +259,16 @@ func IsAdminAuthenticated(r *http.Request) bool {
 		return false
 	}
 
-	// 验证用户角色（只允许管理员角色=0）
-	if claims.Role != 0 {
+	// 验证用户角色（只允许管理员）
+	if !claims.IsAdmin {
 		return false
 	}
 
-	// 验证用户是否仍然存在于数据库中
-	db, err := database.GetDB()
-	if err != nil {
-		return false
-	}
-
-	var user models.User
-	if dbErr := db.Where("uuid = ? AND role = 0", claims.UserUUID).First(&user).Error; dbErr != nil {
-		// 记录安全事件：用户不存在但持有有效JWT令牌
-		fmt.Printf("[SECURITY WARNING] Invalid JWT token detected - User not found: UUID=%s, Username=%s, IP=%s\n", 
-			claims.UserUUID, claims.Username, r.RemoteAddr)
-		return false
-	}
-
-	// 验证用户名是否匹配（防止用户名被修改后仍使用旧令牌）
-	if user.Username != claims.Username {
-		// 记录安全事件：用户名不匹配
-		fmt.Printf("[SECURITY WARNING] Username mismatch detected - Token username=%s, DB username=%s, UUID=%s, IP=%s\n", 
-			claims.Username, user.Username, claims.UserUUID, r.RemoteAddr)
-		return false
-	}
-
-	// 验证密码哈希是否匹配（防止密码被修改后仍使用旧令牌）
-	currentPasswordHash := utils.GenerateSHA256Hash(user.Password)
-	if claims.PasswordHash != currentPasswordHash {
-		// 记录安全事件：密码哈希不匹配，可能密码已被修改
-		fmt.Printf("[SECURITY WARNING] Password hash mismatch detected - Token may be invalid due to password change: UUID=%s, Username=%s, IP=%s\n", 
-			claims.UserUUID, claims.Username, r.RemoteAddr)
+	// 对于管理员，不需要验证数据库中的用户记录，因为管理员信息存储在settings中
+	// 只需要验证JWT中的信息即可
+	if !claims.IsAdmin {
+		fmt.Printf("[SECURITY WARNING] Invalid admin token detected - Username=%s, IP=%s\n",
+			claims.Username, r.RemoteAddr)
 		return false
 	}
 
@@ -286,42 +292,17 @@ func IsAdminAuthenticatedWithCleanup(w http.ResponseWriter, r *http.Request) boo
 		return false
 	}
 
-	// 验证用户角色（只允许管理员角色=0）
-	if claims.Role != 0 {
+	// 验证用户角色（只允许管理员）
+	if !claims.IsAdmin {
 		clearInvalidJWTCookie(w)
 		return false
 	}
 
-	// 验证用户是否仍然存在于数据库中
-	db, err := database.GetDB()
-	if err != nil {
-		return false
-	}
-
-	var user models.User
-	if dbErr := db.Where("uuid = ? AND role = 0", claims.UserUUID).First(&user).Error; dbErr != nil {
-		// 记录安全事件并清理失效Cookie
-		fmt.Printf("[SECURITY WARNING] Invalid JWT token detected - User not found: UUID=%s, Username=%s, IP=%s\n", 
-			claims.UserUUID, claims.Username, r.RemoteAddr)
-		clearInvalidJWTCookie(w)
-		return false
-	}
-
-	// 验证用户名是否匹配（防止用户名被修改后仍使用旧令牌）
-	if user.Username != claims.Username {
-		// 记录安全事件并清理失效Cookie
-		fmt.Printf("[SECURITY WARNING] Username mismatch detected - Token username=%s, DB username=%s, UUID=%s, IP=%s\n", 
-			claims.Username, user.Username, claims.UserUUID, r.RemoteAddr)
-		clearInvalidJWTCookie(w)
-		return false
-	}
-
-	// 验证密码哈希是否匹配（防止密码被修改后仍使用旧令牌）
-	currentPasswordHash := utils.GenerateSHA256Hash(user.Password)
-	if claims.PasswordHash != currentPasswordHash {
-		// 记录安全事件并清理失效Cookie
-		fmt.Printf("[SECURITY WARNING] Password hash mismatch detected - Token may be invalid due to password change: UUID=%s, Username=%s, IP=%s\n", 
-			claims.UserUUID, claims.Username, r.RemoteAddr)
+	// 对于管理员，不需要验证数据库中的用户记录，因为管理员信息存储在settings中
+	// 只需要验证JWT中的信息即可
+	if !claims.IsAdmin {
+		fmt.Printf("[SECURITY WARNING] Invalid admin token detected - Username=%s, IP=%s\n",
+			claims.Username, r.RemoteAddr)
 		clearInvalidJWTCookie(w)
 		return false
 	}
@@ -344,39 +325,14 @@ func GetCurrentAdminUser(r *http.Request) (*JWTClaims, error) {
 		return nil, fmt.Errorf("无效的会话信息")
 	}
 
-	if claims.Role != 0 {
+	if !claims.IsAdmin {
 		return nil, fmt.Errorf("权限不足")
 	}
 
-	// 验证用户是否仍然存在于数据库中
-	db, err := database.GetDB()
-	if err != nil {
-		return nil, fmt.Errorf("数据库连接失败")
-	}
-
-	var user models.User
-	if dbErr := db.Where("uuid = ? AND role = 0", claims.UserUUID).First(&user).Error; dbErr != nil {
-		// 记录安全事件：用户不存在但持有有效JWT令牌
-		fmt.Printf("[SECURITY WARNING] Invalid JWT token detected in GetCurrentAdminUser - User not found: UUID=%s, Username=%s, IP=%s\n", 
-			claims.UserUUID, claims.Username, r.RemoteAddr)
-		return nil, fmt.Errorf("用户不存在或权限已变更")
-	}
-
-	// 验证用户名是否匹配（防止用户名被修改后仍使用旧令牌）
-	if user.Username != claims.Username {
-		// 记录安全事件：用户名不匹配
-		fmt.Printf("[SECURITY WARNING] Username mismatch detected in GetCurrentAdminUser - Token username=%s, DB username=%s, UUID=%s, IP=%s\n", 
-			claims.Username, user.Username, claims.UserUUID, r.RemoteAddr)
-		return nil, fmt.Errorf("用户信息已变更，请重新登录")
-	}
-
-	// 验证密码哈希是否匹配（防止密码被修改后仍使用旧令牌）
-	currentPasswordHash := utils.GenerateSHA256Hash(user.Password)
-	if claims.PasswordHash != currentPasswordHash {
-		// 记录安全事件：密码哈希不匹配，可能密码已被修改
-		fmt.Printf("[SECURITY WARNING] Password hash mismatch detected in GetCurrentAdminUser - Token may be invalid due to password change: UUID=%s, Username=%s, IP=%s\n", 
-			claims.UserUUID, claims.Username, r.RemoteAddr)
-		return nil, fmt.Errorf("密码已变更，请重新登录")
+	// 对于管理员，不需要验证数据库中的用户记录，因为管理员信息存储在settings中
+	// 只需要验证JWT中的信息即可
+	if !claims.IsAdmin {
+		return nil, fmt.Errorf("无效的管理员令牌")
 	}
 
 	return claims, nil
@@ -397,52 +353,25 @@ func GetCurrentAdminUserWithRefresh(w http.ResponseWriter, r *http.Request) (*JW
 		return nil, false, fmt.Errorf("无效的会话信息")
 	}
 
-	if claims.Role != 0 {
+	if !claims.IsAdmin {
 		return nil, false, fmt.Errorf("权限不足")
 	}
 
-	// 验证用户是否仍然存在于数据库中
-	db, err := database.GetDB()
-	if err != nil {
-		return nil, false, fmt.Errorf("数据库连接失败")
-	}
-
-	var user models.User
-	if dbErr := db.Where("uuid = ? AND role = 0", claims.UserUUID).First(&user).Error; dbErr != nil {
-		// 记录安全事件：用户不存在但持有有效JWT令牌
-		fmt.Printf("[SECURITY WARNING] Invalid JWT token detected in GetCurrentAdminUserWithRefresh - User not found: UUID=%s, Username=%s, IP=%s\n", 
-			claims.UserUUID, claims.Username, r.RemoteAddr)
-		return nil, false, fmt.Errorf("用户不存在或权限已变更")
-	}
-
-	// 验证用户名是否匹配（防止用户名被修改后仍使用旧令牌）
-	if user.Username != claims.Username {
-		// 记录安全事件：用户名不匹配
-		fmt.Printf("[SECURITY WARNING] Username mismatch detected in GetCurrentAdminUserWithRefresh - Token username=%s, DB username=%s, UUID=%s, IP=%s\n", 
-			claims.Username, user.Username, claims.UserUUID, r.RemoteAddr)
-		return nil, false, fmt.Errorf("用户信息已变更，请重新登录")
-	}
-
-	// 验证密码哈希是否匹配（防止密码被修改后仍使用旧令牌）
-	currentPasswordHash := utils.GenerateSHA256Hash(user.Password)
-	if claims.PasswordHash != currentPasswordHash {
-		// 记录安全事件：密码哈希不匹配，可能密码已被修改
-		fmt.Printf("[SECURITY WARNING] Password hash mismatch detected in GetCurrentAdminUserWithRefresh - Token may be invalid due to password change: UUID=%s, Username=%s, IP=%s\n", 
-			claims.UserUUID, claims.Username, r.RemoteAddr)
-		return nil, false, fmt.Errorf("密码已变更，请重新登录")
+	// 对于管理员，不需要验证数据库中的用户记录，因为管理员信息存储在settings中
+	// 只需要验证JWT中的信息即可
+	if !claims.IsAdmin {
+		return nil, false, fmt.Errorf("无效的管理员令牌")
 	}
 
 	// 检查是否需要刷新令牌（根据配置的阈值）
 	refreshed := false
 	refreshThreshold := time.Duration(viper.GetInt("security.jwt_refresh_threshold_hours")) * time.Hour
 	if time.Until(claims.ExpiresAt.Time) < refreshThreshold {
-		// 生成新的JWT令牌
-		user := models.User{
-			UUID:     claims.UserUUID,
+		// 为管理员生成新的JWT令牌
+		adminUser := models.User{
 			Username: claims.Username,
-			Role:     claims.Role,
 		}
-		newToken, err := generateJWTToken(user)
+		newToken, err := generateJWTTokenForAdmin(adminUser)
 		if err == nil {
 			// 更新Cookie（使用安全配置）
 			newCookie := utils.CreateSecureCookie("admin_session", newToken, utils.GetDefaultCookieMaxAge())
@@ -468,7 +397,7 @@ func AdminAuthRequired(next http.HandlerFunc) http.HandlerFunc {
 		if err != nil {
 			// 自动清理失效的JWT Cookie，提升安全性和用户体验
 			clearInvalidJWTCookie(w)
-			
+
 			// 中文注释：区分普通页面请求与AJAX/JSON请求
 			// - 对 AJAX/JSON：直接返回 401 JSON，便于前端处理（如提示重新登录）
 			// - 对普通页面：保持原有重定向到登录页

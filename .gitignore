@@ -1,8 +1,8 @@
-/config.json
 /database.db
 /recharge.db
 logs
 模板
 .DS_Store
-networkDev
+config.json
 node.txt
+networkDev

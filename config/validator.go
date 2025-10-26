@@ -13,89 +13,14 @@ import (
 	"github.com/spf13/viper"
 )
 
-// ServerConfig 服务器配置结构体
-// 包含HTTP服务器的基本配置信息
-type ServerConfig struct {
-	Host string `json:"host" mapstructure:"host"` // 服务器监听地址
-	Port int    `json:"port" mapstructure:"port"` // 服务器监听端口
-	Mode string `json:"mode" mapstructure:"mode"` // 运行模式（debug/release）
-	Dist string `json:"dist" mapstructure:"dist"` // 静态文件目录
-}
-
-// DatabaseConfig 数据库配置结构体
-// 支持MySQL和SQLite两种数据库类型
-type DatabaseConfig struct {
-	Type   string       `json:"type" mapstructure:"type"`     // 数据库类型（mysql/sqlite）
-	MySQL  MySQLConfig  `json:"mysql" mapstructure:"mysql"`   // MySQL配置
-	SQLite SQLiteConfig `json:"sqlite" mapstructure:"sqlite"` // SQLite配置
-}
-
-// MySQLConfig MySQL数据库配置结构体
-// 包含MySQL数据库连接和连接池的配置信息
-type MySQLConfig struct {
-	Host         string `json:"host" mapstructure:"host"`                     // 数据库主机地址
-	Port         int    `json:"port" mapstructure:"port"`                     // 数据库端口
-	Username     string `json:"username" mapstructure:"username"`             // 数据库用户名
-	Password     string `json:"password" mapstructure:"password"`             // 数据库密码
-	Database     string `json:"database" mapstructure:"database"`             // 数据库名称
-	Charset      string `json:"charset" mapstructure:"charset"`               // 字符集
-	MaxIdleConns int    `json:"max_idle_conns" mapstructure:"max_idle_conns"` // 最大空闲连接数
-	MaxOpenConns int    `json:"max_open_conns" mapstructure:"max_open_conns"` // 最大打开连接数
-}
-
-// SQLiteConfig SQLite数据库配置结构体
-// 包含SQLite数据库文件路径配置
-type SQLiteConfig struct {
-	Path string `json:"path" mapstructure:"path"` // 数据库文件路径
-}
-
-// RedisConfig Redis配置结构体
-// 包含Redis缓存服务器的连接配置
-type RedisConfig struct {
-	Host     string `json:"host" mapstructure:"host"`         // Redis服务器地址
-	Port     int    `json:"port" mapstructure:"port"`         // Redis服务器端口
-	Password string `json:"password" mapstructure:"password"` // Redis密码
-	DB       int    `json:"db" mapstructure:"db"`             // Redis数据库编号
-}
-
-// LogConfig 日志配置结构体
-// 包含日志记录的相关配置信息
-type LogConfig struct {
-	Level      string `json:"level" mapstructure:"level"`             // 日志级别
-	File       string `json:"file" mapstructure:"file"`               // 日志文件路径
-	MaxSize    int    `json:"max_size" mapstructure:"max_size"`       // 单个日志文件最大大小(MB)
-	MaxBackups int    `json:"max_backups" mapstructure:"max_backups"` // 保留的旧日志文件数量
-	MaxAge     int    `json:"max_age" mapstructure:"max_age"`         // 日志文件保留天数
-}
-
-// SecurityConfig 安全配置结构体
-// 包含应用程序安全相关的配置信息
-type SecurityConfig struct {
-	JWTSecret                string `json:"jwt_secret" mapstructure:"jwt_secret"`                                   // JWT签名密钥
-	EncryptionKey            string `json:"encryption_key" mapstructure:"encryption_key"`                           // 数据加密密钥
-	JWTRefreshThresholdHours int    `json:"jwt_refresh_threshold_hours" mapstructure:"jwt_refresh_threshold_hours"` // JWT令牌刷新阈值（小时）
-}
-
-// AppConfig 应用配置结构体
-type AppConfig struct {
-	Server   ServerConfig   `json:"server" mapstructure:"server"`
-	Database DatabaseConfig `json:"database" mapstructure:"database"`
-	Redis    RedisConfig    `json:"redis" mapstructure:"redis"`
-	Log      LogConfig      `json:"log" mapstructure:"log"`
-	Security SecurityConfig `json:"security" mapstructure:"security"`
-}
-
-// ValidateAndSetDefaults 验证配置并设置默认值
-func ValidateAndSetDefaults() (*AppConfig, error) {
+// ValidateConfig 验证配置
+func ValidateConfig() (*AppConfig, error) {
 	var config AppConfig
 
 	// 解析配置到结构体
 	if err := viper.Unmarshal(&config); err != nil {
 		return nil, fmt.Errorf("解析配置失败: %w", err)
 	}
-
-	// 设置默认值
-	setDefaults(&config)
 
 	// 验证配置
 	if err := validateConfig(&config); err != nil {
@@ -104,74 +29,6 @@ func ValidateAndSetDefaults() (*AppConfig, error) {
 
 	log.Info("配置验证通过")
 	return &config, nil
-}
-
-// setDefaults 设置默认值
-func setDefaults(config *AppConfig) {
-	// 服务器默认值
-	if config.Server.Host == "" {
-		config.Server.Host = "0.0.0.0"
-	}
-	if config.Server.Port == 0 {
-		config.Server.Port = 8080
-	}
-	if config.Server.Mode == "" {
-		config.Server.Mode = "debug"
-	}
-
-	// 数据库默认值
-	if config.Database.Type == "" {
-		config.Database.Type = "sqlite"
-	}
-	if config.Database.MySQL.Port == 0 {
-		config.Database.MySQL.Port = 3306
-	}
-	if config.Database.MySQL.Charset == "" {
-		config.Database.MySQL.Charset = "utf8mb4"
-	}
-	if config.Database.MySQL.MaxIdleConns == 0 {
-		config.Database.MySQL.MaxIdleConns = 10
-	}
-	if config.Database.MySQL.MaxOpenConns == 0 {
-		config.Database.MySQL.MaxOpenConns = 100
-	}
-	if config.Database.SQLite.Path == "" {
-		config.Database.SQLite.Path = "./database.db"
-	}
-
-	// Redis默认值
-	if config.Redis.Host == "" {
-		config.Redis.Host = "localhost"
-	}
-	if config.Redis.Port == 0 {
-		config.Redis.Port = 6379
-	}
-
-	// 日志默认值
-	if config.Log.Level == "" {
-		config.Log.Level = "info"
-	}
-	// 不为空的日志文件路径设置默认值，保持为空表示只输出到控制台
-	if config.Log.MaxSize == 0 {
-		config.Log.MaxSize = 100
-	}
-	if config.Log.MaxBackups == 0 {
-		config.Log.MaxBackups = 5
-	}
-	if config.Log.MaxAge == 0 {
-		config.Log.MaxAge = 30
-	}
-
-	// 安全配置默认值
-	if config.Security.JWTSecret == "" || config.Security.JWTSecret == "your-jwt-secret-key" {
-		config.Security.JWTSecret = "default-jwt-secret-change-in-production"
-	}
-	if config.Security.EncryptionKey == "" || config.Security.EncryptionKey == "your-encryption-key" {
-		config.Security.EncryptionKey = "default-encryption-key-change-in-production"
-	}
-	if config.Security.JWTRefreshThresholdHours == 0 {
-		config.Security.JWTRefreshThresholdHours = 6
-	}
 }
 
 // validateConfig 验证配置

@@ -297,7 +297,7 @@ loadScript(layuijs, function () {
         'site-description': '站点描述：网站的简要描述，用于SEO和搜索引擎结果展示',
         'site-logo': '站点Logo：网站的标志图片路径，建议使用SVG格式',
         // 系统配置 (settings.html)
-        'maintenance-mode': '系统关闭：开启后网站将进入维护模式，普通用户无法访问',
+        'maintenance-mode': '维护模式：开启后网站将进入维护模式，普通用户无法访问',
         'default-user-role': '默认角色：新注册用户的默认权限级别，0为管理员，1为普通成员',
         'session-timeout': '会话超时：用户登录会话的有效时间，单位为秒，超时后需要重新登录',
         // 页脚与备案信息 (settings.html)

@@ -60,11 +60,7 @@ func runServer(cmd *cobra.Command, args []string) {
 	if err := database.AutoMigrate(); err != nil {
 		logrus.WithError(err).Fatal("数据库自动迁移失败")
 	}
-	// 初始化默认管理员账号（admin/admin123）
-	if err := database.SeedDefaultAdmin(); err != nil {
-		logrus.WithError(err).Fatal("默认管理员初始化失败")
-	}
-	// 初始化默认系统设置
+	// 初始化默认系统设置（包含管理员账号）
 	if err := database.SeedDefaultSettings(); err != nil {
 		logrus.WithError(err).Fatal("默认系统设置初始化失败")
 	}
