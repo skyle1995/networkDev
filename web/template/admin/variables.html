@@ -13,14 +13,6 @@
       <form class="layui-form layui-form-pane" id="variableFilterForm" lay-filter="variableFilterForm">
         <div class="layui-form-item">
           <div class="layui-inline">
-            <label class="layui-form-label">应用</label>
-            <div class="layui-input-inline">
-              <select name="app_uuid" lay-filter="appSelect">
-                <option value="">请选择应用</option>
-              </select>
-            </div>
-          </div>
-          <div class="layui-inline">
             <label class="layui-form-label">搜索</label>
             <div class="layui-input-inline">
               <input type="text" name="search" placeholder="变量编号/别名/数据/备注" autocomplete="off" class="layui-input" />
@@ -52,14 +44,6 @@
   <div id="variableFormLayer" style="display:none;padding:20px">
     <form class="layui-form layui-form-pane" lay-filter="variableForm" id="variableForm">
       <input type="hidden" name="uuid">
-      <div class="layui-form-item">
-        <label class="layui-form-label">应用选择</label>
-        <div class="layui-input-block">
-          <select name="app_uuid" lay-verify="required" lay-filter="formAppSelect">
-            <option value="">请选择应用</option>
-          </select>
-        </div>
-      </div>
       <div class="layui-form-item">
         <label class="layui-form-label">变量别名</label>
         <div class="layui-input-block">
@@ -116,29 +100,7 @@
           return new Date(dateStr).toLocaleString();
         }
 
-        // 加载应用列表到下拉框
-        function loadApps() {
-          $.ajax({
-            url: '/admin/variable/apps',
-            type: 'GET',
-            success: function (res) {
-              if (res.code === 0 && res.data) {
-                let options = '<option value="">请选择应用</option>';
-                res.data.forEach(function (app) {
-                  options += '<option value="' + app.uuid + '">' + app.name + '</option>';
-                });
-                $('select[name="app_uuid"]').html(options);
-                form.render('select');
-              }
-            },
-            error: function () {
-              layer.msg('加载应用列表失败', { icon: 2 });
-            }
-          });
-        }
 
-        // 初始化加载应用列表
-        loadApps();
 
         // 渲染表格
         const variablesTable = table.render({
@@ -168,7 +130,6 @@
           cols: [[
             { type: 'checkbox', width: 50 },
             { field: 'id', title: 'ID', width: 80, sort: true },
-            { field: 'app_name', title: '应用名称', minWidth: 120 },
             { field: 'number', title: '变量编号', width: 180 },
             { field: 'alias', title: '变量别名', minWidth: 150 },
             {
@@ -207,24 +168,10 @@
           ]]
         });
 
-        // 监听应用选择变化
-        form.on('select(appSelect)', function (data) {
-          variablesTable.reload({
-            where: {
-              app_uuid: data.value,
-              search: $('input[name="search"]').val()
-            },
-            page: {
-              curr: 1
-            }
-          });
-        });
-
         // 搜索功能
         $('#btnSearchVariables').on('click', function () {
           variablesTable.reload({
             where: {
-              app_uuid: $('select[name="app_uuid"]').val(),
               search: $('input[name="search"]').val()
             },
             page: {
@@ -247,18 +194,14 @@
 
         // 新增变量
         $('#btnAddVariable').on('click', function () {
-          console.log('新增变量按钮被点击');
           $('#variableForm')[0].reset();
           $('input[name="id"]').val('');
-
-          // 重新加载应用列表到表单中
-          loadApps();
 
           layer.open({
             type: 1,
             title: '新增变量',
             content: $('#variableFormLayer'),
-            area: ['500px', '460px'],
+            area: ['500px', '435px'],
             btn: ['创建', '取消'],
             yes: function (index, layero) {
               // 手动收集表单数据
@@ -271,13 +214,7 @@
                 }
               });
 
-              console.log('新增变量 - 收集到的表单数据:', formData);
-
               // 验证必填字段
-              if (!formData.app_uuid || formData.app_uuid.trim() === '') {
-                layer.msg('应用UUID不能为空', { icon: 2 });
-                return;
-              }
               if (!formData.alias || formData.alias.trim() === '') {
                 layer.msg('请输入变量别名', { icon: 2 });
                 return;
@@ -286,8 +223,6 @@
                 layer.msg('请输入变量数据', { icon: 2 });
                 return;
               }
-
-              console.log('新增变量 - 发送的JSON数据:', JSON.stringify(formData));
 
               $.ajax({
                 url: '/admin/variable/create',
@@ -357,17 +292,8 @@
 
           if (obj.event === 'edit') {
             // 编辑
-            console.log('编辑按钮被点击', data);
             $('#variableForm')[0].reset();
             $('input[name="uuid"]').val(data.uuid);
-
-            // 重新加载应用列表，然后设置选中值
-            loadApps();
-            setTimeout(function () {
-              $('select[name="app_uuid"]').val(data.app_uuid);
-              form.render('select');
-            }, 100);
-
             $('input[name="alias"]').val(data.alias);
             $('textarea[name="data"]').val(data.data);
             $('textarea[name="remark"]').val(data.remark);
@@ -376,7 +302,7 @@
               type: 1,
               title: '编辑变量',
               content: $('#variableFormLayer'),
-              area: ['500px', '460px'],
+              area: ['500px', '435px'],
               btn: ['保存', '取消'],
               yes: function (index, layero) {
                 // 手动收集表单数据
@@ -389,13 +315,7 @@
                   }
                 });
 
-                console.log('编辑变量 - 收集到的表单数据:', formData);
-
                 // 验证必填字段
-                if (!formData.app_uuid || formData.app_uuid.trim() === '') {
-                  layer.msg('应用UUID不能为空', { icon: 2 });
-                  return;
-                }
                 if (!formData.alias || formData.alias.trim() === '') {
                   layer.msg('请输入变量别名', { icon: 2 });
                   return;
@@ -404,8 +324,6 @@
                   layer.msg('请输入变量数据', { icon: 2 });
                   return;
                 }
-
-                console.log('编辑变量 - 发送的JSON数据:', JSON.stringify(formData));
 
                 $.ajax({
                   url: '/admin/variable/update',

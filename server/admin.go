@@ -102,7 +102,6 @@ func RegisterAdminRoutes(router *gin.Engine) {
 
 	// 变量管理API
 	router.GET("/admin/variable/list", adminctl.AdminAuthRequired(), adminctl.VariableListHandler)
-	router.GET("/admin/variable/apps", adminctl.AdminAuthRequired(), adminctl.VariableGetAppsHandler)
 	router.POST("/admin/variable/create", adminctl.AdminAuthRequired(), adminctl.VariableCreateHandler)
 	router.POST("/admin/variable/update", adminctl.AdminAuthRequired(), adminctl.VariableUpdateHandler)
 	router.POST("/admin/variable/delete", adminctl.AdminAuthRequired(), adminctl.VariableDeleteHandler)

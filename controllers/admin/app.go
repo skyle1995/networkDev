@@ -541,17 +541,6 @@ func AppDeleteHandler(c *gin.Context) {
 		return
 	}
 
-	// 删除相关的变量记录
-	if err := tx.Where("app_uuid = ?", app.UUID).Delete(&models.Variable{}).Error; err != nil {
-		tx.Rollback()
-		logrus.WithError(err).Error("Failed to delete related variables")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code": 1,
-			"msg":  "删除相关变量失败",
-		})
-		return
-	}
-
 	// 删除应用
 	if err := tx.Delete(&app).Error; err != nil {
 		tx.Rollback()
@@ -576,7 +565,7 @@ func AppDeleteHandler(c *gin.Context) {
 	logrus.WithFields(logrus.Fields{
 		"app_id":   app.ID,
 		"app_uuid": app.UUID,
-	}).Info("Successfully deleted app and related data")
+	}).Info("Successfully deleted app and related APIs")
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 0,
@@ -1258,17 +1247,6 @@ func AppsBatchDeleteHandler(c *gin.Context) {
 			})
 			return
 		}
-
-		// 删除这些应用的所有相关变量
-		if err := tx.Where("app_uuid IN ?", appUUIDs).Delete(&models.Variable{}).Error; err != nil {
-			tx.Rollback()
-			logrus.WithError(err).Error("Failed to delete related variables")
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"code": 1,
-				"msg":  "删除相关变量失败",
-			})
-			return
-		}
 	}
 
 	// 批量删除应用
@@ -1295,7 +1273,7 @@ func AppsBatchDeleteHandler(c *gin.Context) {
 	logrus.WithFields(logrus.Fields{
 		"app_ids":   req.IDs,
 		"app_uuids": appUUIDs,
-	}).Info("Successfully batch deleted apps and related data (APIs and variables)")
+	}).Info("Successfully batch deleted apps and related APIs")
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 0,

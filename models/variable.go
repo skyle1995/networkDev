@@ -26,9 +26,6 @@ type Variable struct {
 	// Number：变量编号，时间戳+6位随机数字格式
 	Number string `gorm:"uniqueIndex;size:20;not null;comment:变量编号，时间戳+6位随机数字格式" json:"number"`
 
-	// AppUUID：关联的应用UUID
-	AppUUID string `gorm:"size:36;not null;index;comment:关联的应用UUID" json:"app_uuid"`
-
 	// Alias：变量别名，便于识别和管理
 	Alias string `gorm:"size:100;not null;comment:变量别名" json:"alias"`
 
