@@ -15,11 +15,19 @@ import (
 	"github.com/mojocn/base64Captcha"
 )
 
+// ============================================================================
+// 全局变量
+// ============================================================================
+
 // 创建基础控制器实例
 var captchaBaseController = controllers.NewBaseController()
 
 // 全局验证码存储器
 var store = base64Captcha.DefaultMemStore
+
+// ============================================================================
+// 辅助函数
+// ============================================================================
 
 // secureRandomInt 生成安全的随机整数，范围 [0, max)
 func secureRandomInt(max int) (int, error) {
@@ -29,6 +37,10 @@ func secureRandomInt(max int) (int, error) {
 	}
 	return int(n.Int64()), nil
 }
+
+// ============================================================================
+// API处理器
+// ============================================================================
 
 // CaptchaHandler 生成验证码图片
 // GET /admin/captcha - 返回验证码图片
@@ -87,8 +99,6 @@ func CaptchaHandler(c *gin.Context) {
 	c.Data(http.StatusOK, "image/png", imgData)
 }
 
-
-
 // VerifyCaptcha 验证验证码
 // 这个函数将在登录处理中被调用
 // 支持大小写不敏感匹配
@@ -97,7 +107,7 @@ func VerifyCaptcha(c *gin.Context, captchaValue string) bool {
 	if middleware.ShouldSkipCaptcha(c) {
 		return true
 	}
-	
+
 	// 从cookie中获取验证码ID
 	captchaId, err := c.Cookie("captcha_id")
 	if err != nil {

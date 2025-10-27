@@ -14,6 +14,10 @@ import (
 	"gorm.io/gorm"
 )
 
+// ============================================================================
+// 结构体定义
+// ============================================================================
+
 // DatabaseConfig 数据库连接池配置结构体
 // 用于配置数据库连接池的各项参数，包括连接池大小、生命周期管理和健康检查等
 type DatabaseConfig struct {
@@ -27,6 +31,10 @@ type DatabaseConfig struct {
 	PingTimeout         time.Duration `mapstructure:"ping_timeout"`          // Ping超时时间
 	HealthCheckInterval time.Duration `mapstructure:"health_check_interval"` // 健康检查间隔
 }
+
+// ============================================================================
+// 配置函数
+// ============================================================================
 
 // GetDefaultDatabaseConfig 获取默认数据库配置
 // 返回一个包含合理默认值的数据库配置实例
@@ -197,6 +205,10 @@ func ValidateDatabaseConfig(config *DatabaseConfig) error {
 	return nil
 }
 
+// ============================================================================
+// 全局变量
+// ============================================================================
+
 var (
 	// redisClient 全局Redis客户端
 	redisClient *redis.Client
@@ -205,6 +217,10 @@ var (
 	// redisAvailable 标记Redis是否可用
 	redisAvailable bool
 )
+
+// ============================================================================
+// Redis函数
+// ============================================================================
 
 // InitRedis 初始化Redis客户端（仅在配置存在时尝试连接）
 // - 从 viper 读取 security.redis.* 配置

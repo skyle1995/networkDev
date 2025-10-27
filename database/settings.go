@@ -8,6 +8,10 @@ import (
 	"gorm.io/gorm"
 )
 
+// ============================================================================
+// 公共函数
+// ============================================================================
+
 // SeedDefaultSettings 初始化默认系统设置
 // - 检查各项设置是否已存在，如不存在则创建默认值
 // - 包含站点基本信息、SEO设置等常用配置项
@@ -120,7 +124,7 @@ func SeedDefaultSettings() error {
 				logrus.WithError(err).WithField("name", setting.Name).Error("创建默认设置失败")
 				return err
 			}
-			logrus.WithField("name", setting.Name).WithField("value", setting.Value).Info("创建默认设置项")
+			logrus.WithField("name", setting.Name).WithField("value", setting.Value).Debug("创建默认设置项")
 		}
 	}
 
@@ -132,6 +136,10 @@ func SeedDefaultSettings() error {
 	logrus.Info("默认系统设置初始化完成")
 	return nil
 }
+
+// ============================================================================
+// 私有函数
+// ============================================================================
 
 // initDefaultAdmin 初始化默认管理员账号
 // 如果admin_password为空，则生成默认密码admin123的哈希值

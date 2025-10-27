@@ -7,6 +7,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+// ============================================================================
+// Cookie创建函数
+// ============================================================================
+
 // CreateSecureCookie 创建安全的Cookie
 // name: Cookie名称
 // value: Cookie值
@@ -66,6 +70,10 @@ func CreateSessionCookie(name, value string) *http.Cookie {
 func CreateExpiredCookie(name string) *http.Cookie {
 	return CreateSecureCookie(name, "", -1)
 }
+
+// ============================================================================
+// 配置函数
+// ============================================================================
 
 // GetDefaultCookieMaxAge 获取默认Cookie过期时间
 func GetDefaultCookieMaxAge() int {

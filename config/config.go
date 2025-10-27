@@ -11,12 +11,16 @@ import (
 	"github.com/spf13/viper"
 )
 
+// ============================================================================
+// 结构体定义
+// ============================================================================
+
 // ServerConfig 服务器配置结构体
 // 包含服务器运行相关的配置信息
 type ServerConfig struct {
-	Host    string `json:"host" mapstructure:"host"`       // 服务器监听地址
-	Port    int    `json:"port" mapstructure:"port"`       // 服务器监听端口
-	Dist    string `json:"dist" mapstructure:"dist"`       // 静态文件目录
+	Host    string `json:"host" mapstructure:"host"`         // 服务器监听地址
+	Port    int    `json:"port" mapstructure:"port"`         // 服务器监听端口
+	Dist    string `json:"dist" mapstructure:"dist"`         // 静态文件目录
 	DevMode bool   `json:"dev_mode" mapstructure:"dev_mode"` // 开发模式（跳过验证码等）
 }
 
@@ -93,6 +97,10 @@ type AppConfig struct {
 	Security SecurityConfig `json:"security" mapstructure:"security"`
 }
 
+// ============================================================================
+// 公共函数
+// ============================================================================
+
 // GetDefaultAppConfig 获取默认应用配置
 func GetDefaultAppConfig() *AppConfig {
 	return &AppConfig{
@@ -148,17 +156,17 @@ func GetDefaultAppConfig() *AppConfig {
 // GetSecureDefaultAppConfig 获取带有安全密钥的默认应用配置
 func GetSecureDefaultAppConfig() (*AppConfig, error) {
 	config := GetDefaultAppConfig()
-	
+
 	// 生成安全密钥
 	jwtSecret, encryptionKey, err := GenerateSecureKeys()
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 设置安全密钥
 	config.Security.JWTSecret = jwtSecret
 	config.Security.EncryptionKey = encryptionKey
-	
+
 	return config, nil
 }
 
@@ -174,24 +182,24 @@ func Init(cfgFilePath string) {
 			log.Warn("未找到配置文件，使用默认配置")
 
 			// 生成带有安全密钥的默认配置
-		defaultConfig, configErr := GetSecureDefaultAppConfig()
-		if configErr != nil {
-			log.WithFields(
-				log.Fields{
-					"err": configErr,
-				},
-			).Error("生成安全配置失败，使用基础默认配置")
-			defaultConfig = GetDefaultAppConfig()
-		}
+			defaultConfig, configErr := GetSecureDefaultAppConfig()
+			if configErr != nil {
+				log.WithFields(
+					log.Fields{
+						"err": configErr,
+					},
+				).Error("生成安全配置失败，使用基础默认配置")
+				defaultConfig = GetDefaultAppConfig()
+			}
 
 			// 将配置结构体转换为JSON
-		configBytes, marshalErr := json.MarshalIndent(defaultConfig, "", "  ")
-		if marshalErr != nil {
-			log.WithFields(
-				log.Fields{
-					"err": marshalErr,
-				},
-			).Fatal("序列化默认配置失败")
+			configBytes, marshalErr := json.MarshalIndent(defaultConfig, "", "  ")
+			if marshalErr != nil {
+				log.WithFields(
+					log.Fields{
+						"err": marshalErr,
+					},
+				).Fatal("序列化默认配置失败")
 				return
 			}
 

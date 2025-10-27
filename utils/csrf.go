@@ -9,12 +9,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// ============================================================================
+// 常量定义
+// ============================================================================
+
 const (
 	CSRFTokenLength = 32
 	CSRFCookieName  = "csrf_token"
 	CSRFHeaderName  = "X-CSRF-Token"
 	CSRFFormField   = "csrf_token"
 )
+
+// ============================================================================
+// 私有函数
+// ============================================================================
 
 // generateRandomBytes 生成指定长度的随机字节
 func generateRandomBytes(length int) ([]byte, error) {
@@ -25,6 +33,10 @@ func generateRandomBytes(length int) ([]byte, error) {
 	}
 	return bytes, nil
 }
+
+// ============================================================================
+// 公共函数
+// ============================================================================
 
 // GenerateCSRFToken 生成CSRF令牌
 func GenerateCSRFToken() (string, error) {

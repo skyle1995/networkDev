@@ -10,15 +10,13 @@ import (
 	"gorm.io/gorm"
 )
 
+// ============================================================================
+// 结构体定义
+// ============================================================================
+
 // App 应用表模型
 // 用于管理应用程序的基本信息
-// UUID 为应用的唯一标识符，自动生成
-// Status 为应用状态（1:启用 0:禁用），默认为1
-// Name 为应用名称
-// Secret 为应用密钥，用于API认证
-// Version 为应用版本号
 // CreatedAt/UpdatedAt 由 GORM 自动维护
-
 type App struct {
 	// ID：主键，自增，同时通过 json 标签保证前端接收为 id
 	ID uint `gorm:"primaryKey;comment:应用ID，自增主键" json:"id"`
@@ -106,6 +104,10 @@ type App struct {
 	CreatedAt time.Time `gorm:"comment:创建时间" json:"created_at"`
 	UpdatedAt time.Time `gorm:"comment:更新时间" json:"updated_at"`
 }
+
+// ============================================================================
+// 结构体方法
+// ============================================================================
 
 // BeforeCreate 在创建记录前自动生成UUID和密钥
 func (app *App) BeforeCreate(tx *gorm.DB) error {

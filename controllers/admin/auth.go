@@ -16,8 +16,16 @@ import (
 	"github.com/spf13/viper"
 )
 
+// ============================================================================
+// 全局变量
+// ============================================================================
+
 // 创建BaseController实例
 var authBaseController = controllers.NewBaseController()
+
+// ============================================================================
+// 页面处理器
+// ============================================================================
 
 // LoginPageHandler 管理员登录页渲染处理器
 // - 如果已登录则重定向到 /admin
@@ -63,6 +71,10 @@ func LoginPageHandler(c *gin.Context) {
 	c.HTML(http.StatusOK, "login.html", data)
 }
 
+// ============================================================================
+// API处理器
+// ============================================================================
+
 // LoginHandler 管理员登录接口
 // - 接收JSON: {username, password}
 // - 验证用户存在与密码正确性
@@ -74,11 +86,11 @@ func LoginHandler(c *gin.Context) {
 		Password string `json:"password"`
 		Captcha  string `json:"captcha"`
 	}
-	
+
 	if !authBaseController.BindJSON(c, &body) {
 		return
 	}
-	
+
 	if !authBaseController.ValidateRequired(c, map[string]interface{}{
 		"用户名": body.Username,
 		"密码":  body.Password,
@@ -178,7 +190,11 @@ func LogoutHandler(c *gin.Context) {
 	})
 }
 
-// clearInvalidJWTCookie 清理失效的JWT Cookie
+// ============================================================================
+// 辅助函数
+// ============================================================================
+
+// clearInvalidJWTCookie 清理无效的JWT Cookie
 // - 统一的Cookie清理函数，确保一致性
 // - 在JWT校验失败时自动调用，提升安全性和用户体验
 func clearInvalidJWTCookie(c *gin.Context) {
@@ -192,7 +208,11 @@ func getJWTSecret() []byte {
 	return []byte(viper.GetString("security.jwt_secret"))
 }
 
-// JWTClaims JWT载荷结构
+// ============================================================================
+// 结构体定义
+// ============================================================================
+
+// JWTClaims JWT载荷结构体
 type JWTClaims struct {
 	Username     string `json:"username"`
 	PasswordHash string `json:"password_hash"` // 密码哈希摘要，用于验证密码是否被修改

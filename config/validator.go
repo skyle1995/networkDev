@@ -13,6 +13,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+// ============================================================================
+// 公共函数
+// ============================================================================
+
 // ValidateConfig 验证配置
 func ValidateConfig() (*AppConfig, error) {
 	var config AppConfig
@@ -30,6 +34,10 @@ func ValidateConfig() (*AppConfig, error) {
 	log.Info("配置验证通过")
 	return &config, nil
 }
+
+// ============================================================================
+// 私有函数
+// ============================================================================
 
 // validateConfig 验证配置
 func validateConfig(config *AppConfig) error {

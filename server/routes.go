@@ -9,6 +9,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// ============================================================================
+// 公共函数
+// ============================================================================
+
 // RegisterRoutes 聚合注册所有路由
 func RegisterRoutes(router *gin.Engine) {
 	registerStaticRoutes(router)
@@ -17,6 +21,10 @@ func RegisterRoutes(router *gin.Engine) {
 	RegisterAdminRoutes(router)
 
 }
+
+// ============================================================================
+// 私有函数
+// ============================================================================
 
 // registerStaticRoutes 注册静态资源路由
 // 静态资源服务，将 /static/ 和 /assets/ 映射到嵌入的文件系统

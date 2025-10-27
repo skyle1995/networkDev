@@ -8,11 +8,19 @@ import (
 	"strings"
 )
 
+// ============================================================================
+// 结构体定义
+// ============================================================================
+
 // EasyEncrypt 易加密算法结构体
 type EasyEncrypt struct {
 	encryptKey []int // 加密密钥
 	decryptKey []int // 解密密钥
 }
+
+// ============================================================================
+// 构造函数
+// ============================================================================
 
 // NewEasyEncrypt 创建新的易加密实例
 func NewEasyEncrypt(encryptKey, decryptKey []int) *EasyEncrypt {
@@ -22,17 +30,21 @@ func NewEasyEncrypt(encryptKey, decryptKey []int) *EasyEncrypt {
 	}
 }
 
+// ============================================================================
+// 密钥生成函数
+// ============================================================================
+
 // GenerateEasyKey 生成易加密密钥对
 func GenerateEasyKey() ([]int, []int, error) {
 	// 使用crypto/rand生成随机长度（15-30位）
 	var lengthByte [1]byte
-	
+
 	// 生成加密密钥长度
 	if _, err := rand.Read(lengthByte[:]); err != nil {
 		return nil, nil, err
 	}
 	encryptKeyLen := 15 + int(lengthByte[0])%16 // 15-30位随机长度
-	
+
 	encryptKey := make([]int, encryptKeyLen)
 	encryptBytes := make([]byte, encryptKeyLen)
 	if _, err := rand.Read(encryptBytes); err != nil {
@@ -47,7 +59,7 @@ func GenerateEasyKey() ([]int, []int, error) {
 		return nil, nil, err
 	}
 	decryptKeyLen := 15 + int(lengthByte[0])%16 // 15-30位随机长度
-	
+
 	decryptKey := make([]int, decryptKeyLen)
 	decryptBytes := make([]byte, decryptKeyLen)
 	if _, err := rand.Read(decryptBytes); err != nil {
@@ -59,6 +71,10 @@ func GenerateEasyKey() ([]int, []int, error) {
 
 	return encryptKey, decryptKey, nil
 }
+
+// ============================================================================
+// 方法函数
+// ============================================================================
 
 // Encrypt 加密函数 - 对应 UserLogin_encrypt_Up_42510
 func (e *EasyEncrypt) Encrypt(input string) string {
@@ -139,6 +155,10 @@ func (e *EasyEncrypt) Decrypt(input string) string {
 
 	return result.String()
 }
+
+// ============================================================================
+// 工具函数
+// ============================================================================
 
 // EncryptWithKey 使用指定密钥加密
 func EncryptWithKey(input string, key []int) string {

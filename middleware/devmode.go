@@ -7,6 +7,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+// ============================================================================
+// 结构体定义
+// ============================================================================
+
 // DevModeConfig 开发模式配置
 type DevModeConfig struct {
 	// 是否启用模板热重载
@@ -18,6 +22,10 @@ type DevModeConfig struct {
 	// 是否启用调试日志
 	EnableDebugLog bool
 }
+
+// ============================================================================
+// 中间件函数
+// ============================================================================
 
 // DevModeMiddleware 开发模式中间件
 // 统一管理所有开发模式相关的功能
@@ -45,6 +53,10 @@ func DevModeMiddleware(engine *gin.Engine) gin.HandlerFunc {
 	}
 }
 
+// ============================================================================
+// 公共函数
+// ============================================================================
+
 // IsDevMode 检查是否为开发模式
 func IsDevMode() bool {
 	return viper.GetBool("server.dev_mode")
@@ -57,10 +69,10 @@ func GetDevModeConfig() DevModeConfig {
 	}
 
 	return DevModeConfig{
-		EnableTemplateReload: true,  // 开发模式下默认启用模板热重载
-		SkipCaptcha:         true,   // 开发模式下默认跳过验证码
-		ShowDetailedErrors:  true,   // 开发模式下显示详细错误
-		EnableDebugLog:      true,   // 开发模式下启用调试日志
+		EnableTemplateReload: true, // 开发模式下默认启用模板热重载
+		SkipCaptcha:          true, // 开发模式下默认跳过验证码
+		ShowDetailedErrors:   true, // 开发模式下显示详细错误
+		EnableDebugLog:       true, // 开发模式下启用调试日志
 	}
 }
 
@@ -91,6 +103,10 @@ func ShouldSkipCaptcha(c *gin.Context) bool {
 	config := GetDevModeConfigFromContext(c)
 	return config.SkipCaptcha
 }
+
+// ============================================================================
+// 私有函数
+// ============================================================================
 
 // reloadTemplates 重新加载模板（内部函数）
 func reloadTemplates(engine *gin.Engine) {

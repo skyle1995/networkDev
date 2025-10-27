@@ -10,7 +10,15 @@ import (
 	"gorm.io/gorm"
 )
 
+// ============================================================================
+// 全局变量
+// ============================================================================
+
 var homeBaseController = controllers.NewBaseController()
+
+// ============================================================================
+// 辅助函数
+// ============================================================================
 
 // getSettingValue 获取配置值，优先从数据库获取，不存在时使用默认值
 func getSettingValue(settingName string, defaultValue string, db *gorm.DB) string {
@@ -19,6 +27,10 @@ func getSettingValue(settingName string, defaultValue string, db *gorm.DB) strin
 	}
 	return defaultValue
 }
+
+// ============================================================================
+// 页面处理器
+// ============================================================================
 
 // RootHandler 主页处理器
 func RootHandler(c *gin.Context) {

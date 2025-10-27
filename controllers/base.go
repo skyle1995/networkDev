@@ -10,13 +10,25 @@ import (
 	"gorm.io/gorm"
 )
 
+// ============================================================================
+// 结构体定义
+// ============================================================================
+
 // BaseController 基础控制器结构体
 type BaseController struct{}
+
+// ============================================================================
+// 构造函数
+// ============================================================================
 
 // NewBaseController 创建基础控制器实例
 func NewBaseController() *BaseController {
 	return &BaseController{}
 }
+
+// ============================================================================
+// 数据库相关方法
+// ============================================================================
 
 // GetDB 获取数据库连接，统一错误处理
 func (bc *BaseController) GetDB(c *gin.Context) (*gorm.DB, bool) {
@@ -27,6 +39,10 @@ func (bc *BaseController) GetDB(c *gin.Context) (*gorm.DB, bool) {
 	}
 	return db, true
 }
+
+// ============================================================================
+// 错误处理方法
+// ============================================================================
 
 // HandleDatabaseError 统一处理数据库连接错误
 func (bc *BaseController) HandleDatabaseError(c *gin.Context, err error) {
@@ -64,6 +80,10 @@ func (bc *BaseController) HandleInternalError(c *gin.Context, message string, er
 	})
 }
 
+// ============================================================================
+// 成功响应方法
+// ============================================================================
+
 // HandleSuccess 统一处理成功响应
 func (bc *BaseController) HandleSuccess(c *gin.Context, message string, data interface{}) {
 	c.JSON(http.StatusOK, gin.H{
@@ -81,6 +101,10 @@ func (bc *BaseController) HandleCreated(c *gin.Context, message string, data int
 		"data": data,
 	})
 }
+
+// ============================================================================
+// 辅助方法
+// ============================================================================
 
 // ValidateRequired 验证必填字段
 func (bc *BaseController) ValidateRequired(c *gin.Context, fields map[string]interface{}) bool {

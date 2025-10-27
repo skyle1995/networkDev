@@ -13,8 +13,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// ============================================================================
+// 全局变量
+// ============================================================================
+
 // 创建基础控制器实例
 var apiBaseController = controllers.NewBaseController()
+
+// ============================================================================
+// 页面处理器
+// ============================================================================
 
 // APIFragmentHandler 接口列表页面片段处理器
 func APIFragmentHandler(c *gin.Context) {
@@ -22,6 +30,10 @@ func APIFragmentHandler(c *gin.Context) {
 		"Title": "接口设置",
 	})
 }
+
+// ============================================================================
+// API处理器
+// ============================================================================
 
 // APIListHandler 接口列表API处理器
 func APIListHandler(c *gin.Context) {
@@ -142,6 +154,10 @@ func APIListHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// ============================================================================
+// 辅助函数
+// ============================================================================
+
 // getAPIStatusName 获取API状态名称
 func getAPIStatusName(status int) string {
 	switch status {
@@ -238,7 +254,7 @@ func APIGetTypesHandler(c *gin.Context) {
 	validTypes := []int{
 		models.APITypeGetBulletin, models.APITypeGetUpdateUrl, models.APITypeCheckAppVersion, models.APITypeGetCardInfo,
 		models.APITypeSingleLogin,
-		models.APITypeUserLogin, models.APITypeUserRegin, models.APITypeUserRecharge, models.APITypeCardRegin,
+		models.APITypeUserLogin, models.APITypeUserRegin, models.APITypeUserRecharge,
 		models.APITypeLogOut,
 		models.APITypeGetExpired, models.APITypeCheckUserStatus, models.APITypeGetAppData, models.APITypeGetVariable,
 		models.APITypeUpdatePwd, models.APITypeMacChangeBind, models.APITypeIPChangeBind,

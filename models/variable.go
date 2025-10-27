@@ -9,14 +9,13 @@ import (
 	"gorm.io/gorm"
 )
 
+// ============================================================================
+// 结构体定义
+// ============================================================================
+
 // Variable 变量表模型
 // 用于管理应用程序的变量数据
-// UUID 为变量的唯一标识符，自动生成并转换为大写
-// Alias 为变量别名，便于识别和管理
-// Data 为变量数据内容
-// Remark 为备注信息，用于描述变量用途
 // CreatedAt/UpdatedAt 由 GORM 自动维护
-
 type Variable struct {
 	// ID：主键，自增
 	ID uint `gorm:"primaryKey;comment:变量ID，自增主键" json:"id"`
@@ -43,6 +42,10 @@ type Variable struct {
 	CreatedAt time.Time `gorm:"comment:创建时间" json:"created_at"`
 	UpdatedAt time.Time `gorm:"comment:更新时间" json:"updated_at"`
 }
+
+// ============================================================================
+// 结构体方法
+// ============================================================================
 
 // BeforeCreate 在创建记录前自动生成UUID和Number
 func (variable *Variable) BeforeCreate(tx *gorm.DB) error {

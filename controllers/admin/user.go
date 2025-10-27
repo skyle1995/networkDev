@@ -10,14 +10,26 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// ============================================================================
+// 全局变量
+// ============================================================================
+
 // 创建基础控制器实例
 var baseController = controllers.NewBaseController()
+
+// ============================================================================
+// 页面处理器
+// ============================================================================
 
 // UserFragmentHandler 个人资料片段渲染
 // - 渲染个人资料与修改密码表单
 func UserFragmentHandler(c *gin.Context) {
 	c.HTML(http.StatusOK, "user.html", gin.H{})
 }
+
+// ============================================================================
+// API处理器
+// ============================================================================
 
 // UserProfileQueryHandler 获取当前登录管理员的用户名
 // - 返回 JSON: {username}
@@ -51,20 +63,20 @@ func UserPasswordUpdateHandler(c *gin.Context) {
 		NewPassword     string `json:"new_password"`
 		ConfirmPassword string `json:"confirm_password"`
 	}
-	
+
 	if !baseController.BindJSON(c, &body) {
 		return
 	}
 
 	// 基础校验
 	if !baseController.ValidateRequired(c, map[string]interface{}{
-		"旧密码": body.OldPassword,
-		"新密码": body.NewPassword,
+		"旧密码":  body.OldPassword,
+		"新密码":  body.NewPassword,
 		"确认密码": body.ConfirmPassword,
 	}) {
 		return
 	}
-	
+
 	if len(body.NewPassword) < 6 {
 		baseController.HandleValidationError(c, "新密码长度不能少于6位")
 		return
@@ -253,7 +265,7 @@ func UserProfileUpdateHandler(c *gin.Context) {
 	// 重新签发JWT并写入Cookie
 	// 创建虚拟用户对象用于生成JWT令牌
 	adminUser := models.User{
-		Username:     username,        // 使用新的用户名
+		Username:     username, // 使用新的用户名
 		Password:     adminPassword,
 		PasswordSalt: adminPasswordSalt,
 	}

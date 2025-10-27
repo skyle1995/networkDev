@@ -15,7 +15,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// ============================================================================
+// 全局变量
+// ============================================================================
+
 var appBaseController = controllers.NewBaseController()
+
+// ============================================================================
+// 页面处理器
+// ============================================================================
 
 // AppsFragmentHandler 应用列表页面片段处理器
 func AppsFragmentHandler(c *gin.Context) {
@@ -23,6 +31,10 @@ func AppsFragmentHandler(c *gin.Context) {
 		"Title": "应用程序",
 	})
 }
+
+// ============================================================================
+// API处理器
+// ============================================================================
 
 // AppsListHandler 应用列表API处理器
 func AppsListHandler(c *gin.Context) {
@@ -338,28 +350,7 @@ func AppCreateHandler(c *gin.Context) {
 	}
 
 	// 为应用创建所有默认接口
-	defaultAPITypes := []int{
-		models.APITypeGetBulletin,      // 获取程序公告
-		models.APITypeGetUpdateUrl,     // 获取更新地址
-		models.APITypeCheckAppVersion,  // 检测最新版本
-		models.APITypeGetCardInfo,      // 获取卡密信息
-		models.APITypeSingleLogin,      // 卡密登录
-		models.APITypeUserLogin,        // 用户登录
-		models.APITypeUserRegin,        // 用户注册
-		models.APITypeUserRecharge,     // 用户充值
-		models.APITypeCardRegin,        // 卡密注册
-		models.APITypeLogOut,           // 退出登录
-		models.APITypeGetExpired,       // 获取到期时间
-		models.APITypeCheckUserStatus,  // 检测账号状态
-		models.APITypeGetAppData,       // 获取程序数据
-		models.APITypeGetVariable,      // 获取变量数据
-		models.APITypeUpdatePwd,        // 修改账号密码
-		models.APITypeMacChangeBind,    // 机器码转绑
-		models.APITypeIPChangeBind,     // IP转绑
-		models.APITypeDisableUser,      // 封停用户
-		models.APITypeBlackUser,        // 添加黑名单
-		models.APITypeUserDeductedTime, // 扣除时间
-	}
+	defaultAPITypes := models.GetDefaultAPITypes()
 
 	// 批量创建默认接口
 	for _, apiType := range defaultAPITypes {

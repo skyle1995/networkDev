@@ -11,14 +11,18 @@ import (
 	"gorm.io/gorm"
 )
 
+// ============================================================================
+// 结构体定义
+// ============================================================================
+
 // ErrorResponse 统一的错误响应结构
 // 用于标准化API错误响应格式
 type ErrorResponse struct {
-	Success   bool        `json:"success"`             // 请求是否成功，错误响应时固定为false
-	Message   string      `json:"message"`             // 错误消息描述
+	Success   bool        `json:"success"`              // 请求是否成功，错误响应时固定为false
+	Message   string      `json:"message"`              // 错误消息描述
 	ErrorCode string      `json:"error_code,omitempty"` // 错误代码，用于客户端识别错误类型
-	Data      interface{} `json:"data"`               // 附加数据，可为空
-	Timestamp int64       `json:"timestamp"`           // 响应时间戳
+	Data      interface{} `json:"data"`                 // 附加数据，可为空
+	Timestamp int64       `json:"timestamp"`            // 响应时间戳
 }
 
 // SuccessResponse 统一的成功响应结构
@@ -26,9 +30,13 @@ type ErrorResponse struct {
 type SuccessResponse struct {
 	Success   bool        `json:"success"`   // 请求是否成功，成功响应时固定为true
 	Message   string      `json:"message"`   // 成功消息描述
-	Data      interface{} `json:"data"`     // 响应数据
+	Data      interface{} `json:"data"`      // 响应数据
 	Timestamp int64       `json:"timestamp"` // 响应时间戳
 }
+
+// ============================================================================
+// 常量定义
+// ============================================================================
 
 // ErrorCode 错误代码常量
 // 定义标准化的错误代码，用于客户端识别和处理不同类型的错误
@@ -59,14 +67,18 @@ const (
 // LogEntry 日志条目结构
 // 包含完整的日志信息，用于结构化日志记录
 type LogEntry struct {
-	Level     LogLevel    `json:"level"`               // 日志级别
-	Message   string      `json:"message"`             // 日志消息
-	Error     string      `json:"error,omitempty"`     // 错误信息，仅在错误日志中存在
-	Context   interface{} `json:"context,omitempty"`   // 上下文信息，额外的结构化数据
-	Timestamp time.Time   `json:"timestamp"`           // 日志时间戳
-	File      string      `json:"file"`               // 源文件路径
-	Line      int         `json:"line"`               // 源文件行号
+	Level     LogLevel    `json:"level"`             // 日志级别
+	Message   string      `json:"message"`           // 日志消息
+	Error     string      `json:"error,omitempty"`   // 错误信息，仅在错误日志中存在
+	Context   interface{} `json:"context,omitempty"` // 上下文信息，额外的结构化数据
+	Timestamp time.Time   `json:"timestamp"`         // 日志时间戳
+	File      string      `json:"file"`              // 源文件路径
+	Line      int         `json:"line"`              // 源文件行号
 }
+
+// ============================================================================
+// 响应函数
+// ============================================================================
 
 // WriteErrorResponse 写入错误响应
 // c: Gin上下文
@@ -101,6 +113,10 @@ func WriteSuccessResponse(c *gin.Context, statusCode int, message string, data i
 
 	c.JSON(statusCode, response)
 }
+
+// ============================================================================
+// 错误处理函数
+// ============================================================================
 
 // HandleDatabaseError 处理数据库错误
 // c: Gin上下文
@@ -152,6 +168,10 @@ func HandleInternalError(c *gin.Context, err error, operation string) {
 	WriteErrorResponse(c, 500, "服务器内部错误", ErrCodeInternalError, nil)
 }
 
+// ============================================================================
+// 日志函数
+// ============================================================================
+
 // LogInfo 记录信息日志
 // message: 日志消息
 // context: 上下文信息
@@ -188,6 +208,10 @@ func LogDebug(message string, context interface{}) {
 	logEntry := createLogEntry(LogLevelDebug, message, nil, context)
 	printLog(logEntry)
 }
+
+// ============================================================================
+// 私有函数
+// ============================================================================
 
 // createLogEntry 创建日志条目
 // level: 日志级别

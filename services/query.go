@@ -10,6 +10,10 @@ import (
 	"gorm.io/gorm"
 )
 
+// ============================================================================
+// 查询函数
+// ============================================================================
+
 // FindSettingByName 根据名称查找设置
 // name: 设置名称
 // db: 数据库连接
@@ -25,6 +29,10 @@ func FindSettingByName(name string, db *gorm.DB) (*models.Settings, error) {
 		return &setting, nil
 	})
 }
+
+// ============================================================================
+// 更新函数
+// ============================================================================
 
 // UpdateEntityByID 根据ID更新实体
 // model: 模型类型
@@ -49,6 +57,10 @@ func BatchUpdateEntityStatus(model interface{}, ids []uint, status int, db *gorm
 	return db.Model(model).Where("id IN ?", ids).Update("status", status).Error
 }
 
+// ============================================================================
+// 统计函数
+// ============================================================================
+
 // CountEntitiesByCondition 根据条件统计实体数量
 // model: 模型类型
 // condition: 查询条件
@@ -60,6 +72,10 @@ func CountEntitiesByCondition(model interface{}, condition string, db *gorm.DB, 
 	err := db.Model(model).Where(condition, args...).Count(&count).Error
 	return count, err
 }
+
+// ============================================================================
+// 通用查询函数
+// ============================================================================
 
 // FindEntitiesByCondition 根据条件查找实体
 // model: 模型类型
