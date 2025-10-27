@@ -254,13 +254,19 @@ go run main.go --config ./config.json server
 - `GET /admin/api/auth/captcha` - 获取验证码
 
 ### 应用管理接口
-- `GET /admin/api/apps/list` - 获取应用列表
+- `GET /admin/api/apps/list` - 获取应用列表（完整信息，支持分页）
+- `GET /admin/api/apps/simple` - 获取应用列表（简化信息，仅包含uuid和name）
 - `POST /admin/api/apps/create` - 创建应用
 - `POST /admin/api/apps/update` - 更新应用
 - `POST /admin/api/apps/delete` - 删除应用
 - `POST /admin/api/apps/batch_delete` - 批量删除应用
-- `GET /admin/api/apps/get_multi_config` - 获取多开配置
-- `POST /admin/api/apps/update_multi_config` - 更新多开配置
+- `POST /admin/api/apps/batch_update_status` - 批量更新应用状态
+- `POST /admin/api/apps/update_status` - 更新应用状态
+- `POST /admin/api/apps/reset_secret` - 重置应用密钥
+- `GET /admin/api/apps/get_app_data` - 获取应用数据
+- `POST /admin/api/apps/update_app_data` - 更新应用数据
+- `GET /admin/api/apps/get_announcement` - 获取应用公告
+- `POST /admin/api/apps/update_announcement` - 更新应用公告
 - `GET /admin/api/apps/get_bind_config` - 获取绑定配置
 - `POST /admin/api/apps/update_bind_config` - 更新绑定配置
 - `GET /admin/api/apps/get_register_config` - 获取注册配置
@@ -269,7 +275,6 @@ go run main.go --config ./config.json server
 ### API接口管理
 - `GET /admin/api/apis/list` - 获取API接口列表
 - `POST /admin/api/apis/update` - 更新API接口配置
-- `GET /admin/api/apis/apps` - 获取应用列表（用于接口关联）
 - `GET /admin/api/apis/types` - 获取API类型列表
 - `POST /admin/api/apis/generate_keys` - 生成加密密钥对
 

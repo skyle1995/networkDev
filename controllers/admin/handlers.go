@@ -66,27 +66,19 @@ func AdminLayoutHandler(c *gin.Context) {
 		utils.SetCSRFToken(c, token)
 	}
 
-	// 准备额外的模板数据
-	extraData := gin.H{}
-
-	// 从数据库读取站点标题
-	db, ok := handlersBaseController.GetDB(c)
-	if !ok {
-		extraData["Title"] = "凌动技术"
-	} else {
-		siteTitle, settingErr := services.FindSettingByName("site_title", db)
-		if settingErr != nil || siteTitle == nil {
-			extraData["Title"] = "凌动技术"
-		} else {
-			extraData["Title"] = siteTitle.Value
-		}
-	}
-
 	// 准备模板数据
 	data := handlersBaseController.GetDefaultTemplateData()
 	data["CSRFToken"] = token
-	
-	// 合并额外数据
+
+	// 从数据库读取站点标题，如果失败则使用默认值
+	if db, ok := handlersBaseController.GetDB(c); ok {
+		if siteTitle, err := services.FindSettingByName("site_title", db); err == nil && siteTitle != nil {
+			data["Title"] = siteTitle.Value
+		}
+	}
+
+	// 合并其他数据（如果有的话）
+	extraData := gin.H{}
 	for key, value := range extraData {
 		data[key] = value
 	}

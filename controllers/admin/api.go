@@ -19,7 +19,7 @@ var apiBaseController = controllers.NewBaseController()
 // APIFragmentHandler 接口列表页面片段处理器
 func APIFragmentHandler(c *gin.Context) {
 	c.HTML(http.StatusOK, "apis.html", gin.H{
-		"Title": "接口管理",
+		"Title": "接口设置",
 	})
 }
 
@@ -97,7 +97,7 @@ func APIListHandler(c *gin.Context) {
 	// 创建应用UUID到应用名称的映射
 	appMap := make(map[string]string)
 	for _, app := range apps {
-		appMap[app.UUID] = app.Name
+		appMap[app.UUID] = app.Name + "(ID:" + strconv.Itoa(int(app.ID)) + ")"
 	}
 
 	// 构建响应数据
@@ -224,25 +224,6 @@ func APIUpdateHandler(c *gin.Context) {
 	apiBaseController.HandleSuccess(c, "接口更新成功", api)
 }
 
-// APIGetAppsHandler 获取应用列表（用于接口页面的应用选择器）
-func APIGetAppsHandler(c *gin.Context) {
-	// 获取数据库连接
-	db, ok := apiBaseController.GetDB(c)
-	if !ok {
-		return
-	}
-
-	// 获取所有应用
-	var apps []models.App
-	if err := db.Select("uuid, name").Order("created_at ASC").Find(&apps).Error; err != nil {
-		logrus.WithError(err).Error("Failed to fetch apps")
-		apiBaseController.HandleInternalError(c, "获取应用列表失败", err)
-		return
-	}
-
-	apiBaseController.HandleSuccess(c, "获取应用列表成功", apps)
-}
-
 // APIGetTypesHandler 获取接口类型列表API处理器
 func APIGetTypesHandler(c *gin.Context) {
 	// 构建接口类型列表
@@ -252,7 +233,7 @@ func APIGetTypesHandler(c *gin.Context) {
 	}
 
 	var apiTypes []APITypeItem
-	
+
 	// 获取所有有效的API类型
 	validTypes := []int{
 		models.APITypeGetBulletin, models.APITypeGetUpdateUrl, models.APITypeCheckAppVersion, models.APITypeGetCardInfo,
@@ -328,11 +309,11 @@ func APIGenerateKeysHandler(c *gin.Context) {
 		Side      string `json:"side"`      // submit | return
 		Algorithm int    `json:"algorithm"` // 与 models.Algorithm* 对应
 	}
-	
+
 	if !apiBaseController.BindJSON(c, &req) {
 		return
 	}
-	
+
 	if req.Side != "submit" && req.Side != "return" {
 		apiBaseController.HandleValidationError(c, "side参数必须为submit或return")
 		return

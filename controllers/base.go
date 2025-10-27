@@ -149,7 +149,8 @@ func (bc *BaseController) BindURI(c *gin.Context, obj interface{}) bool {
 // 返回包含系统基础信息的数据映射，包括站点标题、页脚文本、备案信息等
 func (bc *BaseController) GetDefaultTemplateData() gin.H {
 	return gin.H{
-		"SystemName":    "凌动技术",
+		"Title":         "凌动技术",
+		"SystemName":    "网络验证系统",
 		"FooterText":    "© 2025 凌动技术 保留所有权利",
 		"ICPRecord":     "",
 		"ICPRecordLink": "https://beian.miit.gov.cn",

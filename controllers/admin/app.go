@@ -20,7 +20,7 @@ var appBaseController = controllers.NewBaseController()
 // AppsFragmentHandler 应用列表页面片段处理器
 func AppsFragmentHandler(c *gin.Context) {
 	c.HTML(http.StatusOK, "apps.html", gin.H{
-		"Title": "应用管理",
+		"Title": "应用程序",
 	})
 }
 
@@ -1397,4 +1397,39 @@ func AppUpdateStatusHandler(c *gin.Context) {
 		"code": 0,
 		"msg":  "应用" + statusText + "成功",
 	})
+}
+
+// AppsSimpleListHandler 简化应用列表API处理器（用于下拉框选择等场景）
+func AppsSimpleListHandler(c *gin.Context) {
+	// 获取数据库连接
+	db, ok := appBaseController.GetDB(c)
+	if !ok {
+		return
+	}
+
+	// 查询所有启用的应用，只获取必要字段
+	var apps []struct {
+		ID   uint   `json:"id"`
+		UUID string `json:"uuid"`
+		Name string `json:"name"`
+	}
+
+	if err := db.Model(&models.App{}).
+		Select("id, uuid, name").
+		Where("status = ?", 1). // 只获取启用的应用
+		Order("name ASC").
+		Find(&apps).Error; err != nil {
+		logrus.WithError(err).Error("Failed to query simple apps list")
+		appBaseController.HandleInternalError(c, "获取应用列表失败", err)
+		return
+	}
+
+	// 返回结果
+	response := gin.H{
+		"code": 0,
+		"msg":  "success",
+		"data": apps,
+	}
+
+	c.JSON(http.StatusOK, response)
 }

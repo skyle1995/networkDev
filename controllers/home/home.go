@@ -32,18 +32,16 @@ func RootHandler(c *gin.Context) {
 	}
 
 	// 获取默认模板数据
-	defaultData := homeBaseController.GetDefaultTemplateData()
+	data := homeBaseController.GetDefaultTemplateData()
 
-	// 准备模板数据，优先使用数据库配置，不存在时使用默认值
-	data := gin.H{
-		"SystemName":    getSettingValue("site_title", defaultData["SystemName"].(string), db),
-		"FooterText":    getSettingValue("footer_text", defaultData["FooterText"].(string), db),
-		"ICPRecord":     getSettingValue("icp_record", defaultData["ICPRecord"].(string), db),
-		"ICPRecordLink": getSettingValue("icp_record_link", defaultData["ICPRecordLink"].(string), db),
-		"PSBRecord":     getSettingValue("psb_record", defaultData["PSBRecord"].(string), db),
-		"PSBRecordLink": getSettingValue("psb_record_link", defaultData["PSBRecordLink"].(string), db),
-		"title":         "主页",
-	}
+	// 从数据库读取设置，优先使用数据库配置，不存在时使用默认值
+	data["SystemName"] = getSettingValue("site_title", data["SystemName"].(string), db)
+	data["FooterText"] = getSettingValue("footer_text", data["FooterText"].(string), db)
+	data["ICPRecord"] = getSettingValue("icp_record", data["ICPRecord"].(string), db)
+	data["ICPRecordLink"] = getSettingValue("icp_record_link", data["ICPRecordLink"].(string), db)
+	data["PSBRecord"] = getSettingValue("psb_record", data["PSBRecord"].(string), db)
+	data["PSBRecordLink"] = getSettingValue("psb_record_link", data["PSBRecordLink"].(string), db)
+	data["title"] = "主页"
 
 	c.HTML(http.StatusOK, "index.html", data)
 }

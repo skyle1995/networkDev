@@ -14,24 +14,30 @@
           <div style="padding: 20px;">
             <form class="layui-form" id="passwordForm" lay-filter="passwordForm" onsubmit="return false">
               <div class="layui-form-item">
-                <label class="layui-form-label">当前密码</label>
+                <label class="layui-form-label" style="cursor: pointer;" data-tips="user-old-password">当前密码</label>
                 <div class="layui-input-block">
-                  <input type="password" name="old_password" placeholder="请输入当前密码" autocomplete="off"
-                    class="layui-input" lay-verify="required" />
+                  <div class="layui-input-wrap">
+                    <input type="password" name="old_password" placeholder="请输入当前密码" autocomplete="off"
+                      class="layui-input" lay-verify="required" lay-affix="eye" />
+                  </div>
                 </div>
               </div>
               <div class="layui-form-item">
-                <label class="layui-form-label">新的密码</label>
+                <label class="layui-form-label" style="cursor: pointer;" data-tips="user-new-password">新的密码</label>
                 <div class="layui-input-block">
-                  <input type="password" name="new_password" placeholder="请输入新密码（至少6位）" autocomplete="off"
-                    class="layui-input" lay-verify="required" />
+                  <div class="layui-input-wrap">
+                    <input type="password" name="new_password" placeholder="请输入新密码（至少6位）" autocomplete="off"
+                      class="layui-input" lay-verify="required" lay-affix="eye" />
+                  </div>
                 </div>
               </div>
               <div class="layui-form-item">
                 <label class="layui-form-label">确认密码</label>
                 <div class="layui-input-block">
-                  <input type="password" name="confirm_password" placeholder="请再次输入新密码" autocomplete="off"
-                    class="layui-input" lay-verify="required" />
+                  <div class="layui-input-wrap">
+                    <input type="password" name="confirm_password" placeholder="请再次输入新密码" autocomplete="off"
+                      class="layui-input" lay-verify="required" lay-affix="eye" />
+                  </div>
                 </div>
               </div>
               <div class="layui-form-item">
@@ -62,17 +68,19 @@
                 </div>
               </div>
               <div class="layui-form-item">
-                <label class="layui-form-label">新用户名</label>
+                <label class="layui-form-label" style="cursor: pointer;" data-tips="user-username">新用户名</label>
                 <div class="layui-input-block">
                   <input type="text" name="new_username" placeholder="请输入新用户名" autocomplete="off" class="layui-input"
                     lay-verify="required" />
                 </div>
               </div>
               <div class="layui-form-item">
-                <label class="layui-form-label">当前密码</label>
+                <label class="layui-form-label" style="cursor: pointer;" data-tips="user-old-password">当前密码</label>
                 <div class="layui-input-block">
-                  <input type="password" name="password" placeholder="请输入当前密码以确认身份" autocomplete="off"
-                    class="layui-input" lay-verify="required" />
+                  <div class="layui-input-wrap">
+                    <input type="password" name="password" placeholder="请输入当前密码以确认身份" autocomplete="off"
+                      class="layui-input" lay-verify="required" lay-affix="eye" />
+                  </div>
                 </div>
               </div>
               <div class="layui-form-item">

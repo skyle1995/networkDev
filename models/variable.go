@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -23,11 +24,14 @@ type Variable struct {
 	// UUID：变量的唯一标识符，36位字符串
 	UUID string `gorm:"uniqueIndex;size:36;not null;comment:变量的唯一标识符" json:"uuid"`
 
-	// Number：变量编号，时间戳+6位随机数字格式
-	Number string `gorm:"uniqueIndex;size:20;not null;comment:变量编号，时间戳+6位随机数字格式" json:"number"`
+	// Number：变量编号，13位Unix时间戳（毫秒级）
+	Number string `gorm:"uniqueIndex;size:13;not null;comment:变量编号，13位Unix时间戳" json:"number"`
+
+	// AppUUID：应用绑定标识符，"0"表示全局变量，其他UUID表示绑定到特定应用
+	AppUUID string `gorm:"size:36;not null;default:'0';comment:应用绑定标识符" json:"app_uuid"`
 
 	// Alias：变量别名，便于识别和管理
-	Alias string `gorm:"size:100;not null;comment:变量别名" json:"alias"`
+	Alias string `gorm:"uniqueIndex;size:100;not null;comment:变量别名" json:"alias"`
 
 	// Data：变量数据内容
 	Data string `gorm:"type:text;comment:变量数据" json:"data"`
@@ -46,9 +50,9 @@ func (variable *Variable) BeforeCreate(tx *gorm.DB) error {
 	if variable.UUID == "" {
 		variable.UUID = strings.ToUpper(uuid.New().String())
 	}
-	
-	// 生成Number：使用时间戳格式
-	variable.Number = time.Now().Format("20060102150405")
+
+	// 生成Number：使用13位Unix时间戳（毫秒级）
+	variable.Number = fmt.Sprintf("%d", time.Now().UnixMilli())
 	return nil
 }
 

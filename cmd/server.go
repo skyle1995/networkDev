@@ -98,7 +98,7 @@ func createHTTPServer(addr string) *http.Server {
 
 	// 创建Gin引擎
 	router := gin.New()
-	
+
 	// 添加恢复中间件
 	router.Use(gin.Recovery())
 
@@ -176,11 +176,11 @@ func startServer(server *http.Server) {
 func configureGin() {
 	// 禁用Gin的颜色输出，提高控制台兼容性
 	gin.DisableConsoleColor()
-	
+
 	// 设置Gin的输出为丢弃，因为我们使用自定义日志中间件
 	gin.DefaultWriter = io.Discard
 	gin.DefaultErrorWriter = io.Discard
-	
+
 	// 根据配置设置Gin模式
 	if viper.GetString("app.mode") == "production" {
 		gin.SetMode(gin.ReleaseMode)

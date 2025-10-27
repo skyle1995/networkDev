@@ -1,6 +1,6 @@
 {{ define "apis.html" }}
 <section>
-  <h2>接口管理</h2>
+  <h2>接口设置</h2>
   <div class="layui-panel" style="margin-top:12px">
     <h3 style="margin: 0; padding: 15px 20px; border-bottom: 1px solid var(--lay-color-border-2); padding-bottom: 10px; margin-bottom: 15px;">筛选</h3>
     <div style="padding: 20px;">
@@ -10,7 +10,7 @@
             <label class="layui-form-label">应用</label>
             <div class="layui-input-inline">
               <select name="app_uuid" lay-filter="appSelect" lay-search="">
-                <option value="">请选择应用</option>
+                <option value="">全部应用</option>
               </select>
             </div>
           </div>
@@ -268,14 +268,14 @@
           width: 160,
           templet: (d) => formatDateTime(d.updated_at)
         },
-        { fixed: 'right', title: '操作', toolbar: '#tpl-apis-ops', width: 100, align: 'center' }
+        { fixed: 'right', title: '操作', toolbar: '#tpl-apis-ops', width: 80, align: 'center' }
       ]]
     });
 
     // 加载应用列表到筛选器
     function loadApps() {
       $.ajax({
-        url: '/admin/api/apis/apps',
+        url: '/admin/api/apps/simple',
         type: 'GET',
         success: function (res) {
           if (res.code === 0 && res.data) {
@@ -284,7 +284,7 @@
             filterSelect.find('option:not(:first)').remove();
             // 添加应用选项（不默认选中，保持“请选择应用”以显示全部接口）
             res.data.forEach(function (app) {
-              var option = '<option value="' + app.uuid + '">' + app.name + '</option>';
+              var option = '<option value="' + app.uuid + '">' + app.name + '(ID:' + app.id + ')' + '</option>';
               filterSelect.append(option);
             });
             // 仅刷新下拉，不触发表格按应用过滤，默认显示全部接口

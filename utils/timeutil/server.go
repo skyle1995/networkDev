@@ -21,24 +21,27 @@ func GetServerUptime() time.Duration {
 }
 
 // GetServerUptimeString 获取服务器运行时长的字符串表示
-// 返回: 格式化的运行时长字符串
+// 返回: 格式化的运行时长字符串（中文单位）
 func GetServerUptimeString() string {
 	duration := time.Since(serverStartTime)
 
 	// 获取总秒数并转换为整数
 	totalSeconds := int(duration.Seconds())
 
-	// 计算小时、分钟、秒
-	hours := totalSeconds / 3600
+	// 计算天、小时、分钟、秒
+	days := totalSeconds / 86400
+	hours := (totalSeconds % 86400) / 3600
 	minutes := (totalSeconds % 3600) / 60
 	seconds := totalSeconds % 60
 
 	// 根据时长长度选择合适的格式
-	if hours > 0 {
-		return fmt.Sprintf("%dh%dm%ds", hours, minutes, seconds)
+	if days > 0 {
+		return fmt.Sprintf("%d天%d小时%d分钟", days, hours, minutes)
+	} else if hours > 0 {
+		return fmt.Sprintf("%d小时%d分钟%d秒", hours, minutes, seconds)
 	} else if minutes > 0 {
-		return fmt.Sprintf("%dm%ds", minutes, seconds)
+		return fmt.Sprintf("%d分钟%d秒", minutes, seconds)
 	} else {
-		return fmt.Sprintf("%ds", seconds)
+		return fmt.Sprintf("%d秒", seconds)
 	}
 }

@@ -1,6 +1,6 @@
 {{ define "apps.html" }}
 <section>
-  <h2>应用管理</h2>
+  <h2>应用程序</h2>
   <div class="layui-btn-container" style="margin:12px 0">
     <button class="layui-btn" id="btnAddApp"><i class="layui-icon layui-icon-add-1"></i> 新增应用</button>
     <button class="layui-btn layui-btn-danger" id="btnBatchDeleteApps"><i class="layui-icon layui-icon-delete"></i>
@@ -94,7 +94,7 @@
       <div class="layui-form-item" id="downloadUrlItem">
         <label class="layui-form-label" style="cursor: pointer;" data-tips="download-url">下载地址</label>
         <div class="layui-input-block">
-          <input type="text" name="download_url" placeholder="请输入下载地址" autocomplete="off" class="layui-input" />
+          <input type="text" name="download_url" placeholder="请输入下载/更新地址" autocomplete="off" class="layui-input" />
         </div>
       </div>
 
@@ -123,7 +123,7 @@
         <div class="layui-inline">
           <label class="layui-form-label" style="cursor: pointer;" data-tips="clean-interval">清理间隔</label>
           <div class="layui-input-inline">
-            <input type="number" name="clean_interval" class="layui-input" placeholder="请输入"
+            <input type="number" name="clean_interval" lay-affix="number" class="layui-input" placeholder="请输入"
               lay-verify="required|number" min="1">
           </div>
           <div class="layui-form-mid layui-text-em">小时</div>
@@ -133,7 +133,7 @@
         <div class="layui-inline">
           <label class="layui-form-label" style="cursor: pointer;" data-tips="check-interval">校验间隔</label>
           <div class="layui-input-inline">
-            <input type="number" name="check_interval" class="layui-input" placeholder="请输入"
+            <input type="number" name="check_interval" lay-affix="number" class="layui-input" placeholder="请输入"
               lay-verify="required|number" min="1">
           </div>
           <div class="layui-form-mid layui-text-em">分钟</div>
@@ -142,7 +142,7 @@
       <div class="layui-form-item">
         <label class="layui-form-label" style="cursor: pointer;" data-tips="multi-open-count">多开数量</label>
         <div class="layui-input-block">
-          <input type="number" name="multi_open_count" class="layui-input" placeholder="请输入允许的多开数量"
+          <input type="number" name="multi_open_count" lay-affix="number" class="layui-input" placeholder="请输入允许的多开数量"
             lay-verify="required|number" min="1">
         </div>
       </div>
@@ -180,21 +180,21 @@
       <div class="layui-form-item">
         <label class="layui-form-label" style="cursor: pointer;" data-tips="machine-free-count">免费次数</label>
         <div class="layui-input-block">
-          <input type="number" name="machine_free_count" class="layui-input" placeholder="请输入" lay-verify="number"
+          <input type="number" name="machine_free_count" lay-affix="number" class="layui-input" placeholder="请输入" lay-verify="number"
             min="0">
         </div>
       </div>
       <div class="layui-form-item">
         <label class="layui-form-label" style="cursor: pointer;" data-tips="machine-rebind-count">重绑次数</label>
         <div class="layui-input-block">
-          <input type="number" name="machine_rebind_count" class="layui-input" placeholder="请输入" lay-verify="number"
+          <input type="number" name="machine_rebind_count" lay-affix="number" class="layui-input" placeholder="请输入" lay-verify="number"
             min="0">
         </div>
       </div>
       <div class="layui-form-item">
         <label class="layui-form-label" style="cursor: pointer;" data-tips="machine-rebind-deduct">重绑扣除</label>
         <div class="layui-input-block">
-          <input type="number" name="machine_rebind_deduct" class="layui-input" placeholder="请输入重绑扣除时间（分钟）"
+          <input type="number" name="machine_rebind_deduct" lay-affix="number" class="layui-input" placeholder="请输入重绑扣除时间（分钟）"
             lay-verify="number" min="0">
         </div>
       </div>
@@ -229,19 +229,19 @@
       <div class="layui-form-item">
         <label class="layui-form-label" style="cursor: pointer;" data-tips="ip-free-count">免费次数</label>
         <div class="layui-input-block">
-          <input type="number" name="ip_free_count" class="layui-input" placeholder="请输入" lay-verify="number" min="0">
+          <input type="number" name="ip_free_count" lay-affix="number" class="layui-input" placeholder="请输入" lay-verify="number" min="0">
         </div>
       </div>
       <div class="layui-form-item">
         <label class="layui-form-label" style="cursor: pointer;" data-tips="ip-rebind-count">重绑次数</label>
         <div class="layui-input-block">
-          <input type="number" name="ip_rebind_count" class="layui-input" placeholder="请输入" lay-verify="number" min="0">
+          <input type="number" name="ip_rebind_count" lay-affix="number" class="layui-input" placeholder="请输入" lay-verify="number" min="0">
         </div>
       </div>
       <div class="layui-form-item">
         <label class="layui-form-label" style="cursor: pointer;" data-tips="ip-rebind-deduct">重绑扣除</label>
         <div class="layui-input-block">
-          <input type="number" name="ip_rebind_deduct" class="layui-input" placeholder="请输入重绑扣除时间（分钟）"
+          <input type="number" name="ip_rebind_deduct" lay-affix="number" class="layui-input" placeholder="请输入重绑扣除时间（分钟）"
             lay-verify="number" min="0">
         </div>
       </div>
@@ -279,7 +279,7 @@
       <div class="layui-form-item">
         <label class="layui-form-label" style="cursor: pointer;" data-tips="register-count">注册次数</label>
         <div class="layui-input-block">
-          <input type="number" name="register_count" class="layui-input" placeholder="请输入" lay-verify="required|number"
+          <input type="number" name="register_count" lay-affix="number" class="layui-input" placeholder="请输入" lay-verify="required|number"
             min="1">
         </div>
       </div>
@@ -305,7 +305,7 @@
       <div class="layui-form-item">
         <label class="layui-form-label" style="cursor: pointer;" data-tips="trial-time">试用时间</label>
         <div class="layui-input-block">
-          <input type="number" name="trial_duration" class="layui-input" placeholder="请输入试用时间（分钟）" lay-verify="number"
+          <input type="number" name="trial_duration" lay-affix="number" class="layui-input" placeholder="请输入试用时间（分钟）" lay-verify="number"
             min="0">
         </div>
       </div>
@@ -390,7 +390,7 @@
               width: 180,
               templet: (d) => formatDateTime(d.created_at)
             },
-            { fixed: 'right', title: '操作', toolbar: '#tpl-apps-ops', width: 180 }
+            { fixed: 'right', title: '操作', toolbar: '#tpl-apps-ops', width: 185 }
           ]]
         });
 

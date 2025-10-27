@@ -15,10 +15,10 @@ import (
 // 创建基础控制器实例
 var variableBaseController = controllers.NewBaseController()
 
-// VariableFragmentHandler 变量列表页面片段处理器
+// VariableFragmentHandler 公共变量列表页面片段处理器
 func VariableFragmentHandler(c *gin.Context) {
 	c.HTML(http.StatusOK, "variables.html", gin.H{
-		"Title": "变量管理",
+		"Title": "公共变量",
 	})
 }
 
@@ -46,6 +46,9 @@ func VariableListHandler(c *gin.Context) {
 		search = strings.TrimSpace(c.Query("alias"))
 	}
 
+	// 获取应用筛选参数
+	appUUID := strings.TrimSpace(c.Query("app_uuid"))
+
 	// 构建查询
 	db, ok := variableBaseController.GetDB(c)
 	if !ok {
@@ -59,6 +62,11 @@ func VariableListHandler(c *gin.Context) {
 	if search != "" {
 		query = query.Where("number LIKE ? OR alias LIKE ? OR data LIKE ? OR remark LIKE ?",
 			"%"+search+"%", "%"+search+"%", "%"+search+"%", "%"+search+"%")
+	}
+
+	// 如果指定了应用筛选，则按应用UUID筛选
+	if appUUID != "" {
+		query = query.Where("app_uuid = ?", appUUID)
 	}
 
 	// 获取总数
@@ -83,6 +91,7 @@ func VariableListHandler(c *gin.Context) {
 		ID        uint   `json:"id"`
 		UUID      string `json:"uuid"`
 		Number    string `json:"number"`
+		AppUUID   string `json:"app_uuid"`
 		Alias     string `json:"alias"`
 		Data      string `json:"data"`
 		Remark    string `json:"remark"`
@@ -96,6 +105,7 @@ func VariableListHandler(c *gin.Context) {
 			ID:        variable.ID,
 			UUID:      variable.UUID,
 			Number:    variable.Number,
+			AppUUID:   variable.AppUUID,
 			Alias:     variable.Alias,
 			Data:      variable.Data,
 			Remark:    variable.Remark,
@@ -117,9 +127,10 @@ func VariableListHandler(c *gin.Context) {
 // VariableCreateHandler 新增变量API处理器
 func VariableCreateHandler(c *gin.Context) {
 	var req struct {
-		Alias  string `json:"alias"`
-		Data   string `json:"data"`
-		Remark string `json:"remark"`
+		Alias   string `json:"alias"`
+		AppUUID string `json:"app_uuid"`
+		Data    string `json:"data"`
+		Remark  string `json:"remark"`
 	}
 
 	if !variableBaseController.BindJSON(c, &req) {
@@ -145,11 +156,52 @@ func VariableCreateHandler(c *gin.Context) {
 		return
 	}
 
+	// 处理应用UUID：如果为空或"0"，设置为"0"（全局变量）
+	updateAppUUID := strings.TrimSpace(req.AppUUID)
+	if updateAppUUID == "" {
+		updateAppUUID = "0"
+	}
+
+	// 如果指定了应用UUID且不是"0"，验证应用是否存在
+	if updateAppUUID != "0" {
+		var appCount int64
+		if err := db.Model(&models.App{}).Where("uuid = ?", updateAppUUID).Count(&appCount).Error; err != nil {
+			logrus.WithError(err).Error("Failed to check app existence")
+			variableBaseController.HandleInternalError(c, "验证应用失败", err)
+			return
+		}
+		if appCount == 0 {
+			variableBaseController.HandleValidationError(c, "指定的应用不存在")
+			return
+		}
+	}
+
+	// 处理应用UUID：如果为空或"0"，设置为"0"（全局变量）
+	appUUID := strings.TrimSpace(req.AppUUID)
+	if appUUID == "" {
+		appUUID = "0"
+	}
+
+	// 如果指定了应用UUID且不是"0"，验证应用是否存在
+	if appUUID != "0" {
+		var appCount int64
+		if err := db.Model(&models.App{}).Where("uuid = ?", appUUID).Count(&appCount).Error; err != nil {
+			logrus.WithError(err).Error("Failed to check app existence")
+			variableBaseController.HandleInternalError(c, "验证应用失败", err)
+			return
+		}
+		if appCount == 0 {
+			variableBaseController.HandleValidationError(c, "指定的应用不存在")
+			return
+		}
+	}
+
 	// 创建变量
 	variable := models.Variable{
-		Alias:  strings.TrimSpace(req.Alias),
-		Data:   req.Data,
-		Remark: strings.TrimSpace(req.Remark),
+		Alias:   strings.TrimSpace(req.Alias),
+		AppUUID: appUUID,
+		Data:    req.Data,
+		Remark:  strings.TrimSpace(req.Remark),
 	}
 
 	if err := db.Create(&variable).Error; err != nil {
@@ -164,34 +216,46 @@ func VariableCreateHandler(c *gin.Context) {
 // VariableUpdateHandler 更新变量API处理器
 func VariableUpdateHandler(c *gin.Context) {
 	var req struct {
-		UUID   string `json:"uuid"`
-		Alias  string `json:"alias"`
-		Data   string `json:"data"`
-		Remark string `json:"remark"`
+		UUID    string `json:"uuid"`
+		AppUUID string `json:"app_uuid"`
+		Data    string `json:"data"`
+		Remark  string `json:"remark"`
 	}
 
 	if !variableBaseController.BindJSON(c, &req) {
 		return
 	}
 
-	// 验证必填字段
+	// 验证必填字段（移除对alias的验证，因为编辑时不允许修改别名）
 	if !variableBaseController.ValidateRequired(c, map[string]interface{}{
 		"变量UUID": req.UUID,
-		"变量别名":   req.Alias,
 	}) {
-		return
-	}
-
-	// 验证别名格式：必须以英文字母开头，只能包含数字和英文字母
-	aliasPattern := regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9]*$`)
-	if !aliasPattern.MatchString(req.Alias) {
-		variableBaseController.HandleValidationError(c, "别名必须以英文字母开头，只能包含数字和英文字母")
 		return
 	}
 
 	db, ok := variableBaseController.GetDB(c)
 	if !ok {
 		return
+	}
+
+	// 处理应用UUID：如果为空或"0"，设置为"0"（全局变量）
+	updateAppUUID := strings.TrimSpace(req.AppUUID)
+	if updateAppUUID == "" {
+		updateAppUUID = "0"
+	}
+
+	// 如果指定了应用UUID且不是"0"，验证应用是否存在
+	if updateAppUUID != "0" {
+		var appCount int64
+		if err := db.Model(&models.App{}).Where("uuid = ?", updateAppUUID).Count(&appCount).Error; err != nil {
+			logrus.WithError(err).Error("Failed to check app existence")
+			variableBaseController.HandleInternalError(c, "验证应用失败", err)
+			return
+		}
+		if appCount == 0 {
+			variableBaseController.HandleValidationError(c, "指定的应用不存在")
+			return
+		}
 	}
 
 	// 通过uuid字段查找变量
@@ -201,8 +265,8 @@ func VariableUpdateHandler(c *gin.Context) {
 		return
 	}
 
-	// 更新字段（不允许修改应用关联）
-	variable.Alias = strings.TrimSpace(req.Alias)
+	// 更新字段（不更新alias，保持原有别名不变）
+	variable.AppUUID = updateAppUUID
 	variable.Data = req.Data
 	variable.Remark = strings.TrimSpace(req.Remark)
 

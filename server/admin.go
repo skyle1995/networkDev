@@ -58,6 +58,7 @@ func RegisterAdminRoutes(router *gin.Engine) {
 	router.GET("/admin/apps", adminctl.AdminAuthRequired(), adminctl.AppsFragmentHandler)
 	router.GET("/admin/apis", adminctl.AdminAuthRequired(), adminctl.APIFragmentHandler)
 	router.GET("/admin/variables", adminctl.AdminAuthRequired(), adminctl.VariableFragmentHandler)
+	router.GET("/admin/functions", adminctl.AdminAuthRequired(), adminctl.FunctionFragmentHandler)
 
 	// 系统信息API（用于仪表盘定时刷新）
 	router.GET("/admin/api/system/info", adminctl.AdminAuthRequired(), adminctl.SystemInfoHandler)
@@ -66,46 +67,72 @@ func RegisterAdminRoutes(router *gin.Engine) {
 	router.GET("/admin/api/dashboard/stats", adminctl.AdminAuthRequired(), adminctl.DashboardStatsHandler)
 
 	// 个人资料API
-	router.GET("/admin/api/user/profile", adminctl.AdminAuthRequired(), adminctl.UserProfileQueryHandler)
-	router.POST("/admin/api/user/profile/update", adminctl.AdminAuthRequired(), adminctl.UserProfileUpdateHandler)
-	router.POST("/admin/api/user/password", adminctl.AdminAuthRequired(), adminctl.UserPasswordUpdateHandler)
+	userGroup := router.Group("/admin/api/user", adminctl.AdminAuthRequired())
+	{
+		userGroup.GET("/profile", adminctl.UserProfileQueryHandler)
+		userGroup.POST("/profile/update", adminctl.UserProfileUpdateHandler)
+		userGroup.POST("/password", adminctl.UserPasswordUpdateHandler)
+	}
 
 	// 系统设置API
-	router.GET("/admin/api/settings", adminctl.AdminAuthRequired(), adminctl.SettingsQueryHandler)
-	router.POST("/admin/api/settings/update", adminctl.AdminAuthRequired(), adminctl.SettingsUpdateHandler)
+	settingsGroup := router.Group("/admin/api/settings", adminctl.AdminAuthRequired())
+	{
+		settingsGroup.GET("", adminctl.SettingsQueryHandler)
+		settingsGroup.POST("/update", adminctl.SettingsUpdateHandler)
+	}
 
 	// 应用管理API
-	router.GET("/admin/api/apps/list", adminctl.AdminAuthRequired(), adminctl.AppsListHandler)
-	router.POST("/admin/api/apps/create", adminctl.AdminAuthRequired(), adminctl.AppCreateHandler)
-	router.POST("/admin/api/apps/update", adminctl.AdminAuthRequired(), adminctl.AppUpdateHandler)
-	router.POST("/admin/api/apps/delete", adminctl.AdminAuthRequired(), adminctl.AppDeleteHandler)
-	router.POST("/admin/api/apps/batch_delete", adminctl.AdminAuthRequired(), adminctl.AppsBatchDeleteHandler)
-	router.POST("/admin/api/apps/batch_update_status", adminctl.AdminAuthRequired(), adminctl.AppsBatchUpdateStatusHandler)
-	router.POST("/admin/api/apps/update_status", adminctl.AdminAuthRequired(), adminctl.AppUpdateStatusHandler)
-	router.POST("/admin/api/apps/reset_secret", adminctl.AdminAuthRequired(), adminctl.AppResetSecretHandler)
-	router.GET("/admin/api/apps/get_app_data", adminctl.AdminAuthRequired(), adminctl.AppGetAppDataHandler)
-	router.POST("/admin/api/apps/update_app_data", adminctl.AdminAuthRequired(), adminctl.AppUpdateAppDataHandler)
-	router.GET("/admin/api/apps/get_announcement", adminctl.AdminAuthRequired(), adminctl.AppGetAnnouncementHandler)
-	router.POST("/admin/api/apps/update_announcement", adminctl.AdminAuthRequired(), adminctl.AppUpdateAnnouncementHandler)
-	router.GET("/admin/api/apps/get_multi_config", adminctl.AdminAuthRequired(), adminctl.AppGetMultiConfigHandler)
-	router.POST("/admin/api/apps/update_multi_config", adminctl.AdminAuthRequired(), adminctl.AppUpdateMultiConfigHandler)
-	router.GET("/admin/api/apps/get_bind_config", adminctl.AdminAuthRequired(), adminctl.AppGetBindConfigHandler)
-	router.POST("/admin/api/apps/update_bind_config", adminctl.AdminAuthRequired(), adminctl.AppUpdateBindConfigHandler)
-	router.GET("/admin/api/apps/get_register_config", adminctl.AdminAuthRequired(), adminctl.AppGetRegisterConfigHandler)
-	router.POST("/admin/api/apps/update_register_config", adminctl.AdminAuthRequired(), adminctl.AppUpdateRegisterConfigHandler)
+	appsGroup := router.Group("/admin/api/apps", adminctl.AdminAuthRequired())
+	{
+		appsGroup.GET("/list", adminctl.AppsListHandler)
+		appsGroup.GET("/simple", adminctl.AppsSimpleListHandler)
+		appsGroup.POST("/create", adminctl.AppCreateHandler)
+		appsGroup.POST("/update", adminctl.AppUpdateHandler)
+		appsGroup.POST("/delete", adminctl.AppDeleteHandler)
+		appsGroup.POST("/batch_delete", adminctl.AppsBatchDeleteHandler)
+		appsGroup.POST("/batch_update_status", adminctl.AppsBatchUpdateStatusHandler)
+		appsGroup.POST("/update_status", adminctl.AppUpdateStatusHandler)
+		appsGroup.POST("/reset_secret", adminctl.AppResetSecretHandler)
+		appsGroup.GET("/get_app_data", adminctl.AppGetAppDataHandler)
+		appsGroup.POST("/update_app_data", adminctl.AppUpdateAppDataHandler)
+		appsGroup.GET("/get_announcement", adminctl.AppGetAnnouncementHandler)
+		appsGroup.POST("/update_announcement", adminctl.AppUpdateAnnouncementHandler)
+		appsGroup.GET("/get_multi_config", adminctl.AppGetMultiConfigHandler)
+		appsGroup.POST("/update_multi_config", adminctl.AppUpdateMultiConfigHandler)
+		appsGroup.GET("/get_bind_config", adminctl.AppGetBindConfigHandler)
+		appsGroup.POST("/update_bind_config", adminctl.AppUpdateBindConfigHandler)
+		appsGroup.GET("/get_register_config", adminctl.AppGetRegisterConfigHandler)
+		appsGroup.POST("/update_register_config", adminctl.AppUpdateRegisterConfigHandler)
+	}
 
 	// API接口管理API
-	router.GET("/admin/api/apis/list", adminctl.AdminAuthRequired(), adminctl.APIListHandler)
-	router.POST("/admin/api/apis/update", adminctl.AdminAuthRequired(), adminctl.APIUpdateHandler)
-	router.POST("/admin/api/apis/update_status", adminctl.AdminAuthRequired(), adminctl.APIUpdateStatusHandler)
-	router.GET("/admin/api/apis/apps", adminctl.AdminAuthRequired(), adminctl.APIGetAppsHandler)
-	router.GET("/admin/api/apis/types", adminctl.AdminAuthRequired(), adminctl.APIGetTypesHandler)
-	router.POST("/admin/api/apis/generate_keys", adminctl.AdminAuthRequired(), adminctl.APIGenerateKeysHandler)
+	apisGroup := router.Group("/admin/api/apis", adminctl.AdminAuthRequired())
+	{
+		apisGroup.GET("/list", adminctl.APIListHandler)
+		apisGroup.POST("/update", adminctl.APIUpdateHandler)
+		apisGroup.POST("/update_status", adminctl.APIUpdateStatusHandler)
+		apisGroup.GET("/types", adminctl.APIGetTypesHandler)
+		apisGroup.POST("/generate_keys", adminctl.APIGenerateKeysHandler)
+	}
 
 	// 变量管理API
-	router.GET("/admin/variable/list", adminctl.AdminAuthRequired(), adminctl.VariableListHandler)
-	router.POST("/admin/variable/create", adminctl.AdminAuthRequired(), adminctl.VariableCreateHandler)
-	router.POST("/admin/variable/update", adminctl.AdminAuthRequired(), adminctl.VariableUpdateHandler)
-	router.POST("/admin/variable/delete", adminctl.AdminAuthRequired(), adminctl.VariableDeleteHandler)
-	router.POST("/admin/variable/batch_delete", adminctl.AdminAuthRequired(), adminctl.VariablesBatchDeleteHandler)
+	variableGroup := router.Group("/admin/variable", adminctl.AdminAuthRequired())
+	{
+		variableGroup.GET("/list", adminctl.VariableListHandler)
+		variableGroup.POST("/create", adminctl.VariableCreateHandler)
+		variableGroup.POST("/update", adminctl.VariableUpdateHandler)
+		variableGroup.POST("/delete", adminctl.VariableDeleteHandler)
+		variableGroup.POST("/batch_delete", adminctl.VariablesBatchDeleteHandler)
+	}
+
+	// 函数管理API
+	functionGroup := router.Group("/admin/function", adminctl.AdminAuthRequired())
+	{
+		functionGroup.GET("/list", adminctl.FunctionListHandler)
+		functionGroup.POST("/create", adminctl.FunctionCreateHandler)
+		functionGroup.POST("/update", adminctl.FunctionUpdateHandler)
+		functionGroup.POST("/delete", adminctl.FunctionDeleteHandler)
+		functionGroup.POST("/batch_delete", adminctl.FunctionsBatchDeleteHandler)
+	}
+
 }
