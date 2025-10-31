@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"networkDev/utils"
+	"path/filepath"
 	"sync"
 
 	"github.com/glebarez/sqlite"
@@ -91,7 +92,15 @@ func initSQLite() error {
 	if path == "" {
 		path = "./database.db"
 	}
-	dsn := fmt.Sprintf("file:%s?cache=shared&_busy_timeout=5000&_fk=1", path)
+	
+	// 确保数据库路径为绝对路径
+	absolutePath, err := utils.EnsureAbsolutePath(path)
+	if err != nil {
+		logrus.WithError(err).Error("转换SQLite数据库路径为绝对路径失败")
+		return err
+	}
+	
+	dsn := fmt.Sprintf("file:%s?cache=shared&_busy_timeout=5000&_fk=1", absolutePath)
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	if err != nil {
 		logrus.WithError(err).Error("SQLite 初始化失败")
@@ -106,7 +115,9 @@ func initSQLite() error {
 	}
 
 	dbInstance = db
-	logrus.WithField("path", path).Info("SQLite 连接已建立")
+	// 记录连接成功信息（只显示文件名，不泄露完整路径）
+	fileName := filepath.Base(absolutePath)
+	logrus.WithField("file", fileName).Info("SQLite 连接已建立")
 	return nil
 }
 

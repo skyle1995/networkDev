@@ -11,6 +11,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"networkDev/utils"
 )
 
 // ============================================================================
@@ -31,7 +32,7 @@ func ValidateConfig() (*AppConfig, error) {
 		return nil, fmt.Errorf("配置验证失败: %w", err)
 	}
 
-	log.Info("配置验证通过")
+	log.Info("配置内容验证通过")
 	return &config, nil
 }
 
@@ -133,6 +134,15 @@ func validateSQLiteConfig(config *SQLiteConfig) error {
 	if config.Path == "" {
 		return errors.New("SQLite数据库路径不能为空")
 	}
+
+	// 确保数据库路径为绝对路径
+	absolutePath, err := utils.EnsureAbsolutePath(config.Path)
+	if err != nil {
+		return fmt.Errorf("转换SQLite数据库路径为绝对路径失败: %w", err)
+	}
+	
+	// 更新配置中的路径为绝对路径
+	config.Path = absolutePath
 
 	// 检查目录是否存在，不存在则创建
 	dir := filepath.Dir(config.Path)

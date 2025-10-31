@@ -6,9 +6,11 @@ import (
 	"errors"
 	"io/fs"
 	"os"
+	"path/filepath"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"networkDev/utils"
 )
 
 // ============================================================================
@@ -115,9 +117,9 @@ func GetDefaultAppConfig() *AppConfig {
 			MySQL: MySQLConfig{
 				Host:         "localhost",
 				Port:         3306,
-				Username:     "root",
-				Password:     "password",
-				Database:     "networkdev",
+				Username:     "",
+				Password:     "",
+				Database:     "",
 				Charset:      "utf8mb4",
 				MaxIdleConns: 10,
 				MaxOpenConns: 100,
@@ -172,7 +174,17 @@ func GetSecureDefaultAppConfig() (*AppConfig, error) {
 
 // Init 初始化配置文件
 func Init(cfgFilePath string) {
-	viper.SetConfigFile(cfgFilePath)
+	// 确保配置文件路径为绝对路径
+	absoluteConfigPath, err := utils.EnsureAbsolutePath(cfgFilePath)
+	if err != nil {
+		log.WithFields(
+			log.Fields{
+				"err": err,
+				"path": cfgFilePath,
+			},
+		).Fatal("转换配置文件路径为绝对路径失败")
+	}
+	viper.SetConfigFile(absoluteConfigPath)
 	viper.SetConfigType("json")
 	viper.AddConfigPath(".")
 
@@ -203,8 +215,8 @@ func Init(cfgFilePath string) {
 				return
 			}
 
-			// 写入配置文件
-			err = os.WriteFile(cfgFilePath, configBytes, 0o644)
+			// 写入配置文件，使用绝对路径
+			err = os.WriteFile(absoluteConfigPath, configBytes, 0o644)
 			if err != nil {
 				log.WithFields(
 					log.Fields{
@@ -212,9 +224,11 @@ func Init(cfgFilePath string) {
 					},
 				).Error("写入默认配置文件失败")
 			} else {
+				// 只显示配置文件名，不显示完整路径
+				fileName := filepath.Base(cfgFilePath)
 				log.WithFields(
 					log.Fields{
-						"file": cfgFilePath,
+						"file": fileName,
 					},
 				).Info("写入默认配置文件成功（已生成安全密钥）")
 			}
@@ -238,11 +252,20 @@ func Init(cfgFilePath string) {
 			).Fatal("配置文件解析错误")
 		}
 	}
-	log.WithFields(
-		log.Fields{
-			"file": viper.ConfigFileUsed(),
-		},
-	).Info("使用配置文件")
+	
+	// 只显示配置文件名，不显示完整路径
+	configFile := viper.ConfigFileUsed()
+	if configFile != "" {
+		// 提取文件名
+		fileName := filepath.Base(configFile)
+		log.WithFields(
+			log.Fields{
+				"file": fileName,
+			},
+		).Info("使用配置文件")
+	} else {
+		log.Info("使用默认配置")
+	}
 
 	// 验证配置
 	if _, err := ValidateConfig(); err != nil {
@@ -250,12 +273,18 @@ func Init(cfgFilePath string) {
 			log.Fields{
 				"err": err,
 			},
-		).Fatal("配置验证失败")
+		).Fatal("配置内容验证失败")
 	}
 }
 
 // CreateDefaultConfig 创建默认配置文件
 func CreateDefaultConfig(filePath string) error {
+	// 确保文件路径为绝对路径
+	absoluteFilePath, err := utils.EnsureAbsolutePath(filePath)
+	if err != nil {
+		return err
+	}
+
 	// 生成带有安全密钥的默认配置
 	defaultConfig, err := GetSecureDefaultAppConfig()
 	if err != nil {
@@ -273,5 +302,5 @@ func CreateDefaultConfig(filePath string) error {
 		return err
 	}
 
-	return os.WriteFile(filePath, configBytes, 0o644)
+	return os.WriteFile(absoluteFilePath, configBytes, 0o644)
 }

@@ -174,6 +174,8 @@ func startServer(server *http.Server) {
 
 	// 等待中断信号
 	<-sigChan
+	// 清除终端上的 ^C 字符并移动光标到行首
+	fmt.Print("\r\033[K")
 	logger.Info("收到关闭信号，正在优雅关闭服务器...")
 
 	// 创建一个带超时的上下文

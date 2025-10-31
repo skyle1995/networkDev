@@ -81,8 +81,16 @@ func setupLogrusForNonHTTP() {
 		// 使用命令行指定的配置文件
 		config.Init(cfgFile)
 	} else {
-		// 使用默认配置文件路径
-		config.Init("./config.json")
+		// 使用默认配置文件路径，基于可执行文件所在目录
+		execPath, err := os.Executable()
+		if err != nil {
+			// 如果获取可执行文件路径失败，使用当前工作目录
+			config.Init("./config.json")
+		} else {
+			execDir := filepath.Dir(execPath)
+			configPath := filepath.Join(execDir, "config.json")
+			config.Init(configPath)
+		}
 	}
 
 	// 根据配置文件进一步配置logrus
@@ -92,7 +100,7 @@ func setupLogrusForNonHTTP() {
 	logger.InitLogger()
 
 	// 记录配置加载完成
-	logrus.WithField("config_file", viper.ConfigFileUsed()).Info("配置文件加载完成")
+	logrus.Info("配置文件加载完成")
 }
 
 // initConfig 读取配置文件和环境变量
