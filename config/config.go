@@ -10,7 +10,6 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"networkDev/utils"
 )
 
 // ============================================================================
@@ -174,17 +173,7 @@ func GetSecureDefaultAppConfig() (*AppConfig, error) {
 
 // Init 初始化配置文件
 func Init(cfgFilePath string) {
-	// 确保配置文件路径为绝对路径
-	absoluteConfigPath, err := utils.EnsureAbsolutePath(cfgFilePath)
-	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"err": err,
-				"path": cfgFilePath,
-			},
-		).Fatal("转换配置文件路径为绝对路径失败")
-	}
-	viper.SetConfigFile(absoluteConfigPath)
+	viper.SetConfigFile(cfgFilePath)
 	viper.SetConfigType("json")
 	viper.AddConfigPath(".")
 
@@ -215,8 +204,8 @@ func Init(cfgFilePath string) {
 				return
 			}
 
-			// 写入配置文件，使用绝对路径
-			err = os.WriteFile(absoluteConfigPath, configBytes, 0o644)
+			// 写入配置文件
+			err = os.WriteFile(cfgFilePath, configBytes, 0o644)
 			if err != nil {
 				log.WithFields(
 					log.Fields{
@@ -279,12 +268,6 @@ func Init(cfgFilePath string) {
 
 // CreateDefaultConfig 创建默认配置文件
 func CreateDefaultConfig(filePath string) error {
-	// 确保文件路径为绝对路径
-	absoluteFilePath, err := utils.EnsureAbsolutePath(filePath)
-	if err != nil {
-		return err
-	}
-
 	// 生成带有安全密钥的默认配置
 	defaultConfig, err := GetSecureDefaultAppConfig()
 	if err != nil {
@@ -302,5 +285,5 @@ func CreateDefaultConfig(filePath string) error {
 		return err
 	}
 
-	return os.WriteFile(absoluteFilePath, configBytes, 0o644)
+	return os.WriteFile(filePath, configBytes, 0o644)
 }
